@@ -6,7 +6,7 @@
   var $ = function (id) { return doc.getElementById(id); };
   var simdi = function () { return root.performance.now(); };
 
-  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt7_resmi', enIyi: 'dt6_en_iyi', gecmis: 'dt6_gecmis' };
+  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt8_resmi', enIyi: 'dt8_en_iyi', gecmis: 'dt8_gecmis' };
   var VURUS_SAYISI = A.pozisyonlar.length;
 
   var ayar = { ses: false, cubuk: true };
@@ -29,7 +29,7 @@
   }
 
   function menuGoster() {
-    $("temasPanel").hidden = true; kupaGoster();
+    $("temasPanel").hidden = true; kimlikGoster(); kupaGoster();
     d.faz = 'bos';
     ekranGoster('menu');
     var kayit = oku(ANAHTAR.resmi, null);
@@ -62,6 +62,7 @@
 
   /* ---------- seçim ve tur ---------- */
   function secimGoster(mod) {
+    var me=DT.live&&DT.live.identity&&DT.live.identity();if(!me){root.alert('Önce kendi oyuncuna giriş yap.');return;}
     d.mod = mod;
     ekranGoster('secim');
     $('secimNot').textContent = mod === 'resmi'
@@ -71,7 +72,7 @@
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
       b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.webp"><span>' + k.ad + '</span>';
-      b.disabled = mod === 'resmi' && (DT.live ? !DT.live.allowed(k.id) : !!kupaKayit()[k.id]);
+      b.disabled = k.id!==me.player || (mod==='resmi'&&!DT.live.allowed(k.id));
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
     });
@@ -81,6 +82,7 @@
 
   var turYukleniyor = false;
   function turBaslat(karakter, mod, kayit) {
+    var me=DT.live&&DT.live.identity&&DT.live.identity();if(!me||me.player!==karakter){root.alert('Bu oyuncu sana ait değil.');return;}
     if (!DT.cizim.hazir() || turYukleniyor) return;
     if (DT.cizim.karakterHazir && !DT.cizim.karakterHazir(karakter)) {
       turYukleniyor=true;
@@ -90,7 +92,7 @@
     d.karakter = karakter; d.mod = mod;
     if (mod === 'resmi' && DT.live && !(kayit && kayit.live)) {
       turYukleniyor=true;
-      DT.live.join(karakter).then(function(member){turYukleniyor=false;var state=DT.live.getState();turBaslat(karakter,mod,{live:true,tur:state.room.code,idx:member.idx,sonuclar:member.entries,karakter:karakter});}).catch(function(e){turYukleniyor=false;root.alert(e.message);});return;
+      DT.live.join(karakter).then(function(member){turYukleniyor=false;var state=DT.live.getState();var saved=oku(ANAHTAR.resmi,null);turBaslat(karakter,mod,{live:true,tur:state.room.code,idx:member.idx,sonuclar:member.entries,karakter:karakter,acik:saved&&saved.tur===state.room.code&&saved.idx===member.idx&&saved.karakter===karakter?saved.acik:null});}).catch(function(e){turYukleniyor=false;root.alert(e.message);});return;
     }
     if (mod === 'resmi' && !DT.live && !kayit && kupaKayit()[karakter]) return;
     if (kayit) {
@@ -359,9 +361,9 @@
     var t = toplam(), gol = d.sonuclar.filter(function (s) { return s.puan > 0; }).length;
     ekranGoster('tursonu');
     $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png';
-    $('turBaslik').textContent = gol + ' gol, ' + VURUS_SAYISI + ' vuruş';
+    $('turBaslik').textContent = gol + ' gol, ' + VURUS_SAYISI + ' vuruş';$('turTekrar').hidden=d.mod==='resmi';
     $('turToplam').textContent = t;
-    var ADLAR = { gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
+    var ADLAR = {kisa:'Kısa kaldı', gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
     var liste = $('turListe'); liste.innerHTML = '';
     d.sonuclar.forEach(function (s) {
       var li = doc.createElement('li');
@@ -409,20 +411,26 @@
 
   var kupaKod = '';
   function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
+  function kimlikGoster(){
+    var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?'🔒 '+me.player.toUpperCase()+' · senin oyuncun':'';
+    $('btnResmi').disabled=!me;$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
+  }
   function kupaGoster(){
-    if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
-    rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
-    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?(r.idx>0?'Oynuyor ('+r.idx+'/5)':'Sırası bekleniyor'):r.puan+' puan · '+r.gol+' gol'+(r.idx===undefined?'':r.idx<5?' · '+r.idx+'/5 oynadı':' · tamamlandı'))+'</span></div>';}).join('');
-    if(rows.every(function(r){return r.puan!==null&&(r.idx===undefined||r.idx===5);})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' Juninho Kupası şampiyonu!</p>';}
-
+    if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,idx:0,puan:0,gol:0,yesil:0};});
+    rows.sort(function(a,b){return b.gol-a.gol||b.puan-a.puan||b.yesil-a.yesil;});
+    var rank=1;$('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&(r.gol!==rows[i-1].gol||r.puan!==rows[i-1].puan))rank=i+1;return '<div><b>'+rank+'. '+r.id.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.idx+'/10 · '+r.puan+' puan</span></div>';}).join('');
+    if(rows.every(function(r){return r.idx===10;})){var best=rows[0],winners=rows.filter(function(r){return r.gol===best.gol&&r.puan===best.puan;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' haftanın Juninho Kupası şampiyonu!</p>';}
+    var st=DT.live&&DT.live.getState();if(st){$('haftaBaslik').textContent=st.room.week_start?'Hafta: '+st.room.week_start+' · 10 resmi vuruş':'10 resmi vuruş';var genel=st.totals||[],grank=1;$('genelTablo').innerHTML=genel.map(function(r,i){if(i&&(r.gol!==genel[i-1].gol||r.puan!==genel[i-1].puan))grank=i+1;return '<div><b>'+grank+'. '+r.player.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.vurus+' vuruş</span></div>';}).join('');}
   }
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
   function kupaKur(){
     if(!DT.live)return;
     $('kupaKod').readOnly=true;
-    DT.live.init(function(state){kupaKod=state.room.code;$('kupaKod').value=kupaKod;kupaGoster();},function(message){$('canliDurum').textContent=message;}).catch(function(){});
+    DT.live.init(function(state){kimlikGoster();if(state){kupaKod=state.room.code;$('kupaKod').value=kupaKod;kupaGoster();}},function(message){$('canliDurum').textContent=message;}).catch(function(){});
+    $('kimlikForm').addEventListener('submit',function(e){e.preventDefault();var btn=$('kimlikGiris');btn.disabled=true;$('kimlikNot').textContent='Giriş yapılıyor…';DT.live.login($('kimlikOyuncu').value,$('kimlikKod').value).then(function(){$('kimlikNot').textContent='Giriş tamam. Kendi oyuncunla oynayabilirsin.';menuGoster();}).catch(function(e){$('kimlikNot').textContent=e.message;}).finally(function(){btn.disabled=false;$('kimlikKod').value='';kimlikGoster();});});
+    $('kimlikCikis').addEventListener('click',function(){DT.live.logout().then(menuGoster).catch(function(e){root.alert(e.message);});});
     $('yeniKupa').addEventListener('click',function(){DT.live.create().catch(function(e){root.alert(e.message);});});
-    $('kupaPaylas').addEventListener('click',function(){DT.live.ensure().then(function(){paylas('Duran Top canlı kupa! Karakterini seç, resmi turunu oyna. Skorlar otomatik birleşir.\n'+DT.live.link());}).catch(function(e){root.alert(e.message);});});
+    $('kupaPaylas').addEventListener('click',function(){DT.live.ensure().then(function(){paylas('Juninho Kupası! Kendi oyuncunla haftalık 10 vuruşunu oyna. Goller otomatik birleşir.\n'+DT.live.link());}).catch(function(e){root.alert(e.message);});});
     $('sonucPaylas').addEventListener('click',function(){if(DT.live.getState())paylas(d.karakter.toUpperCase()+' · '+toplam()+' puan!\n'+DT.live.link());});
   }
 
@@ -453,10 +461,10 @@
 
     kupaKur(); temasKur();
     $('yukleme').addEventListener('click', function () { root.location.reload(); });
-    $('btnAntrenman').addEventListener('click', function () { secimGoster('antrenman'); });
+    $('btnAntrenman').addEventListener('click', function () { var me=DT.live.identity();if(me)turBaslat(me.player,'antrenman',null); });
     $('btnResmi').addEventListener('click', function () {
       var k = oku(ANAHTAR.resmi, null);
-      if (DT.live){DT.live.ensure().then(function(){var mine=DT.live.current();if(mine)turBaslat(mine.player,'resmi',null);else secimGoster('resmi');}).catch(function(e){root.alert(e.message);});return;}
+      if (DT.live){DT.live.ensure().then(function(){var me=DT.live.identity();if(me)turBaslat(me.player,'resmi',null);}).catch(function(e){root.alert(e.message);});return;}
       if (k) turBaslat(k.karakter, 'resmi', k); else secimGoster('resmi');
     });
     $('btnSifirla').addEventListener('click', function () { sil(ANAHTAR.resmi); menuGoster(); });

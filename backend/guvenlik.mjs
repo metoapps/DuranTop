@@ -34,13 +34,13 @@ function ozetle(entries) {
  *  - başkası turunu bitirene kadar yalnızca ilerlemesi (idx) görünür;
  *  - bitirmiş birinin toplamı (ozet) görünür; vuruş vuruş sonuçlarını ise sen de turunu bitirdikten sonra görürsün;
  *  - başkasının nişan, temas, zamanlama ve tohumu hiçbir zaman görünmez. */
-export function oyuncular(rows, hash) {
+export function oyuncular(rows, hash, total=5) {
   const ben = rows.find(function (p) { return p.token_hash === hash; });
-  const benBitirdi = !!ben && ben.idx >= 5;
+  const benBitirdi = !!ben && ben.idx >= total;
   return rows.map(function (p) {
     const mine = p.token_hash === hash;
     if (mine) return { player: p.player, idx: p.idx, entries: p.entries, mine: true };
-    const bitti = p.idx >= 5;
+    const bitti = p.idx >= total;
     return {
       player: p.player, idx: p.idx, mine: false,
       entries: bitti && benBitirdi ? (p.entries || []).map(gizle) : [],

@@ -3,19 +3,21 @@
   'use strict';
   var DT = (root.DT = root.DT || {});
 
-  var FRIKIK_MESAFE = 22;     // kale ortasına doğrudan mesafe (m)
-  var FRIKIK_YAN = 7;         // topun orta çizgiden yanal uzaklığı (m)
-
   DT.AYAR = {
     kale: { genislik: 7.32, yukseklik: 2.44, direk: 0.12, topYaricap: 0.11 },
 
-    // Herkes aynı beş pozisyonu oynar. Kimse mesafe seçmez.
+    // Official weekly round: five penalties, two 18m free kicks and three 28m free kicks.
     pozisyonlar: [
-      { tip: 'penalti', ad: 'Penaltı 1', bx: 0, D: 11 },
-      { tip: 'penalti', ad: 'Penaltı 2', bx: 0, D: 11 },
-      { tip: 'penalti', ad: 'Penaltı 3', bx: 0, D: 11 },
-      { tip: 'frikik', ad: 'Frikik (sağdan)', bx: FRIKIK_YAN, D: Math.sqrt(FRIKIK_MESAFE * FRIKIK_MESAFE - FRIKIK_YAN * FRIKIK_YAN) },
-      { tip: 'frikik', ad: 'Frikik (soldan)', bx: -FRIKIK_YAN, D: Math.sqrt(FRIKIK_MESAFE * FRIKIK_MESAFE - FRIKIK_YAN * FRIKIK_YAN) }
+      {tip:'penalti',ad:'Penaltı 1',bx:0,D:11},
+      {tip:'penalti',ad:'Penaltı 2',bx:0,D:11},
+      {tip:'penalti',ad:'Penaltı 3',bx:0,D:11},
+      {tip:'penalti',ad:'Penaltı 4',bx:0,D:11},
+      {tip:'penalti',ad:'Penaltı 5',bx:0,D:11},
+      {tip:'frikik',ad:'Yakın frikik · 18 m (sağ)',bx:5,D:Math.sqrt(18*18-25)},
+      {tip:'frikik',ad:'Yakın frikik · 18 m (sol)',bx:-5,D:Math.sqrt(18*18-25)},
+      {tip:'frikik',ad:'Uzak frikik · 28 m (sağ)',bx:7,D:Math.sqrt(28*28-49)},
+      {tip:'frikik',ad:'Uzak frikik · 28 m (sol)',bx:-7,D:Math.sqrt(28*28-49)},
+      {tip:'frikik',ad:'Uzak frikik · 28 m (orta)',bx:0,D:28}
     ],
 
     baraj: { mesafe: 9.15, yarimGenislik: 1.1, boy: 1.82, oyuncu: 4 },

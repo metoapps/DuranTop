@@ -2,7 +2,7 @@
 // Çalıştır: node tests/kaleci-okuma.cjs
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const r={};vm.createContext(r);for(const n of ['ayar','veri','model3d','baraj','kaleci','ucus','fizik','puan'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),r);
-const D=r.DT,pen=D.AYAR.pozisyonlar[0],fk=D.AYAR.pozisyonlar[3];
+const D=r.DT,pen=D.AYAR.pozisyonlar[0],fk={tip:'frikik',ad:'Calibration 22m',bx:7,D:Math.sqrt(22*22-49)};
 // Oyuncu gibi: nişan sapması σ=0,15 m, zamanlama sapması σ≈40 ms (çubuk 0,8 s). Tohumlu, tekrarlanabilir.
 function rngF(a){return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
 function oran(pos,x,y,contact,N=200){const rnd=rngF(7),gs=()=>{const u=Math.max(rnd(),1e-9),v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};let gol=0;

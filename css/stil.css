@@ -195,3 +195,13 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 /* Show the field first; direction options remain below the player rather than covering the scene. */
 .hazirlik-panel, #durusPanel { position:absolute; inset:auto 12px calc(16px + var(--guvenli-alt)); width:min(560px,calc(100% - 24px)); margin:0 auto; padding:14px; border:1px solid #555; border-radius:18px; background:rgba(8,8,8,.94); }
 .hazirlik-panel .btn { width:100%; } #durusPanel h2 { font-size:28px; } #durusPanel p {font-size:14px;}
+
+/* Weekly league and private login: allow the longer menu to scroll on phones. */
+#menu {overflow-y:auto; overscroll-behavior:contain;} #menu .menu-ust {padding-top:12px;} #menu .kadro {flex-shrink:0;margin:12px 0;} #menu .menu-alt {padding-bottom:20px;}
+.kimlik-kutu {border:1px solid #484848;border-radius:14px;background:#111;padding:12px;}
+#kimlikForm {display:flex;flex-wrap:wrap;gap:8px;align-items:end;}#kimlikForm strong {width:100%;}#kimlikForm label {flex:1 1 140px;font-size:14px;display:flex;flex-direction:column;gap:4px;}
+#kimlikForm input,#kimlikForm select {width:100%;font:inherit;font-size:16px;background:#222;color:white;border:1px solid #666;border-radius:8px;min-height:44px;padding:8px;}
+#kimlikForm .btn {font-size:22px;min-height:44px;padding:8px 16px;}#kimlikAcik {display:flex;align-items:center;gap:12px;}#kimlikAcik .ayar {flex:0 0 auto;margin-left:auto;}#kimlikNot {font-size:14px;margin:6px 0 0;}
+#genelTablo>div {display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #333;font-size:14px;}.kupa-kutu h3 {font-size:16px;margin:12px 0 4px;}
+
+.btn:disabled {opacity:.4;cursor:not-allowed;}

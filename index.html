@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261004h">
+  <link rel="stylesheet" href="css/stil.css?v=20261004i">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -18,11 +18,15 @@
   <section id="menu" class="ekran">
     <div class="menu-ust">
       <h1>Duran Top</h1>
-      <p class="alt-baslik">Beş vuruş. Aynı kale. Herkes aynı pozisyonlarda.</p>
+      <p class="alt-baslik">Her hafta 10 vuruş. Kendi oyuncun. Ortak gol yarışı.</p>
     </div>
     <div class="kadro" id="kadro" aria-hidden="true"></div>
     <div class="menu-alt">
-      <div class="kupa-kutu"><strong>Juninho Kupası · 5 arkadaş</strong><label>Kupa kodu (otomatik) <input id="kupaKod" maxlength="6" inputmode="text" autocomplete="off" aria-label="Altı haneli kupa kodu"></label><button id="yeniKupa" class="ayar" type="button">Yeni kupa oluştur</button><button id="kupaPaylas" class="ayar" type="button">Tur linkini paylaş</button><div id="kupaTablo"></div><p id="canliDurum" role="status">Canlı kupaya bağlanılıyor…</p><small>Linki gruba paylaş. Herkes kendi karakteriyle oynasın; skorlar burada otomatik birleşsin.</small></div>
+      <div id="kimlikKutu" class="kimlik-kutu">
+        <form id="kimlikForm"><strong>Kendi oyuncuna giriş yap</strong><label>Oyuncun<select id="kimlikOyuncu"><option value="meto">METO</option><option value="lort">LORT</option><option value="fero">FERO</option><option value="latte">LATTE</option><option value="josh">JOSH</option></select></label><label>Özel giriş kodun<input id="kimlikKod" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" maxlength="40" required></label><button id="kimlikGiris" class="btn ana" type="submit">Giriş yap</button></form>
+        <div id="kimlikAcik" hidden><strong id="kimlikAd"></strong><button id="kimlikCikis" class="ayar" type="button">Çıkış yap</button></div><p id="kimlikNot" role="status"></p>
+      </div>
+      <div class="kupa-kutu"><strong>Juninho Kupası · 5 arkadaş</strong><label>Kupa kodu (otomatik) <input id="kupaKod" maxlength="6" inputmode="text" autocomplete="off" aria-label="Altı haneli kupa kodu"></label><button id="yeniKupa" class="ayar" type="button">Bu haftanın kupasını aç</button><button id="kupaPaylas" class="ayar" type="button">Tur linkini paylaş</button><p id="haftaBaslik"></p><h3>Haftanın gol sıralaması</h3><div id="kupaTablo"></div><h3>Toplam gol sıralaması</h3><div id="genelTablo"></div><p id="canliDurum" role="status">Canlı kupaya bağlanılıyor…</p><small>5 penaltı · 2 yakın frikik · 3 uzak frikik<br>İstanbul saatiyle pazartesi yenilenir.</small></div>
       <button class="btn ana" id="btnResmi" type="button">Resmi tur</button>
       <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
       <div class="ayarlar">
@@ -47,7 +51,7 @@
     <header class="hud">
       <button class="hud-geri" id="hudGeri" type="button">‹ Menü</button>
       <div class="hud-orta">
-        <span id="hudVurus">Vuruş 1/5</span>
+        <span id="hudVurus">Vuruş 1/10</span>
         <span class="hud-tip" id="hudTip">Penaltı</span>
       </div>
       <div class="hud-puan"><span id="hudPuan">0</span><small>puan</small></div>
@@ -115,18 +119,18 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261004h"></script>
-  <script src="js/veri.js?v=20261004h"></script>
-  <script src="js/baraj.js?v=20261004h"></script>
-  <script src="js/model3d.js?v=20261004h"></script>
-  <script src="js/kaleci.js?v=20261004h"></script>
-  <script src="js/ucus.js?v=20261004h"></script>
-  <script src="js/fizik.js?v=20261004h"></script>
-  <script src="js/puan.js?v=20261004h"></script>
-  <script src="js/ses.js?v=20261004h"></script>
-  <script src="js/cizim.js?v=20261004h"></script>
-  <script src="js/canli.js?v=20261004h"></script>
-  <script src="js/oyun.js?v=20261004h"></script>
+  <script src="js/ayar.js?v=20261004i"></script>
+  <script src="js/veri.js?v=20261004i"></script>
+  <script src="js/baraj.js?v=20261004i"></script>
+  <script src="js/model3d.js?v=20261004i"></script>
+  <script src="js/kaleci.js?v=20261004i"></script>
+  <script src="js/ucus.js?v=20261004i"></script>
+  <script src="js/fizik.js?v=20261004i"></script>
+  <script src="js/puan.js?v=20261004i"></script>
+  <script src="js/ses.js?v=20261004i"></script>
+  <script src="js/cizim.js?v=20261004i"></script>
+  <script src="js/canli.js?v=20261004i"></script>
+  <script src="js/oyun.js?v=20261004i"></script>
 </body>
 </html>
 

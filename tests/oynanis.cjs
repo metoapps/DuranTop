@@ -4,6 +4,6 @@ let n=0;for(const pos of D.AYAR.pozisyonlar)for(const x of [-3,0,3])for(const y 
 for(const practice of [false,true])for(const y of [.3,1.1,2.1])for(let s=1;s<=100;s++)assert.equal(shot(0,y,.5,undefined,s,P,practice).sonuc,'kurtaris');
 let perfect=0,near=0,miss=0;for(let s=1;s<=100;s++){perfect+=shot(3.15,1.1,.5,undefined,s).sonuc==='kurtaris';near+=shot(3.15,1.1,.46,undefined,s).sonuc==='kurtaris';miss+=shot(3.15,1.1,.4,undefined,s).sonuc==='kurtaris';assert(shot(3.15,1.1,.5,undefined,s).speed>shot(3.15,1.1,.4,undefined,s).speed);}assert(perfect<=5,'kusursuz zamanlamada köşe golü');assert(near>=90,'32 ms erken: kaleci yetişir '+near);assert(miss>=95,'96 ms erken: kaleci yetişir '+miss);assert(near<=miss);
 const left=shot(3,1.1,.5,{x:-.5,y:0}),right=shot(3,1.1,.5,{x:.5,y:0});assert(left.yol[20].x<right.yol[20].x);
-for(const pos of D.AYAR.pozisyonlar.slice(3)){assert.equal(shot(0,.8,.5,undefined,1,pos).sonuc,'baraj');assert.notEqual(shot(0,2.1,.5,{x:0,y:0},1,pos).sonuc,'baraj');}
+for(const pos of [{tip:'frikik',ad:'Calibration right 22m',bx:7,D:Math.sqrt(22*22-49)},{tip:'frikik',ad:'Calibration left 22m',bx:-7,D:Math.sqrt(22*22-49)}]){assert.equal(shot(0,.8,.5,undefined,1,pos).sonuc,'baraj');assert.notEqual(shot(0,2.1,.5,{x:0,y:0},1,pos).sonuc,'baraj');}
 assert.equal(shot(0,1.1).tuttu,true);assert.equal(shot(0,1.1).kaleci.eylem,'bekle');
 console.log('PASS',n,'deterministic trajectories; 600 central saves; contact loft/spin; corner saves per100:',{perfect,near,miss});

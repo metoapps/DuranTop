@@ -1,12 +1,4 @@
-Sunucu uçtan uca testi (gerçek Supabase gerekmez)
-1) Deno kur (örn. npm install deno ya da deno.com).  2) Bu klasörden:
-   node tests/e2e/sahte-supabase.cjs &          # bellekte PostgREST taklidi, 54331 portu
-   cd backend && SUPABASE_URL=http://127.0.0.1:54331 SUPABASE_SERVICE_ROLE_KEY=test deno run --allow-net --allow-env --allow-read index.ts &
-   node tests/e2e/uctan-uca.cjs
-Doğruladıkları: oda sürümü 6; aynı odada iki oyuncu aynı girdiyle aynı tohum ve aynı sonucu alır; farklı odada tohum farklı; rakibin girdisi, tohumu ve (turu bitmeden) toplamı görünmez;
-tekrar denemede aynı kayıt; token ve genel oda sınırı.
-Bu GERÇEK Supabase testi değildir: veritabanı kilidi, RLS ve gerçek ağ gecikmesi denenmedi.
-
-Gerçek PostgreSQL ile (daha güçlü): PostgreSQL 16 + PostgREST kur, backend/schema.sql'i uygula (anon, authenticated, service_role rolleri gerekir),
-SUPABASE_SERVICE_ROLE_KEY olarak service_role JWT'si ver, /rest/v1 önekini PostgREST'e iletecek bir vekil kullan. 150 eşzamanlı oda isteği
-sonunda tam 100 oda, aynı token ile en fazla 8 oda beklenir. (20261004c'de bu kurulumla geçti; gerçek Supabase değildir.)
+20261004i: node tests/e2e/uctan-uca.cjs
+Gerçek Edge işleyicisini sahte veri katmanında çalıştırır; Supabase testi değildir.
+Eski sahte-supabase.cjs, beş vuruşluk eski sürüme ait tarihsel test yardımcısıdır; yeni kimlik ve hafta kurulumuna uygun değildir.
+Canlı testte özel giriş kodlarını yalnız depo dışındaki dosyadan okuyun. Kodları, oturumları ve parola özetlerini asla test çıktısına veya depoya yazmayın. Test vuruşlarını gol tablosundan kaldırmak için yalnız oluşturduğunuz test odasını ve test oturumlarını temizleyin.
