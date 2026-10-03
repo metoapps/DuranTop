@@ -16,6 +16,6 @@ function records(){var records={};if(state)state.players.forEach(function(p){var
  var hidden=!p.mine&&!p.ozet,summary=p.ozet||{puan:entries.reduce(function(t,x){return t+x.puan;},0),gol:entries.filter(function(x){return x.gol;}).length,yesil:entries.filter(function(x){return x.yesil;}).length};
  records[p.player]={id:p.player,idx:p.idx,puan:hidden?null:summary.puan,gol:hidden?0:summary.gol,yesil:hidden?0:summary.yesil};});return records;}
 function allowed(player){var slot=state&&state.players.find(function(p){return p.player===player;});return !!state&&(!slot||(slot.mine&&slot.idx<5));}
-function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261004f';}
+function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261004g';}
 DT.live={init:init,ensure:ensure,create:create,join:join,shot:shot,records:records,allowed:allowed,current:current,link:link,getState:function(){return state;}};
 })(window);

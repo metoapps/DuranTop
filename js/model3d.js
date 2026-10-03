@@ -1,5 +1,5 @@
 /* Procedural solid 3D meshes with articulated joints, perspective projection and per-face lighting.
- * Player walking uses original sprite head textures on an articulated body; no external model downloads. */
+ * Player walking preserves the complete original clothed sprite on a deforming 3D mesh; no external model downloads. */
 (function(root){'use strict';var D=root.DT,faceTexture=null;
 function add(a,b){return a.map(function(x,i){return x+b[i];});}function sub(a,b){return a.map(function(x,i){return x-b[i];});}function mul(a,s){return a.map(function(x){return x*s;});}function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}function unit(a){return mul(a,1/(Math.hypot.apply(null,a)||1));}
 function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*Math.min(1,(k.ilerleme||0)*2.2)*(1-(k.recovery||0)):0,c=Math.cos(tilt),s=Math.sin(tilt);
@@ -63,15 +63,25 @@ function draw(g,project,r,palette){var triangles=[];
 var keeper={shirt:'#279258',shorts:'#152b22',socks:'#236f44',skin:'#d4a47c',hair:'#9b7545',gloves:'#eeeeea',boots:'#20292d'};
 function kaleciCiz(g,project,k,z){draw(g,project,rig(k,z),keeper);}
 function barajCiz(g,project,p,i){var scale=p.boy/1.92,r=rig({x:p.x,y:p.y+1,poz:'bekle',low:false,high:false},p.z);Object.keys(r.nodes).forEach(function(key){var n=r.nodes[key];n[0]=p.x+(n[0]-p.x)*scale;n[1]=p.y+(n[1]-p.y)*scale;});var colors={shirt:i%2?'#434952':'#d5d7d9',shorts:'#171b21',socks:'#333b45',skin:'#cf9f7c',hair:'#302821',gloves:'#cf9f7c',boots:'#11171a'};draw(g,project,r,colors);}
-function oyuncuYuru(g,project,walk,palette,headImage){
- var u=walk.u,e=u*u*(3-2*u),phase=u*Math.PI*5,pace=Math.sin(phase),side=walk.to||1;
- var r=rig({x:0,y:1,poz:'bekle'},0),n=r.nodes;
- n.fl[2]+=.22*pace;n.fr[2]-=.22*pace;n.kl[2]+=.12*pace;n.kr[2]-=.12*pace;
- n.fl[1]+=Math.max(0,pace)*.10;n.fr[1]+=Math.max(0,-pace)*.10;
- n.hl[2]-=.18*pace;n.hr[2]+=.18*pace;n.el[2]-=.1*pace;n.er[2]+=.1*pace;
- var yaw=.4*(walk.from+(walk.to-walk.from)*e)+side*.5*Math.sin(Math.PI*u),c=Math.cos(yaw),ss=Math.sin(yaw),bob=Math.sin(phase*2)*.025*Math.sin(Math.PI*u);
- Object.keys(n).forEach(function(key){var p=n[key],x=p[0],z=p[2];p[0]=x*c+z*ss;p[2]=-x*ss+z*c;p[1]+=bob;});
- draw(g,project,r,palette);
- if(headImage){var h=project(n.head[0],n.head[1],n.head[2]),bottom=project(0,.06,0),top=project(0,1.9,0);if(h&&bottom&&top){var size=(bottom.y-top.y)*.38;g.save();g.translate(h.x,h.y);g.rotate(-yaw*.12);g.drawImage(headImage,-size/2,-size*.56,size,size);g.restore();}}
+// Original clothed character texture stays on the walking mesh, including shirt, sleeves, shorts and head.
+// Mild depth and gait deformations avoid replacing the kit with a plain procedural body.
+function oyuncuYuru(g,image,walk,placement){
+ var u=Math.max(0,Math.min(1,walk.u)),ease=u*u*(3-2*u),turn=walk.from+(walk.to-walk.from)*ease;
+ var envelope=Math.sin(Math.PI*u),phase=u*Math.PI*6,yaw=(walk.to||1)*.22*envelope;
+ var width=900,height=560,cols=12,rows=16,vertices=[];
+ for(var row=0;row<=rows;row++){vertices[row]=[];for(var col=0;col<=cols;col++){
+  var sx=width*col/cols,sy=height*row/rows,x=(sx-placement.anchorX)*placement.scale,y=(placement.bottom-sy)*placement.scale;
+  var leg=Math.max(0,Math.min(1,(sy-(placement.bottom-placement.boy*.42))/(placement.boy*.42))),side=x<0?-1:1;
+  var step=Math.sin(phase+ (side<0?Math.PI:0))*envelope*leg;
+  y+=Math.max(0,step)*placement.boy*placement.scale*.035;
+  var depth=-x*Math.sin(yaw)+step*placement.boy*placement.scale*.035;
+  var perspective=600/(600+depth);
+  vertices[row][col]={x:placement.x+(x*Math.cos(yaw)*(1-.10*Math.abs(turn))+turn*.12*y)*perspective,y:placement.y-y*perspective,uv:[sx,sy]};
+ }}
+ function triangle(a,b,c){var dx1=b.uv[0]-a.uv[0],dy1=b.uv[1]-a.uv[1],dx2=c.uv[0]-a.uv[0],dy2=c.uv[1]-a.uv[1],det=dx1*dy2-dx2*dy1;
+  var aa=((b.x-a.x)*dy2-(c.x-a.x)*dy1)/det,cc=(dx1*(c.x-a.x)-dx2*(b.x-a.x))/det,bb=((b.y-a.y)*dy2-(c.y-a.y)*dy1)/det,dd=(dx1*(c.y-a.y)-dx2*(b.y-a.y))/det;
+  g.save();g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineTo(c.x,c.y);g.closePath();g.clip();g.transform(aa,bb,cc,dd,a.x-aa*a.uv[0]-cc*a.uv[1],a.y-bb*a.uv[0]-dd*a.uv[1]);g.drawImage(image,0,0,width,height);g.restore();
+ }
+ for(row=0;row<rows;row++)for(col=0;col<cols;col++){var a=vertices[row][col],b=vertices[row][col+1],c=vertices[row+1][col+1],d=vertices[row+1][col];triangle(a,b,c);triangle(a,c,d);}
 }
 D.model3d={oyuncuYuru:oyuncuYuru,setFace:function(image){faceTexture=image;},rig:rig,shapes:shapes,ballHits:ballHits,kaleciCiz:kaleciCiz,barajCiz:barajCiz};})(typeof globalThis!=='undefined'?globalThis:window);

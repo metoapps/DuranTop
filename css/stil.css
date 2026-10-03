@@ -191,3 +191,7 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 .guc-panel input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:white;border:3px solid #ed4858;}
 
 #durusPanel .segment { flex:0 0 auto; width:min(420px,100%); }
+
+/* Show the field first; direction options remain below the player rather than covering the scene. */
+.hazirlik-panel, #durusPanel { position:absolute; inset:auto 12px calc(16px + var(--guvenli-alt)); width:min(560px,calc(100% - 24px)); margin:0 auto; padding:14px; border:1px solid #555; border-radius:18px; background:rgba(8,8,8,.94); }
+.hazirlik-panel .btn { width:100%; } #durusPanel h2 { font-size:28px; } #durusPanel p {font-size:14px;}

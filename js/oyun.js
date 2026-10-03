@@ -115,7 +115,7 @@
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
     d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.yurume=null;d.durusHazir=!!acik;
-    $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=!!acik; $('temasPanel').hidden = true;
+    $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=true;$('hazirlikPanel').hidden=!!acik; $('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
     $('hudVurus').textContent = 'Vuruş ' + (d.idx + 1) + '/' + VURUS_SAYISI;
@@ -123,10 +123,11 @@
     $('hudPuan').textContent = toplam();
     $('falsoKutu').hidden = true;
     falsoSec(0);
-    $('ipucu').hidden = !d.durusHazir;
+    $('ipucu').hidden = false;
     $('ipucu').textContent = d.pos.tip === 'frikik'
       ? 'Barajın üstünden ya da yanından geçecek yere dokun, sürükle, bırak.'
       : 'Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.';
+    if(!acik)$('ipucu').textContent='Pozisyona bak. Hazır olunca duruşunu seç.';
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
       d.seed = acik.seed; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
       d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;$('gucSec').value=Math.round(d.guc*100);
@@ -434,6 +435,7 @@
     $('temasOnay').addEventListener('click',function(){d.temasHazir=true;$('temasPanel').hidden=true;$('gucPanel').hidden=false;onizlemeHesapla();acikKaydet();});
     $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
     $('gucOnay').addEventListener('click',function(){d.gucHazir=true;$('gucPanel').hidden=true;$('alt').hidden=false;bantGuncelle();d.cubukBasla=simdi();acikKaydet();});
+    $('durusAc').addEventListener('click',function(){if(d.faz!=='nisan'||d.durusHazir)return;$('hazirlikPanel').hidden=true;$('durusPanel').hidden=false;$('ipucu').hidden=true;});
     [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }
 
