@@ -35,18 +35,16 @@
     falsoMetre: 1.6,     // falsonun topu yandan en fazla ne kadar eğdiği (m)
 
     kaleci: {
-      tepki: { penalti: 0.17, frikik: 0.55 },  // vuruştan sonra harekete geçme süresi (s); frikikte baraj görüşü kapatır, kaleci topu geç görür
-      okuma: 1.0,         // topun gideceği yeri ne kadar okur (1 = kusursuz; antrenmanda aşağıdaki değer)
-      gurultu: 0.18,      // okuma sapması (m)
-      hizSapma: 0.10,     // dalış hızının vuruştan vuruşa değişimi (oran)
-      dalisSure0: 0.10,   // her hareketin sabit kısmı (s)
-      dalisHiz: 6.0,      // beden ortalama bu hızla yer değiştirir (m/s); erişim bundan çıkar
-      dalisHizAntrenman: 5.4,
-      merkez: 0.35,       // |x| bunun altındaki şutlar kalecinin üstüne gelmiş sayılır: yerinde tutar ya da bloklar
-      yanAdim: 1.0,       // |x| bunun altındaki orta yükseklikte şutlarda kısa yan adım
-      baslangicY: 1.0
+      tepki: { penalti: 0.17, frikik: 0.23 },  // top vurulduktan kaç saniye sonra hareket eder
+      dalis: 0.34,        // dalışın süresi (s)
+      okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
+      gurultu: 0.12,      // okuma sapması (m)
+      erisimX: 0.80,      // yana erişim (m)
+      erisimY: 0.90,      // yukarı-aşağı erişim (m)
+      baslangicY: 1.0,
+      enAz: 0.45, enCok: 1.9
     },
-    antrenman: { tepkiEk: 0.08, okuma: 0.80 },   // antrenmanda kaleci daha yavaş
+    antrenman: { tepkiEk: 0.20, okuma: 0.45 },   // antrenmanda kaleci daha yavaş
 
     puan: { penalti: 100, frikik: 110, zaman: 10, zor: 5, bonusTavan: 15 },
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"

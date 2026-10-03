@@ -28,7 +28,7 @@
 
   function kameraKur(p) {
     var ayar = KAMERA[p.tip];
-    if (H < 650) ayar = { geri: ayar.geri, yuk: p.tip === 'frikik' ? ayar.yuk : 1.8, kaleGen: ayar.kaleGen, kaleY: .25 };   // küçük ekranda frikikte alçak kamera barajı kalenin önüne koyar
+    if (H < 650) ayar = { geri: ayar.geri, yuk: 1.8, kaleGen: ayar.kaleGen, kaleY: .25 };
     var ul = Math.hypot(-p.bx, p.D), ux = -p.bx / ul, uz = p.D / ul;
     var C = [p.bx - ux * ayar.geri, ayar.yuk, -uz * ayar.geri];
     var hedef = [0, 1.0, p.D];
@@ -43,12 +43,11 @@
     var yc = dot(d, up);
     var kaleYpx = ayar.kaleY * H;
     // Top, alttaki kontrol panelinin ve oyuncunun üstünde kalsın: panel yaklaşık 235 px, oyuncunun ayakları topun ~0.083H altında.
-    var panel = p.tip === 'frikik' ? 229 : 165;      // alt panelin yüksekliği (px); oyuncunun ayakları topun ~70 px altında
-    var topHedef = Math.max(0.5 * H, Math.min(0.66 * H, H - panel - 82));
+    var topHedef = Math.max(0.56 * H, Math.min(0.66 * H, H - 210));
     var db = [p.bx - C[0], A.kale.topYaricap - C[1], 0 - C[2]];
     var zb = dot(db, f);
     var terim = k.F * (dot(d, up) / zc - dot(db, up) / zb);       // ky = 1 için top, kale merkezinin bu kadar altında
-    k.ky = terim > 1 ? Math.max(H < 650 ? (p.tip === 'frikik' ? 0.55 : 1.1) : 0.82, Math.min(1.3, (topHedef - kaleYpx) / terim)) : 1;
+    k.ky = terim > 1 ? Math.max(H < 650 ? 1.1 : 0.82, Math.min(1.3, (topHedef - kaleYpx) / terim)) : 1;
     k.cy = kaleYpx + k.F * k.ky * yc / zc;
     return k;
   }
@@ -75,27 +74,27 @@
   }
 
   /* ---------- görseller ---------- */
-  var SURUM = '20261003e';
-  function gorselYukle(ad, yol, istege) {
+  function gorselYukle(ad, yol, hata) {
     var im = new root.Image();
-    im.onload = function () { gorseller[ad] = im; if (!istege) { yuklenen++; yuklemeBildir(); } };
-    im.onerror = function () { if (!istege) { yuklemeHatasi = true; yuklemeBildir(); } };   // isteğe bağlı kare yoksa oyun yedeğiyle sürer
-    im.src = yol + '?v=' + SURUM;
+    im.onload = function () { gorseller[ad] = im; yuklenen++; yuklemeBildir(); };
+    im.onerror = function () { yuklemeHatasi = true; yuklemeBildir(); if (hata) hata(); };
+    im.src = yol + "?v=20261003d";
+  }
+  function gorselOpsiyonel(ad, yol) {
+    var im = new root.Image();
+    im.onload = function () { gorseller[ad] = im; };
+    im.src = yol + "?v=20261003d";
   }
   function spriteleriYukle() {
     DT.KARAKTER.forEach(function (k) {
       DT.POZ.forEach(function (p) { gorselYukle(k.id + '_' + p, 'assets/sprites/' + k.id + '_' + p + '.png'); });
       ['bekle', 'sevinc', 'kacirma'].forEach(function (p) { gorselYukle('_menu_' + k.id + '_' + p, 'assets/menu/' + k.id + '_' + p + '.png'); });
+      ['sevinc1', 'sevinc2', 'sevinc3', 'sevinc4'].forEach(function (p) {
+        gorselOpsiyonel(k.id + '_' + p, 'assets/sprites/' + k.id + '_' + p + '.png');
+      });
     });
-    // Sonradan üretilen kareler assets/manifest.json içinde listelenir (tools/manifest.py üretir); liste yoksa yedek diziler kullanılır.
-    if (root.fetch) {
-      root.fetch('assets/manifest.json?v=' + SURUM).then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
-        if (!m) return;
-        (m.sprites || []).forEach(function (f) { gorselYukle(f.replace(/\.png$/, ''), 'assets/sprites/' + f, true); });
-        (m.kaleci || []).forEach(function (f) { gorselYukle('_kaleci_' + f.replace(/\.png$/, ''), 'assets/kaleci/' + f, true); });
-      }).catch(function () { /* liste okunamazsa oyun yedek dizilerle sürer */ });
-    }
-    gorselYukle('_kaleci-v2', 'assets/kaleci-v2.png');
+    // Sonradan eklenecek görseller: dosya yoksa çizimle devam edilir.
+    ['kaleci-v2'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
   }
   function sprite(id, poz) { return gorseller[id + '_' + poz] || null; }
 
@@ -262,43 +261,20 @@
     g.fillStyle = renk;        g.beginPath(); g.arc(ayak.x, ayak.y - (boy - 0.14) * s, 0.14 * s, 0, 6.3); g.fill(); // kafa
   }
 
-  /* Kaleci: çarpışma ile aynı eylem/poz adını çizer. Yeni kareler (assets/kaleci/<poz>.png, 1200x800, gövde merkezi 600,400,
-   * 324 px/m, sola bakar) varsa onlar; yoksa eski tek sayfa görselinin üç pozu. */
   function kaleciCiz(g, k) {
-    var p = izdus(k.x, k.y, pos.D);
-    if (!p) return;
-    var zemin = izdus(k.x, 0, pos.D);
-    if (zemin) { g.fillStyle = 'rgba(0,0,0,0.30)'; g.beginPath(); g.ellipse(zemin.x, zemin.y, 0.5 * p.olcek, 0.08 * p.olcek, 0, 0, 6.3); g.fill(); }
-    var T = DT.KALECI_TUVAL, ad = k.poz || 'hazir';
-    var yeni = gorseller['_kaleci_' + ad];
-    var ayna = k.yon > 0, sx = p.olcek, sy = p.olcek * kam.ky;      // kamera dikeyi de gerdiği için çizim dünya ölçeğiyle yapılır
-    if (yeni) {
-      g.save(); g.translate(p.x, p.y); g.scale(sx / T.pxM, sy / T.pxM); if (ayna) g.scale(-1, 1); g.rotate(-(k.aci || 0));
-      g.drawImage(yeni, -T.cx, -T.cy, T.w, T.h); g.restore();
-      return;
-    }
+    var D = pos.D;
     var keeper = gorseller['_kaleci-v2'];
-    if (keeper) {
-      var dalis = /dalis/.test(ad);
-      var shape = DT.KALECI_SILUET[dalis ? (k.yon < 0 ? 1 : 2) : 0], box = shape.box, f = keeper.width / 2048;
-      g.save(); g.translate(p.x, p.y); g.scale(sx, sy); g.rotate(-(dalis ? (k.aci || 0) : 0));
-      g.drawImage(keeper, box[0] * f, box[1] * f, box[2] * f, box[3] * f, -shape.w / 2, -shape.h * 0.5 - 0.02 * shape.h, shape.w, shape.h); g.restore();
-      return;
-    }
-    g.fillStyle = '#c9d92e'; g.fillRect(p.x - 0.28 * sx, p.y - 0.5 * sy, 0.56 * sx, 0.6 * sy);
-    g.fillStyle = '#0c0c0d'; g.fillRect(p.x - 0.2 * sx, p.y + 0.1 * sy, 0.4 * sx, 0.55 * sy);
-    g.fillStyle = '#d9a37a'; g.beginPath(); g.ellipse(p.x, p.y - 0.66 * sy, 0.14 * sx, 0.14 * sy, 0, 0, 6.3); g.fill();
-  }
-
-  function kaleciHitCiz(g, k, plan) {     // yalnızca denetim için: kurtarış maskesini çiz
-    var hc = DT.kaleci.maskeHucreleri(plan, k.t), o = izdus(0, 0, pos.D);
-    if (!o) return;
-    g.save(); g.fillStyle = 'rgba(255,60,200,0.22)';
-    hc.forEach(function (h) {
-      var a = izdus(h[0] - h[2] / 2, h[1] + h[2] / 2, pos.D), b = izdus(h[0] + h[2] / 2, h[1] - h[2] / 2, pos.D);
-      if (a && b) g.fillRect(a.x, a.y, b.x - a.x + 0.5, b.y - a.y + 0.5);
-    });
-    g.restore();
+    if (!keeper || !DT.kaleci || !DT.kaleci.siluet) return;
+    var shape = DT.kaleci.siluet(k), box = shape.box, factor = keeper.width / 2048;
+    var dive = k.poz === 'dal';
+    var h = dive ? 1.2 : 1.9;
+    var w = (box[2] / box[3]) * h;
+    var cy = dive ? k.y : 0.92;
+    var cx = k.x;
+    var p = izdus(cx, cy, D);
+    if (!p) return;
+    var pw = w * p.olcek, ph = h * p.olcek;
+    g.drawImage(keeper, box[0] * factor, box[1] * factor, box[2] * factor, box[3] * factor, p.x - pw / 2, p.y - ph * (dive ? 0.5 : 0.55), pw, ph);
   }
 
   function barajCiz(g, ogeler) {
@@ -311,54 +287,57 @@
     }
   }
 
-  /* ---- şutçu dizisi ---- */
-  var tipOnbellek = {};
-  function tipHesapla(im, anahtar) {      // karenin en sol (vuran ayak) noktası
-    if (tipOnbellek[anahtar]) return tipOnbellek[anahtar];
-    var c = yerelCanvas(S.genislik, S.yukseklik), g = c.getContext('2d'), d;
-    try { g.drawImage(im, 0, 0); d = g.getImageData(0, 0, S.genislik, S.yukseklik).data; } catch (e) { return null; }
-    var x0 = -1;
-    for (var x = 0; x < S.genislik && x0 < 0; x++) for (var y = 0; y < S.yukseklik; y++) if (d[(y * S.genislik + x) * 4 + 3] > 128) { x0 = x; break; }
-    if (x0 < 0) return null;
-    var top = 0, n = 0;
-    for (x = x0; x < Math.min(S.genislik, x0 + 22); x++) for (y = 0; y < S.yukseklik; y++) if (d[(y * S.genislik + x) * 4 + 3] > 128) { top += y; n++; }
-    return (tipOnbellek[anahtar] = { tipX: x0, tipY: Math.round(top / Math.max(1, n)) });
-  }
-  function vurusSekansi(karakter) {
-    var uzun = DT.VURUS_SEKANS.uzun, tam = uzun.every(function (f) { return !!sprite(karakter, f.k); });
-    var dizi = tam ? uzun : DT.VURUS_SEKANS.kisa, t = 0, temasT = 0, i;
-    for (i = 0; i < dizi.length; i++) { if (dizi[i].temas) temasT = t + 0.03; t += dizi[i].s; }
-    return { kareler: dizi, temasT: temasT, toplam: t, uzun: tam };
-  }
-  function oyuncuCiz(g, karakter, topEkran, durum) {
+  /* Şutçu her zaman aynı yöne bakar. Köşe seçimi karakteri aynalamaz.
+   * Nişan beklerken ayaklar topun yanındadır. Top, vurus2 karesine geçince çıkar. */
+  function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     if (!topEkran) return;
-    var dz = (durum && durum.sekans) || vurusSekansi(karakter), t = durum && typeof durum.t === 'number' ? durum.t : -1;
-    var kare = dz.kareler[0], i, acc = 0;
-    if (t >= 0) { kare = dz.kareler[dz.kareler.length - 1]; for (i = 0; i < dz.kareler.length; i++) { if (t < acc + dz.kareler[i].s) { kare = dz.kareler[i]; break; } acc += dz.kareler[i].s; } }
-    var temasKare = dz.kareler.filter(function (f) { return f.temas; })[0];
-    var nokta = (dz.uzun && tipHesapla(sprite(karakter, temasKare.k), karakter + temasKare.k)) || DT.SPRITE_NOKTA[karakter].vurus2;
+    durum = durum || {};
     var olcek = (Math.min(0.21 * H, Math.max(100, H - topEkran.y - 155))) / S.boy;
     var r = Math.max(2, A.kale.topYaricap * topEkran.olcek);
-    var im = sprite(karakter, kare.k); if (!im) return;
-    var kx = 0;
-    if (dz.uzun && t >= 0) {       // yaklaşırken oyuncu topa doğru süzülür; duruş aynı kalır, yön değişmez
-      var yaklasT = dz.kareler[0].s + dz.kareler[1].s; kx = 46 * olcek * Math.max(0, 1 - t / yaklasT);
+    var u = durum.ilerleme || 0, temas = durum.temas || 0.533333;
+    var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
+    var im = sprite(karakter, kare);
+    var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];
+    if (!im || !nokta) return;
+    g.save();
+    if (kare === 'vurus1') {
+      // Hazırlık: basan ayak yerde, top ayağın önünde. Uç noktası ele denk gelse de top oraya yapışmaz.
+      g.translate(topEkran.x + 28, topEkran.y + 10);
+      g.scale(olcek, olcek);
+      g.drawImage(im, -nokta.tipX, -nokta.bottom, S.genislik, S.yukseklik);
+    } else {
+      g.translate(topEkran.x + r, topEkran.y);
+      g.scale(olcek, olcek);
+      g.drawImage(im, -nokta.tipX, -nokta.tipY, S.genislik, S.yukseklik);
     }
-    g.save(); g.translate(topEkran.x + r + kx, topEkran.y); g.scale(olcek, olcek);
-    g.drawImage(im, -nokta.tipX, -nokta.tipY, S.genislik, S.yukseklik); g.restore();
+    g.restore();
   }
 
-  /* Sonuç ekranı: karaktere özgü sevinç dizisi varsa oynar, yoksa durağan kare (sallama yok). */
-  function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
-    var olcek = boy / S.boy, im = sprite(karakter, poz), t = durum.sure || 0, i, n = DT.OPSIYONEL.sevincKare;
-    if (durum.gol) {
-      var dizi = [];
-      for (i = 1; i <= n; i++) { var f = sprite(karakter, 'sev' + i); if (f) dizi.push(f); }
-      if (dizi.length === n) im = dizi[Math.floor(t * DT.OPSIYONEL.sevincFps) % n];
+  /* Gol sevinci: dört ayrı poz, harmanlama yok. Kare yoksa tek sevinc durur, zıplamaz. */
+  var SEVINC_KARE = ['sevinc1', 'sevinc2', 'sevinc3', 'sevinc4'];
+  var SEVINC_ARALIK = 0.42;
+  function sevincKaresi(karakter, t) {
+    var hazir = [];
+    for (var i = 0; i < SEVINC_KARE.length; i++) {
+      if (sprite(karakter, SEVINC_KARE[i])) hazir.push(SEVINC_KARE[i]);
     }
-    if (!im) return;
-    g.save(); g.translate(cx, taban); g.scale(olcek, olcek);
-    g.drawImage(im, -S.ankrajX, -S.ankrajY, S.genislik, S.yukseklik); g.restore();
+    if (hazir.length < 2) return null;
+    return hazir[Math.floor((t || 0) / SEVINC_ARALIK) % hazir.length];
+  }
+
+  function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
+    var kare = poz;
+    if (durum && durum.gol) {
+      var s = sevincKaresi(karakter, durum.sure || 0);
+      if (s) kare = s;
+    }
+    var im = sprite(karakter, kare); if (!im) return;
+    var olcek = boy / S.boy;
+    g.save();
+    g.translate(cx, taban);
+    g.scale(olcek, olcek);
+    g.drawImage(im, -S.ankrajX, -S.ankrajY, S.genislik, S.yukseklik);
+    g.restore();
   }
 
   function nisanCiz(g, aim, kilit, falso, onizleme) {
@@ -418,9 +397,13 @@
 
     // oyuncu ve nişan her zaman en önde
     var topEkran = izdus(pos.bx, A.kale.topYaricap, 0);
-    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, topEkran, d.oyuncu);
-    if (d.onKarakter) onSpriteCiz(g, d.onKarakter.karakter, d.onKarakter.poz, W * 0.5, H * 0.67, Math.min(0.26 * H, 150), d.onKarakter);
-    if (d.kaleciHit && d.kaleci) kaleciHitCiz(g, d.kaleci, d.kaleciHit);
+    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran, d.oyuncu);
+    if (d.onKarakter) {
+      var boy = Math.min(0.38 * H, 260);
+      var taban = Math.min(H * 0.76, H - 156);
+      if (taban < boy + 64) taban = boy + 64;
+      onSpriteCiz(g, d.onKarakter.karakter, d.onKarakter.poz, W * 0.5, taban, boy, d.onKarakter);
+    }
     if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
   }
@@ -449,7 +432,6 @@
     kur: kur, sahneKur: sahneKur, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     hazir: function () { return yuklenen >= gereken && !yuklemeHatasi; },
-    vurusSekansi: vurusSekansi,
     gorselHazir: function (ad) { return !!gorseller[ad]; },
     gorselEkle: function (ad, im) { gorseller[ad] = im; }
   };

@@ -78,30 +78,43 @@
       }
     }
 
-    // 4) Kale çizgisi ve kaleci
+    // 4) Kale çizgisine yaklaşırken kaleci, yoksa direk / gol / aut.
+    // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T);
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss);
     var bolge = A.kale.direk / 2 + R;
     var kose = false;
+    var direkYeri = null;
 
-    var direkYeri = null;        // 'yan' | 'ust' (direğe değen şutlarda)
-    if (!sonuc) {
-      var disDirek = Math.abs(Math.abs(gecis.x) - yari);
-      var direkte = false, iceride = false;
-      if (disDirek <= bolge && gecis.y <= H + bolge) {
-        direkte = true; direkYeri = 'yan'; iceride = Math.abs(gecis.x) < yari;
-      } else if (Math.abs(gecis.y - H) <= bolge && Math.abs(gecis.x) <= yari) {
-        direkte = true; direkYeri = 'ust'; iceride = gecis.y < H;
+    function kaleciDegdi() {
+      var i, o;
+      for (i = 1; i < ornekler.length; i++) {
+        o = ornekler[i];
+        if (o.z < D - 0.5) continue;
+        if (Math.abs(o.x) > yari + 0.4) continue;
+        if (o.y > H + 0.3) continue;
+        if (DT.kaleci.tutarMi(plan, o.t, o)) return i;
       }
-      if (direkte) {
-        // Direğe değen ama içeri doğru giden top için de kaleci önce kontrol edilir.
-        if (!iceride) sonuc = 'direk_disari';
-        else sonuc = DT.kaleci.tutarMi(plan, T, gecis) ? 'kurtaris' : 'direk_gol';
-      } else if (Math.abs(gecis.x) < yari - bolge && gecis.y < H - bolge) {
-        sonuc = DT.kaleci.tutarMi(plan, T, gecis) ? 'kurtaris' : 'gol';
+      return -1;
+    }
+
+    if (!sonuc) {
+      var temas = kaleciDegdi();
+      if (temas >= 0) {
+        sonuc = 'kurtaris';
+        olayIndex = temas;
       } else {
-        sonuc = 'aut';
+        var disDirek = Math.abs(Math.abs(gecis.x) - yari);
+        var direkte = false, iceride = false;
+        if (disDirek <= bolge && gecis.y <= H + bolge) {
+          direkte = true; direkYeri = 'yan'; iceride = Math.abs(gecis.x) < yari;
+        } else if (Math.abs(gecis.y - H) <= bolge && Math.abs(gecis.x) <= yari) {
+          direkte = true; direkYeri = 'ust'; iceride = gecis.y < H;
+        }
+        if (direkte) sonuc = iceride ? 'direk_gol' : 'direk_disari';
+        else if (Math.abs(gecis.x) < yari - bolge && gecis.y < H - bolge) sonuc = 'gol';
+        else sonuc = 'aut';
       }
     }
     if (sonuc === 'gol' || sonuc === 'direk_gol') {
@@ -122,26 +135,20 @@
       else v = { x: -sag * Math.max(1.5, Math.abs(v.x) * 0.5), y: v.y * 0.5, z: v.z * 0.45 };
       damp = 3.0;
     }
-    else if (sonuc === 'kurtaris' && !plan.tutar) { var kk = plan.konum(T); v = { x: (gecis.x >= kk.x ? 1 : -1) * 2.6 + v.x * 0.15, y: Math.abs(v.y) * 0.2 + 1.8, z: -0.35 * v.z }; }
+    else if (sonuc === 'kurtaris') {
+      var kk = plan.konum(e.t);
+      v = { x: (e.x >= kk.x ? 1 : -1) * 2.2 + v.x * 0.1, y: Math.abs(v.y) * 0.15 + 1.5, z: -Math.abs(v.z) * 0.5 };
+    }
     else if (sonuc === 'direk_disari') {
       if (direkYeri === 'ust') v = { x: v.x * 0.4, y: Math.abs(v.y) * 0.5 + 2.0, z: v.z * 0.3 };
       else v = { x: sag * Math.max(2.5, Math.abs(v.x) * 0.6), y: Math.abs(v.y) * 0.3 + 1.2, z: -0.3 * v.z };
     }
     else if (sonuc === 'baraj') { v = { x: -v.x * 0.25, y: 1.5, z: -0.3 * v.z }; }
     var p = { x: e.x, y: e.y, z: e.z }, tt = e.t;
-    var tuttu = sonuc === 'kurtaris' && plan.tutar;     // top kalecinin elinde kalır
-    var yakalama = tuttu ? plan.konum(tt) : null;
     var kalan = (sonuc === 'aut') ? 0.9 : 1.1;
     var netZ = D + 1.5;
     var sonrasi = [];
     for (var j = 1; j <= Math.round(kalan / dt); j++) {
-      if (tuttu) {
-        var ks = plan.konum(tt + j * dt), u = Math.min(1, j * dt / 0.22);
-        u = u * u * (3 - 2 * u);
-        var elX = (ks.yon || 0) * 0.15, elY = 0.25;
-        sonrasi.push({ t: tt + j * dt, x: ks.x + (e.x - yakalama.x) * (1 - u) + elX * u,
-          y: ks.y + (e.y - yakalama.y) * (1 - u) + elY * u, z: D - 0.05 * u }); continue;
-      }
       v.y -= g * dt;
       if (damp) { var f = Math.exp(-damp * dt); v.x *= f; v.z *= f; }
       p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
@@ -155,7 +162,7 @@
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,
-      tuttu: tuttu, direkYeri: direkYeri, baraj: baraj, kaleci: plan, nokta: { x: ax, y: ay }
+      direkYeri: direkYeri, baraj: baraj, kaleci: plan, nokta: { x: ax, y: ay }
     };
   }
 

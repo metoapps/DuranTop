@@ -69,7 +69,7 @@
     var iz = $('secimIzgara'); iz.innerHTML = '';
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
-      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.png?v=20261003e"><span>' + k.ad + '</span>';
+      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.png?v=20261003d"><span>' + k.ad + '</span>';
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
     });
@@ -200,8 +200,7 @@
     var giris = { ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.faz = 'vurus';
-    var dz = DT.cizim.vurusSekansi(d.karakter);
-    d.an = { t0: now, on: dz.temasT, sekans: dz, vurdu: false, olay: false, bitti: false };   // top yalnızca temas anında çıkar
+    d.an = { t0: now, on: 0.32, vurdu: false, olay: false, bitti: false };
     $('alt').hidden = true;
     if (d.mod === 'resmi') {          // vuruş açıldığı anda sayılır; yenileme ya da kopma sonucu değiştirmez
       var k = oku(ANAHTAR.resmi, null);
@@ -225,19 +224,22 @@
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
       top: B, topAci: 0, baraj: d.barajGeo,
-      kaleci: { x: Math.sin(now / 900) * 0.06, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'hazir', aci: 0 },
-      oyuncu: { karakter: d.karakter, t: null }      // duruş aynı kalır: nişana göre dönme ya da ayna yok
+      kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle' },
+      oyuncu: { karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.onizleme };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
-      out.oyuncu.t = el; out.oyuncu.sekans = an.sekans;
+      out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.28)));
+      out.oyuncu.temas = an.on / (an.on + 0.28);
+      out.oyuncu.yol = r.yol;
+      out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if (simT > 0) {
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); }
         var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * 16;
-        out.kaleci = r.kaleci.konum(tt); out.kaleci.t = tt;
+        out.kaleci = r.kaleci.konum(tt);
         var se = simT - r.olayT;
         if (se >= 0) {
           if (!an.olay) {
@@ -309,7 +311,7 @@
     d.faz = 'bos';
     var t = toplam(), gol = d.sonuclar.filter(function (s) { return s.puan > 0; }).length;
     ekranGoster('tursonu');
-    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png?v=20261003e';
+    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png?v=20261003d';
     $('turBaslik').textContent = gol + ' gol, ' + VURUS_SAYISI + ' vuruş';
     $('turToplam').textContent = t;
     var ADLAR = { gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
@@ -340,7 +342,7 @@
         $('cubukImlec').style.left = (v * 100) + '%';
       }
       if (d.pos) {
-        var cd = d.faz === 'menu' || d.ekran !== 'oyun' ? { top: { x: d.pos.bx, y: A.kale.topYaricap, z: 0 }, kaleci: { x: Math.sin(now / 900) * 0.15, y: 1, ilerleme: 0, yon: 0 } } : cizimDurumu(now);
+        var cd = d.faz === 'menu' || d.ekran !== 'oyun' ? { top: { x: d.pos.bx, y: A.kale.topYaricap, z: 0 }, kaleci: { x: Math.sin(now / 900) * 0.08, y: 1, ilerleme: 0, yon: 0, poz: 'bekle' } } : cizimDurumu(now);
         DT.cizim.ciz(cd);
       }
     }
@@ -351,7 +353,7 @@
   function kadroDoldur() {
     var k = $('kadro'); k.innerHTML = '';
     DT.KARAKTER.forEach(function (c) {
-      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.png?v=20261003e'; k.appendChild(im);
+      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.png?v=20261003d'; k.appendChild(im);
     });
   }
 
