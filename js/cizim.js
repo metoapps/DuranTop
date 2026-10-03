@@ -334,7 +334,7 @@
     px+=(durum.durus||0)*26*(active?(1-before):1);
     if(durum.yurume&&DT.model3d.oyuncuYuru){
       var walk=durum.yurume,e=walk.u*walk.u*(3-2*walk.u);px+=(walk.from+(walk.to-walk.from)*e-(durum.durus||0))*26;
-      DT.model3d.oyuncuYuru(g,im,walk,{x:px,y:py,scale:olcek,anchorX:footX,bottom:footY,boy:S.boy});return;
+      DT.model3d.oyuncuYuru(g,im,walk,{x:px,y:py,scale:olcek,anchorX:footX,bottom:footY,boy:S.boy,karakter:karakter});return;
     }
     g.translate(px,py);g.rotate(lean);g.scale(olcek,olcek);
     var turn=(durum.durus||0)*(active?(1-before):1);g.transform(1-.10*Math.abs(turn),0,-turn*.12,1,0,0);

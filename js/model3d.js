@@ -63,25 +63,49 @@ function draw(g,project,r,palette){var triangles=[];
 var keeper={shirt:'#279258',shorts:'#152b22',socks:'#236f44',skin:'#d4a47c',hair:'#9b7545',gloves:'#eeeeea',boots:'#20292d'};
 function kaleciCiz(g,project,k,z){draw(g,project,rig(k,z),keeper);}
 function barajCiz(g,project,p,i){var scale=p.boy/1.92,r=rig({x:p.x,y:p.y+1,poz:'bekle',low:false,high:false},p.z);Object.keys(r.nodes).forEach(function(key){var n=r.nodes[key];n[0]=p.x+(n[0]-p.x)*scale;n[1]=p.y+(n[1]-p.y)*scale;});var colors={shirt:i%2?'#434952':'#d5d7d9',shorts:'#171b21',socks:'#333b45',skin:'#cf9f7c',hair:'#302821',gloves:'#cf9f7c',boots:'#11171a'};draw(g,project,r,colors);}
-// Original clothed character texture stays on the walking mesh, including shirt, sleeves, shorts and head.
-// Mild depth and gait deformations avoid replacing the kit with a plain procedural body.
+// Texture-skinned leg chains: hip, knee and ankle rotate independently while preserving the original kit.
+var WALK_JOINTS={
+ meto:[[431,382],[437,447],[445,509],[452,384],[478,417],[541,430]],
+ lort:[[439,387],[445,449],[450,510],[463,389],[488,421],[549,440]],
+ fero:[[429,376],[440,446],[449,509],[451,378],[482,411],[544,421]],
+ latte:[[432,382],[439,447],[446,509],[454,384],[481,417],[544,430]],
+ josh:[[431,382],[440,449],[446,509],[454,384],[480,417],[543,430]]
+};
+function walkingJoints(walk,id,travel){
+ var u=Math.max(0,Math.min(1,walk.u)),bind=WALK_JOINTS[id]||WALK_JOINTS.meto;
+ var env=Math.min(1,u/.16,(1-u)/.16);env=env*env*(3-2*env);
+ var phase=u*Math.PI*4,targets=[];
+ for(var leg=0;leg<2;leg++){
+  var h=bind[leg*3],cycle=Math.sin(phase+leg*Math.PI),f=(u*2+leg*.5)%1,swing=f>=.5,sw=(f-.5)*2;
+  var lift=swing?Math.sin(Math.PI*sw)*36:0,stride=(travel||0)/2;
+  var stepX=swing?stride*(-.25+.5*(sw*sw*(3-2*sw))):stride*(.25-f);
+  var ankle=[(leg?505:425)+stepX,510-lift],knee=[h[0]+(leg?27:-12)+cycle*16,453-lift*.6];
+  [h,knee,ankle].forEach(function(v,j){var b=bind[leg*3+j];targets.push([b[0]+(v[0]-b[0])*env,b[1]+(v[1]-b[1])*env]);});
+ }
+ return {bind:bind,nodes:targets,phase:phase,envelope:env};
+}
 function oyuncuYuru(g,image,walk,placement){
  var u=Math.max(0,Math.min(1,walk.u)),ease=u*u*(3-2*u),turn=walk.from+(walk.to-walk.from)*ease;
- var envelope=Math.sin(Math.PI*u),phase=u*Math.PI*6,yaw=(walk.to||1)*.22*envelope;
- var width=900,height=560,cols=12,rows=16,vertices=[];
+ var pose=walkingJoints(walk,placement.karakter,(walk.to-walk.from)*26/placement.scale),phase=pose.phase,yaw=(walk.to||1)*.22*Math.sin(Math.PI*u);
+ var width=900,height=560,cols=16,rows=24,vertices=[];
+ function distance(p,a,b){var dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);}
+ function bonePoint(p,a,b,ta,tb){var dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy),along=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(len*len),side=((p[0]-a[0])*-dy+(p[1]-a[1])*dx)/len,tx=tb[0]-ta[0],ty=tb[1]-ta[1],tl=Math.hypot(tx,ty);return [ta[0]+along*tx-side*ty/tl,ta[1]+along*ty+side*tx/tl];}
+ function skinned(x,y){if(y<365)return [x,y];var point=[x,y],B=pose.bind,T=pose.nodes,best=0,min=Infinity;
+  for(var leg=0;leg<2;leg++){var i=leg*3,d=Math.min(distance(point,B[i],B[i+1]),distance(point,B[i+1],B[i+2]));if(d<min){min=d;best=i;}}
+  var upper=bonePoint(point,B[best],B[best+1],T[best],T[best+1]),lower=bonePoint(point,B[best+1],B[best+2],T[best+1],T[best+2]);
+  var d1=distance(point,B[best],B[best+1]),d2=distance(point,B[best+1],B[best+2]),blend=Math.max(0,Math.min(1,.5+(d1-d2)/20)),w=Math.max(0,Math.min(1,(y-365)/25));
+  return [x+(upper[0]*(1-blend)+lower[0]*blend-x)*w,y+(upper[1]*(1-blend)+lower[1]*blend-y)*w];
+ }
  for(var row=0;row<=rows;row++){vertices[row]=[];for(var col=0;col<=cols;col++){
-  var sx=width*col/cols,sy=height*row/rows,x=(sx-placement.anchorX)*placement.scale,y=(placement.bottom-sy)*placement.scale;
-  var leg=Math.max(0,Math.min(1,(sy-(placement.bottom-placement.boy*.42))/(placement.boy*.42))),side=x<0?-1:1;
-  var step=Math.sin(phase+ (side<0?Math.PI:0))*envelope*leg;
-  y+=Math.max(0,step)*placement.boy*placement.scale*.035;
-  var depth=-x*Math.sin(yaw)+step*placement.boy*placement.scale*.035;
-  var perspective=600/(600+depth);
+  var sx=220+400*col/cols,sy=height*row/rows,p=skinned(sx,sy),x=(p[0]-placement.anchorX)*placement.scale,y=(placement.bottom-p[1])*placement.scale;
+  var depth=-x*Math.sin(yaw),perspective=600/(600+depth);
   vertices[row][col]={x:placement.x+(x*Math.cos(yaw)*(1-.10*Math.abs(turn))+turn*.12*y)*perspective,y:placement.y-y*perspective,uv:[sx,sy]};
  }}
  function triangle(a,b,c){var dx1=b.uv[0]-a.uv[0],dy1=b.uv[1]-a.uv[1],dx2=c.uv[0]-a.uv[0],dy2=c.uv[1]-a.uv[1],det=dx1*dy2-dx2*dy1;
   var aa=((b.x-a.x)*dy2-(c.x-a.x)*dy1)/det,cc=(dx1*(c.x-a.x)-dx2*(b.x-a.x))/det,bb=((b.y-a.y)*dy2-(c.y-a.y)*dy1)/det,dd=(dx1*(c.y-a.y)-dx2*(b.y-a.y))/det;
-  g.save();g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineTo(c.x,c.y);g.closePath();g.clip();g.transform(aa,bb,cc,dd,a.x-aa*a.uv[0]-cc*a.uv[1],a.y-bb*a.uv[0]-dd*a.uv[1]);g.drawImage(image,0,0,width,height);g.restore();
+  var cx=(a.x+b.x+c.x)/3,cy=(a.y+b.y+c.y)/3;function edge(p){var dx=p.x-cx,dy=p.y-cy,l=Math.hypot(dx,dy)||1;return{x:p.x+dx/l*.65,y:p.y+dy/l*.65};}var ca=edge(a),cb=edge(b),ccp=edge(c);
+  g.save();g.beginPath();g.moveTo(ca.x,ca.y);g.lineTo(cb.x,cb.y);g.lineTo(ccp.x,ccp.y);g.closePath();g.clip();g.transform(aa,bb,cc,dd,a.x-aa*a.uv[0]-cc*a.uv[1],a.y-bb*a.uv[0]-dd*a.uv[1]);g.drawImage(image,0,0,width,height);g.restore();
  }
  for(row=0;row<rows;row++)for(col=0;col<cols;col++){var a=vertices[row][col],b=vertices[row][col+1],c=vertices[row+1][col+1],d=vertices[row+1][col];triangle(a,b,c);triangle(a,c,d);}
 }
-D.model3d={oyuncuYuru:oyuncuYuru,setFace:function(image){faceTexture=image;},rig:rig,shapes:shapes,ballHits:ballHits,kaleciCiz:kaleciCiz,barajCiz:barajCiz};})(typeof globalThis!=='undefined'?globalThis:window);
+D.model3d={walkingJoints:walkingJoints,oyuncuYuru:oyuncuYuru,setFace:function(image){faceTexture=image;},rig:rig,shapes:shapes,ballHits:ballHits,kaleciCiz:kaleciCiz,barajCiz:barajCiz};})(typeof globalThis!=='undefined'?globalThis:window);
