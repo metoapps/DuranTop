@@ -53,7 +53,7 @@
       var t = Math.min(i * dt, T), s = t / T;
       ornekler.push({
         t: t,
-        x: bx + (ax - bx) * s + egri * Math.sin(Math.PI * s),
+        x: bx + (ax - bx) * s + egri * 6.75 * s * s * (1 - s),
         y: R + vy * t - 0.5 * g * t * t,
         z: D * s
       });

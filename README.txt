@@ -58,3 +58,21 @@ EĞLENCE TESTİ: BAKILACAKLAR
 3. Zamanlama çubuğu eğlenceli mi, sinir bozucu mu? Kapalıyken oyun nasıl?
 4. Kaçırınca nedenini ekrandaki cümleden anlıyor musun?
 5. Beş vuruş "bir tur daha" dedirtiyor mu?
+
+3 Ekim 2026 oynanış güncellemesi
+- Dokunulan nokta doğrudan hedef olur; 70 piksel parmak ofseti kaldırıldı.
+- Yeşil zamanlama bandı %7, tek yön çubuk süresi 0.8 saniye.
+- VUR dokunmanın başlangıcında ölçülür, bırakma gecikmesi eklenmez.
+- Penaltı 25, frikik 27 m/s; falso uçuşta kademeli oluşur.
+- Üç mevcut vuruş karesi harmanlanır, ağırlık aktarımı ve yön çevirme uygulanır.
+  Bu henüz gerçek 3D eklem animasyonu değildir.
+- Kalecinin okuması/tepkisi güçlendirildi. Yeni yeşil formalı kaleci sprite'ı eklendi.
+- Menü karakterlerinin görünen yüksekliği eşitlendi.
+- METO zıplama, LORT sağ-sol dans, FERO güçlü sıçrama, LATTE salınım,
+  JOSH dönüş sevinci yapar; bunlar mevcut sevinç görselinin hareketleridir.
+
+Yeni asset: assets/kaleci-v2.png
+Yerleşik görüntü üretimiyle oluşturuldu. İstem özeti: Neuer'i andıran kısa sarı
+saçlı, yeşil formalı kaleci; hazır, sola dalış ve sağa dalış; şeffaf sprite sayfası.
+Kontrol: üç ekran boyutunda Canvas çizimi, 135 nişan izdüşüm tersleme kontrolü,
+3000 deterministik şut. Gerçek mobil tarayıcı/dokunmatik test yapılmadı.

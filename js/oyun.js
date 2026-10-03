@@ -8,7 +8,7 @@
 
   var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt_resmi', enIyi: 'dt_en_iyi', gecmis: 'dt_gecmis' };
   var VURUS_SAYISI = A.pozisyonlar.length;
-  var PARMAK_YUKARI = 70;      // nişan, parmağın bu kadar üstünde görünür (parmak nişanı kapatmasın)
+  var PARMAK_YUKARI = 0;      // nişan, parmağın bu kadar üstünde görünür (parmak nişanı kapatmasın)
 
   var ayar = { ses: false, cubuk: true };
   var d = {
@@ -119,7 +119,8 @@
   /* ---------- nişan ---------- */
   function ekranNoktasi(e) {
     var r = root.document.getElementById('sahne').getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top - PARMAK_YUKARI };
+    var b = DT.cizim.boyut();
+    return { x: (e.clientX - r.left) * b.w / r.width, y: (e.clientY - r.top) * b.h / r.height };
   }
   function nisanGuncelle(e) {
     var p = ekranNoktasi(e), k = DT.cizim.ekranToKale(p.x, p.y);
@@ -136,7 +137,7 @@
     cv.addEventListener('pointermove', function (e) { if (basili && d.faz === 'nisan' && !d.kilit) nisanGuncelle(e); });
     function birak() { if (!basili) return; basili = false; if (d.faz === 'nisan' && !d.kilit && d.aim) kilitle(false); }
     cv.addEventListener('pointerup', birak);
-    cv.addEventListener('pointercancel', birak);
+    cv.addEventListener('pointercancel', function () { basili = false; });
   }
 
   function onizlemeHesapla() {
@@ -222,13 +223,16 @@
     var out = {
       top: B, topAci: 0, baraj: d.barajGeo,
       kaleci: { x: Math.sin(now / 700) * 0.12, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0 },
-      oyuncu: { karakter: d.karakter, poz: 'vurus1' }
+      oyuncu: { karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.onizleme };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
-      out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.16 ? 'vurus2' : 'vurus3');
+      out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.28)));
+      out.oyuncu.temas = an.on / (an.on + 0.28);
+      out.oyuncu.yol = r.yol;
+      out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if (simT > 0) {
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); }
         var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
@@ -251,7 +255,7 @@
       out.top = d.son.top; out.kaleci = d.son.kaleci;
       var gol = gecerliSonuc.r.sonuc === 'gol' || gecerliSonuc.r.sonuc === 'direk_gol';
       out.oyuncu = null;
-      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma' };
+      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol };
     }
     return out;
   }
@@ -279,7 +283,7 @@
   function sonucGoster() {
     var r = gecerliSonuc.r, girdi = gecerliSonuc.girdi, p = gecerliSonuc.p;
     d.sonuclar.push(gecerliSonuc.giris);
-    d.faz = 'sonuc';
+    d.faz = 'sonuc'; d.sonucBasla = simdi();
     var gol = p.gol;
     var kutu = $('sonuc');
     kutu.className = 'sonuc ' + (gol ? 'gol' : 'kacti');
@@ -359,6 +363,8 @@
     if (kayit) { ayar.cubuk = kayit.cubuk !== false; }
     ayar.ses = false;                       // ses her açılışta kapalı başlar
     DT.cizim.kur($('sahne'));
+    $('cubukBant').style.left = ((0.5 - A.zaman.bant) * 100) + '%';
+    $('cubukBant').style.width = (A.zaman.bant * 200) + '%';
     kadroDoldur(); girisBagla(); ayarGuncelle();
 
     $('btnAntrenman').addEventListener('click', function () { secimGoster('antrenman'); });
@@ -374,8 +380,9 @@
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
     $('turTekrar').addEventListener('click', function () { turBaslat(d.karakter, d.mod, null); });
-    $('vurBtn').addEventListener('click', vur);
-    $('cubukYol').addEventListener('click', vur);
+    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary !== false) vur(); });
+    $('vurBtn').addEventListener('click', function (e) { if (e.detail === 0) vur(); });
+    $('cubukYol').addEventListener('pointerdown', vur);
     $('duzeltBtn').addEventListener('click', duzelt);
     $('devamBtn').addEventListener('click', devam);
     Array.prototype.forEach.call(doc.querySelectorAll('#falsoKutu button'), function (b) {

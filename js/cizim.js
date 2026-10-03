@@ -77,7 +77,7 @@
       DT.POZ.forEach(function (p) { gorselYukle(k.id + '_' + p, 'assets/sprites/' + k.id + '_' + p + '.png'); });
     });
     // Sonradan eklenecek görseller: dosya yoksa çizimle devam edilir.
-    ['top'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
+    ['top', 'kaleci-v2'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
   }
   function sprite(id, poz) { return gorseller[id + '_' + poz] || null; }
 
@@ -248,6 +248,17 @@
     var D = pos.D + 0.25;
     var p = izdus(k.x, k.y, D);
     if (!p) return;
+    var keeper = gorseller['_kaleci-v2'];
+    if (keeper) {
+      var dive = k.ilerleme > 0.15 && k.yon !== 0;
+      var idx = dive ? (k.yon < 0 ? 1 : 2) : 0;
+      var boxes = [[0, 75, 490, 535], [500, 90, 840, 470], [1340, 100, 708, 460]];
+      var box = boxes[idx], factor = keeper.width / 2048;
+      var h = (dive ? 1.15 : 1.85) * p.olcek;
+      var w = box[2] / box[3] * h;
+      g.drawImage(keeper, box[0] * factor, box[1] * factor, box[2] * factor, box[3] * factor, p.x - w / 2, p.y - h * 0.52, w, h);
+      return;
+    }
     var s = p.olcek, ang = k.yon * k.ilerleme * 1.15;
     g.save(); g.translate(p.x, p.y); g.rotate(ang);
     g.fillStyle = 'rgba(0,0,0,0.3)';
@@ -273,25 +284,49 @@
 
   /* Oyuncu sprite'ı: vuran ayağın ucu (yatay ve dikey) topun kenarına oturur.
    * Top yerde kalır; oyuncu topa göre kameraya biraz daha yakın durur, bu yüzden basan ayağı topun altında görünür. */
-  function oyuncuCiz(g, karakter, poz, topEkran) {
-    var im = sprite(karakter, poz);
+  function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter].vurus2;
-    if (!im || !nokta || !topEkran) return;
-    var olcek = (0.21 * H) / S.boy;
-    var topR = Math.max(2, A.kale.topYaricap * topEkran.olcek);
-    var ucX = topEkran.x + topR, ucY = topEkran.y;
-    var x0 = ucX - nokta.tipX * olcek, y0 = ucY - nokta.tipY * olcek;
-    g.fillStyle = 'rgba(0,0,0,0.28)';
-    g.beginPath(); g.ellipse(x0 + S.ankrajX * olcek, y0 + S.ankrajY * olcek, 70 * olcek, 14 * olcek, 0, 0, 6.3); g.fill();
-    g.drawImage(im, x0, y0, S.genislik * olcek, S.yukseklik * olcek);
+    if (!nokta || !topEkran) return;
+    durum = durum || {};
+    var olcek = (0.21 * H) / S.boy, r = Math.max(2, A.kale.topYaricap * topEkran.olcek);
+    var hedef = durum.aim && izdus(durum.aim.x, durum.aim.y, pos.D);
+    var ilk = durum.yol && durum.yol[2];
+    if (ilk) hedef = izdus(ilk.x, ilk.y, ilk.z);
+    var yon = hedef && hedef.x > topEkran.x + 0.05 ? -1 : 1;
+    var u = durum.ilerleme || 0, temas = durum.temas || 0.533333;
+    var hazir = Math.max(0, 1 - u / temas);
+    var sonrasi = Math.max(0, (u - temas) / (1 - temas));
+    var don = 0.045 * Math.sin(Math.PI * sonrasi) * yon;
+    var ucX = topEkran.x + yon * r, ucY = topEkran.y;
+    g.save();
+    g.translate(ucX + yon * 8 * hazir * hazir, ucY + 3 * hazir * hazir);
+    g.rotate(don); g.scale(yon * olcek, olcek);
+    // Dar geçiş aralıkları + sürekli ağırlık aktarımı, temas tam topun kenarında.
+    var p1 = 'vurus1', p2 = null, karisim = 0;
+    if (u >= temas) { p1 = 'vurus2'; p2 = 'vurus3'; karisim = Math.min(1, (u - temas) / 0.17); }
+    else if (u > temas - 0.12) { p2 = 'vurus2'; karisim = (u - temas + 0.12) / 0.12; }
+    function kare(p, alpha) {
+      var im = sprite(karakter, p); if (!im || alpha <= 0) return;
+      g.globalAlpha = alpha; g.drawImage(im, -nokta.tipX, -nokta.tipY, S.genislik, S.yukseklik);
+    }
+    kare(p1, 1 - karisim); if (p2) kare(p2, karisim);
+    g.restore();
   }
 
-  /* Karakter yüzü ön sprite (sonuç ekranları) */
-  function onSpriteCiz(g, karakter, poz, cx, taban, boy) {
-    var im = sprite(karakter, poz);
-    if (!im) return;
-    var olcek = boy / S.boy;
-    g.drawImage(im, cx - S.ankrajX * olcek, taban - S.ankrajY * olcek, S.genislik * olcek, S.yukseklik * olcek);
+  function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
+    var im = sprite(karakter, poz); if (!im) return;
+    var olcek = boy / S.boy, t = durum.sure || 0, dx = 0, dy = 0, aci = 0, sx = 1;
+    if (durum.gol) {
+      switch (karakter) {
+        case 'meto': dy = -Math.abs(Math.sin(t * 7)) * 18; break; // çift zıplama
+        case 'lort': dx = Math.sin(t * 5) * 22; aci = Math.sin(t * 5) * 0.10; break; // sağ-sol dans
+        case 'fero': dy = -Math.abs(Math.sin(t * 4)) * 34; aci = Math.sin(t * 4) * 0.07; break; // güçlü sıçrayış
+        case 'latte': aci = Math.sin(t * 8) * 0.16; dx = Math.sin(t * 8) * 8; break; // omuz dansı
+        case 'josh': sx = 0.55 + 0.45 * Math.cos(Math.min(t, 1.4) * Math.PI * 2 / 1.4); dy = -Math.sin(Math.min(t, 1.4) * Math.PI / 1.4) * 18; break; // dönüş
+      }
+    }
+    g.save(); g.translate(cx + dx, taban + dy); g.rotate(aci); g.scale(sx * olcek, olcek);
+    g.drawImage(im, -S.ankrajX, -S.ankrajY, S.genislik, S.yukseklik); g.restore();
   }
 
   function nisanCiz(g, aim, kilit, falso, onizleme) {
@@ -351,8 +386,8 @@
 
     // oyuncu ve nişan her zaman en önde
     var topEkran = izdus(pos.bx, A.kale.topYaricap, 0);
-    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran);
-    if (d.onKarakter) onSpriteCiz(g, d.onKarakter.karakter, d.onKarakter.poz, W * 0.5, H * 0.67, 0.26 * H);
+    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran, d.oyuncu);
+    if (d.onKarakter) onSpriteCiz(g, d.onKarakter.karakter, d.onKarakter.poz, W * 0.5, H * 0.67, 0.26 * H, d.onKarakter);
     if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
   }
