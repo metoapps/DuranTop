@@ -77,7 +77,7 @@ saçlı, yeşil formalı kaleci; hazır, sola dalış ve sağa dalış; şeffaf 
 Kontrol: üç ekran boyutunda Canvas çizimi, 135 nişan izdüşüm tersleme kontrolü,
 3000 deterministik şut. Gerçek mobil tarayıcı/dokunmatik test yapılmadı.
 
-İnceleme sonrası düzeltmeler (20261003c)
+İnceleme sonrası düzeltmeler (20261003d)
 - Hayalet gövde üreten alfa harmanlama kaldırıldı. Tek opak vuruş pozu ve
   sürekli yaklaşma/ağırlık aktarımı kullanılıyor. Beş temas ayağı yeniden ölçüldü.
 - Kaleci çizimi ve kurtarış, aynı PNG'den ölçülmüş 64 silüet bandını kullanıyor.
@@ -95,3 +95,32 @@ Kontrol: üç ekran boyutunda Canvas çizimi, 135 nişan izdüşüm tersleme kon
   hazırlık/temas/devam görüntüsü; 135 nişan tersleme kontrolü; girdi akışı kontrolü.
   Gerçek iPhone Safari testi yapılmadı. Sevinçler mevcut görsellerin hareketleri;
   yeni eklemli sevinç animasyonları üretilmedi.
+
+
+4 Ekim 2026 kaleci ve animasyon düzeltmesi (kaynak: 4fd48da üzerine)
+- Kaleci modeli baştan yazıldı (js/kaleci.js). Eski model yalnızca kale çizgisinde, görselin piksel şeritlerine bakıyordu.
+  Yeni model: topun gideceği yeri okur, bir EYLEM seçer (tutuş, alçak blok, zıplama, yan adım, alçak/orta/yüksek dalış),
+  gövdesini topu kendi maskesinin ortasına alacak yere, zamanında yetişebileceği kadar kaydırır. Erişim "kaleci gücü" sayısından
+  değil, hareket süresinden çıkar (mesafe / hız).
+- Kurtarış maskesi çizilen görselden üretilir (tools/kaleci_maske.py -> js/kaleci_maske.js): bacak arası ve kol altı boşlukları kapalı,
+  top yarıçapı eklenmiş. Çizim ve çarpışma aynı pozu ve aynı ölçeği kullanır; dikey kamera germesi de hesaba katıldı.
+- Merkeze gelen şutta yan dalış pozu yok; kaleci yerinde tutar, bloklar ya da zıplar. Çok az durumda kısa yan adım atar.
+- Antrenmandaki kaleci artık "heykel" değil: tepki gecikmesi 0,20 s'den 0,08 s'ye indi ve dalış hızı resmi turdakinin %90'ı.
+- Frikikte kaleci barajın görüşü kapattığı için topu geç görür (tepki 0,55 s): köşeler ödüllendirilir, ortası kurtarılır.
+- Şutçu: nişana göre dönme/ayna kaldırıldı. Duruş sabit; top yalnızca temas karesinde çıkar. Kare dizisi veri.js'de tanımlı:
+  yeni kareler (yaklas1, yaklas2, temas, dengeye) eklenirse otomatik uzun dizi oynar, yoksa 3 karelik yedek dizi.
+- Gol sevinçleri: karaktere özel dizi (assets/sprites/<ad>_sev1..sev6.png) varsa oynar; yoksa durağan kare (sallama kaldırıldı).
+- Kaleci için yeni kareler assets/kaleci/<poz>.png (1200x800, gövde merkezi 600,400, 324 px = 1 m). Gelince:
+  python3 tools/manifest.py && python3 tools/kaleci_maske.py
+- İsteğe bağlı kareler assets/manifest.json ile yüklenir; olmayan dosya için 404 isteği atılmaz.
+- Testler: node tests/oynanis.cjs (197 kontrol).
+Gerçek telefonda denenmedi.
+
+ChatGPT kontrolü / yayın 20261003e
+- Claude paketindeki 197 kontrol yeniden çalıştırıldı, geçti.
+- Tutulan topun temas noktasından ele geçişindeki anlık sıçrama giderildi.
+- Vuruş dizisi vuruş başında sabitleniyor; geç yüklenen opsiyonel kareler
+  devam eden vuruşun temas zamanını değiştiremiyor.
+- Yeni yaklaşma/temas, kaleci eylem ve karaktere özel sevinç PNG'leri
+  bu pakette henüz bulunmuyor; manifest boş. Mevcut kareler yedek olarak kullanılır.
+- Yeni fizik incelemesi yapıldı; gerçek iPhone/Safari kontrolü yapılmadı.

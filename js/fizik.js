@@ -81,7 +81,7 @@
     // 4) Kale çizgisi ve kaleci
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss);
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T);
     var bolge = A.kale.direk / 2 + R;
     var kose = false;
 
@@ -122,17 +122,26 @@
       else v = { x: -sag * Math.max(1.5, Math.abs(v.x) * 0.5), y: v.y * 0.5, z: v.z * 0.45 };
       damp = 3.0;
     }
-    else if (sonuc === 'kurtaris') { var kk = plan.konum(T); v = { x: (gecis.x >= kk.x ? 1 : -1) * 2.6 + v.x * 0.15, y: Math.abs(v.y) * 0.2 + 1.8, z: -0.35 * v.z }; }
+    else if (sonuc === 'kurtaris' && !plan.tutar) { var kk = plan.konum(T); v = { x: (gecis.x >= kk.x ? 1 : -1) * 2.6 + v.x * 0.15, y: Math.abs(v.y) * 0.2 + 1.8, z: -0.35 * v.z }; }
     else if (sonuc === 'direk_disari') {
       if (direkYeri === 'ust') v = { x: v.x * 0.4, y: Math.abs(v.y) * 0.5 + 2.0, z: v.z * 0.3 };
       else v = { x: sag * Math.max(2.5, Math.abs(v.x) * 0.6), y: Math.abs(v.y) * 0.3 + 1.2, z: -0.3 * v.z };
     }
     else if (sonuc === 'baraj') { v = { x: -v.x * 0.25, y: 1.5, z: -0.3 * v.z }; }
     var p = { x: e.x, y: e.y, z: e.z }, tt = e.t;
+    var tuttu = sonuc === 'kurtaris' && plan.tutar;     // top kalecinin elinde kalır
+    var yakalama = tuttu ? plan.konum(tt) : null;
     var kalan = (sonuc === 'aut') ? 0.9 : 1.1;
     var netZ = D + 1.5;
     var sonrasi = [];
     for (var j = 1; j <= Math.round(kalan / dt); j++) {
+      if (tuttu) {
+        var ks = plan.konum(tt + j * dt), u = Math.min(1, j * dt / 0.22);
+        u = u * u * (3 - 2 * u);
+        var elX = (ks.yon || 0) * 0.15, elY = 0.25;
+        sonrasi.push({ t: tt + j * dt, x: ks.x + (e.x - yakalama.x) * (1 - u) + elX * u,
+          y: ks.y + (e.y - yakalama.y) * (1 - u) + elY * u, z: D - 0.05 * u }); continue;
+      }
       v.y -= g * dt;
       if (damp) { var f = Math.exp(-damp * dt); v.x *= f; v.z *= f; }
       p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
@@ -146,7 +155,7 @@
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,
-      direkYeri: direkYeri, baraj: baraj, kaleci: plan, nokta: { x: ax, y: ay }
+      tuttu: tuttu, direkYeri: direkYeri, baraj: baraj, kaleci: plan, nokta: { x: ax, y: ay }
     };
   }
 
