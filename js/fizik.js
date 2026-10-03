@@ -31,33 +31,29 @@
     var g = A.yercekimi, R = A.kale.topYaricap;
     var yari = A.kale.genislik / 2, H = A.kale.yukseklik;
 
-    // 1) Zamanlama: hata hem yönü hem hızı etkiler
+    // A reduced mechanics model: launch impulse + gravity + lateral Magnus acceleration.
+    // Contact/timing coefficients are gameplay calibration, not measured athlete data.
     var zamanVar = typeof girdi.zaman === 'number';
     var hata = zamanVar ? girdi.zaman - 0.5 : 0;
     var bandaGirdi = zamanVar && Math.abs(hata) <= A.zaman.bant;
-    var ax = aim.x + hata * A.zaman.sapmaX;
-    var ay = Math.max(0.15, aim.y + hata * A.zaman.sapmaY);
-    var hizCarpan = hata < 0 ? 1 + hata * A.zaman.erkenYavas : 1 + hata * A.zaman.gecHiz;
-    var hiz = A.hiz[pos.tip] * hizCarpan;
-
-    // 2) Top yolu
-    var bx = pos.bx, D = pos.D;
-    var L = Math.hypot(ax - bx, D);
-    var T = L / hiz;
-    var vy = (ay - R + 0.5 * g * T * T) / T;
-    var egri = (girdi.falso || 0) * A.falsoMetre;
-    var dt = 1 / 120;
-    var n = Math.ceil(T / dt);
-    var ornekler = [];
+    var quality = Math.exp(-Math.pow(hata / 0.18, 2));
+    var contact = girdi.contact || { x: 0, y: 0 };
+    var cx = Math.max(-.85, Math.min(.85, contact.x || 0));
+    var cy = Math.max(-.85, Math.min(.85, contact.y || 0));
+    var power = (.60 + .40 * quality) * (1 - .10 * Math.abs(cx));
+    var bx = pos.bx, D = pos.D, referenceT = Math.hypot(aim.x - bx, D) / A.hiz[pos.tip];
+    var vz = D / referenceT * power;
+    var vx = (aim.x - bx) / referenceT * power + hata * 2.0 + (1 - quality) * .55 * gauss();
+    var vy = ((aim.y - R + .5 * g * referenceT * referenceT) / referenceT) * power - cy * .5 + hata * 2.5;
+    var spinA = -cx * 4.0 * (vz / 25); // opposite side contact produces lateral spin
+    var T = D / vz, dt = 1 / 120, n = Math.ceil(T / dt), ornekler = [];
     for (var i = 0; i <= n; i++) {
-      var t = Math.min(i * dt, T), s = t / T;
-      ornekler.push({
-        t: t,
-        x: bx + (ax - bx) * s + egri * 6.75 * s * s * (1 - s),
-        y: R + vy * t - 0.5 * g * t * t,
-        z: D * s
-      });
+      var t = Math.min(i * dt, T);
+      var rawY = R + vy * t - .5 * g * t * t - cy * 7.0 * t * (T - t);
+      ornekler.push({ t: t, x: bx + vx * t + .5 * spinA * t * t,
+        y: Math.max(R, rawY), z: vz * t });
     }
+    var ax = ornekler[ornekler.length - 1].x, ay = ornekler[ornekler.length - 1].y;
 
     // 3) Baraj (yalnız frikik)
     var baraj = null, olayIndex = ornekler.length - 1, sonuc = null;
@@ -82,7 +78,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss);
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T);
     var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;
@@ -145,10 +141,18 @@
     }
     else if (sonuc === 'baraj') { v = { x: -v.x * 0.25, y: 1.5, z: -0.3 * v.z }; }
     var p = { x: e.x, y: e.y, z: e.z }, tt = e.t;
+    var tuttu = sonuc === 'kurtaris' && plan.eylem !== 'dal';
+    var capture = tuttu ? plan.konum(tt) : null;
     var kalan = (sonuc === 'aut') ? 0.9 : 1.1;
     var netZ = D + 1.5;
     var sonrasi = [];
     for (var j = 1; j <= Math.round(kalan / dt); j++) {
+      if (tuttu) {
+        var kk = plan.konum(tt + j * dt), blend = Math.min(1, j * dt / .24);
+        blend = blend * blend * (3 - 2 * blend);
+        sonrasi.push({ t: tt + j * dt, x: kk.x + (e.x - capture.x) * (1 - blend),
+          y: kk.y + (e.y - capture.y) * (1 - blend) + .2 * blend, z: e.z }); continue;
+      }
       v.y -= g * dt;
       if (damp) { var f = Math.exp(-damp * dt); v.x *= f; v.z *= f; }
       p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
@@ -159,6 +163,7 @@
     var yol = ornekler.slice(0, olayIndex + 1).concat(sonrasi);
 
     return {
+      quality: quality, speed: Math.hypot(vx, vy, vz), contact: {x:cx,y:cy}, tuttu: tuttu,
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,
@@ -168,3 +173,4 @@
 
   DT.fizik = { hesapla: hesapla };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
+

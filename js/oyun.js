@@ -6,14 +6,14 @@
   var $ = function (id) { return doc.getElementById(id); };
   var simdi = function () { return root.performance.now(); };
 
-  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt_resmi', enIyi: 'dt_en_iyi', gecmis: 'dt_gecmis' };
+  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt5_resmi', enIyi: 'dt5_en_iyi', gecmis: 'dt5_gecmis' };
   var VURUS_SAYISI = A.pozisyonlar.length;
 
   var ayar = { ses: false, cubuk: true };
   var d = {
     ekran: 'menu', mod: 'antrenman', karakter: 'meto', tur: '', idx: 0, sonuclar: [],
     pos: null, faz: 'bos', aim: null, kilit: false, duzeltHak: 1, falso: 0, seed: 1,
-    onizleme: null, barajGeo: null, cubukBasla: 0, an: null, son: null
+    contact: {x:0,y:0}, temasHazir: false, onizleme: null, barajGeo: null, cubukBasla: 0, an: null, son: null
   };
 
   /* ---------- yerel kayıt ---------- */
@@ -29,13 +29,14 @@
   }
 
   function menuGoster() {
+    $("temasPanel").hidden = true; kupaGoster();
     d.faz = 'bos';
     ekranGoster('menu');
     var kayit = oku(ANAHTAR.resmi, null);
-    $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Resmi tur';
+    $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Kaptanlık Kupası';
     $('btnSifirla').hidden = !kayit;
     var en = oku(ANAHTAR.enIyi, null);
-    $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Skorlar yalnızca bu telefonda tutulur.' : 'Prototip. Skorlar yalnızca bu telefonda tutulur.';
+    $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Skorlar yalnızca bu telefonda tutulur.' : 'Kupa tablosu bu telefonda tutulur; arkadaşların sonuç kodlarını ekle.';
     menuSahne();
   }
 
@@ -64,12 +65,13 @@
     d.mod = mod;
     ekranGoster('secim');
     $('secimNot').textContent = mod === 'resmi'
-      ? 'Resmi tur: aynı beş pozisyon, zamanlama zorunlu. Skor bu telefona yazılır.'
+      ? 'Kupa: 3 penaltı + 2 frikik. Her arkadaşın bir resmi tur hakkı var.'
       : 'Antrenman: skora yazılmaz, kaleci daha yavaş.';
     var iz = $('secimIzgara'); iz.innerHTML = '';
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
-      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.png?v=20261003d"><span>' + k.ad + '</span>';
+      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.png?v=20261003f"><span>' + k.ad + '</span>';
+      b.disabled = mod === 'resmi' && !!kupaKayit()[k.id];
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
     });
@@ -80,11 +82,12 @@
   function turBaslat(karakter, mod, kayit) {
     if (!DT.cizim.hazir()) return;
     d.karakter = karakter; d.mod = mod;
+    if (mod === 'resmi' && !kayit && kupaKayit()[karakter]) return;
     if (kayit) {
       d.tur = kayit.tur; d.idx = kayit.idx; d.sonuclar = kayit.sonuclar || [];
       if (d.idx >= VURUS_SAYISI) { d.pos = A.pozisyonlar[0]; ekranGoster('tursonu'); turSonu(); return; }
     } else {
-      d.tur = turKimligi(); d.idx = 0; d.sonuclar = [];
+      d.tur = mod === 'resmi' ? kupaKod : turKimligi(); d.idx = 0; d.sonuclar = [];
       if (mod === 'resmi') yaz(ANAHTAR.resmi, { tur: d.tur, karakter: karakter, idx: 0, sonuclar: [], acik: null });
     }
     ekranGoster('oyun');
@@ -100,12 +103,13 @@
     var ornek = DT.fizik.hesapla({ pos: d.pos, aim: { x: 0, y: 1.2 }, falso: 0, zaman: 0.5, seed: 1, antrenman: true });
     d.barajGeo = ornek.baraj;
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
-    d.seed = (Math.random() * 2147483647) | 0;
+    d.seed = d.mod === 'resmi' ? ((parseInt(kupaKod,16) * 977 + d.idx * 7919) | 0) : ((Math.random() * 2147483647) | 0);
+    d.contact = {x:0,y:0}; d.temasHazir = false; $('temasPanel').hidden = true;
     $('sonuc').hidden = true; $('alt').hidden = true;
     $('hudVurus').textContent = 'Vuruş ' + (d.idx + 1) + '/' + VURUS_SAYISI;
     $('hudTip').textContent = d.pos.ad + (d.mod === 'antrenman' ? ' · antrenman' : '');
     $('hudPuan').textContent = toplam();
-    $('falsoKutu').hidden = d.pos.tip !== 'frikik';
+    $('falsoKutu').hidden = true;
     falsoSec(0);
     $('ipucu').hidden = false;
     $('ipucu').textContent = d.pos.tip === 'frikik'
@@ -113,6 +117,7 @@
       : 'Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.';
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
       d.seed = acik.seed; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
+      d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;
       falsoSec(acik.falso || 0);
       kilitle(true);
     }
@@ -144,7 +149,7 @@
 
   function onizlemeHesapla() {
     if (!d.aim || d.pos.tip !== 'frikik') { d.onizleme = null; return; }
-    var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, antrenman: true });
+    var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, antrenman: true });
     d.onizleme = r.yol.filter(function (o) { return o.t <= r.ucusT + 1e-6; });
   }
 
@@ -152,7 +157,8 @@
     d.kilit = true;
     onizlemeHesapla();
     $('ipucu').hidden = true;
-    $('alt').hidden = false;
+    $('alt').hidden = !d.temasHazir;
+    $('temasPanel').hidden = d.temasHazir; temasCiz();
     $('cubukKutu').hidden = !cubukAktif();
     $('duzeltBtn').textContent = 'Nişanı değiştir (' + d.duzeltHak + ')';
     $('duzeltBtn').disabled = d.duzeltHak <= 0;
@@ -164,12 +170,12 @@
     if (d.mod !== 'resmi') return;
     var k = oku(ANAHTAR.resmi, null);
     if (!k) return;
-    k.acik = d.kilit ? { aim: d.aim, falso: d.falso, seed: d.seed, duzeltHak: d.duzeltHak } : null;
+    k.acik = d.kilit ? { aim: d.aim, falso: d.falso, seed: d.seed, duzeltHak: d.duzeltHak, contact: d.contact, temasHazir: d.temasHazir } : null;
     yaz(ANAHTAR.resmi, k);
   }
   function duzelt() {
     if (!d.kilit || d.duzeltHak <= 0 || d.faz !== 'nisan') return;
-    d.duzeltHak--; d.kilit = false;
+    d.duzeltHak--; d.kilit = false; d.temasHazir = false; $('temasPanel').hidden = true;
     $('alt').hidden = true; $('ipucu').hidden = false;
     $('ipucu').textContent = 'Yeniden dokun, sürükle, bırak. Bu son düzeltme.';
     acikKaydet();
@@ -191,13 +197,13 @@
   /* ---------- vuruş ---------- */
   var gecerliSonuc = null;
   function vur() {
-    if (d.faz !== 'nisan' || !d.kilit || !DT.cizim.hazir()) return;
+    if (d.faz !== 'nisan' || !d.kilit || !d.temasHazir || !DT.cizim.hazir()) return;
     var now = simdi();
     var zaman = cubukAktif() ? cubukDegeri(now) : null;
-    var girdi = { pos: d.pos, aim: d.aim, falso: d.falso, zaman: zaman, seed: d.seed, antrenman: d.mod === 'antrenman' };
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed, antrenman: d.mod === 'antrenman' };
     var r = DT.fizik.hesapla(girdi);
     var p = DT.puan.puanla(d.pos.tip, r);
-    var giris = { ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
+    var giris = { yesil:r.bandaGirdi, quality: r.quality, speed: r.speed, ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.faz = 'vurus';
     d.an = { t0: now, on: 0.32, vurdu: false, olay: false, bitti: false };
@@ -241,6 +247,7 @@
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * 16;
         out.kaleci = r.kaleci.konum(tt);
         var se = simT - r.olayT;
+        if(se >= 0){out.kaleci.saved = r.tuttu;out.kaleci.landing = se > .25;}
         if (se >= 0) {
           if (!an.olay) {
             an.olay = true;
@@ -269,12 +276,12 @@
     var h = r.hata, zamanli = typeof girdi.zaman === 'number';
     switch (r.sonuc) {
       case 'baraj': return 'Top barajda kaldı. Daha yükseğe nişan al ya da falsoyla duvarın yanından dolandır.';
-      case 'kurtaris': return 'Kaleci yetişti. Direğe daha yakın bir noktaya nişan al.';
+      case 'kurtaris': return r.quality < .8 ? 'Zamanlama şutu yavaşlattı; kaleci yetişti.' : 'Kaleci topun yoluna yetişti. Daha uzak köşeyi dene.';
       case 'direk_disari': return 'Direk! Birkaç santim içeride olsaydı gol olurdu.';
       case 'direk_gol': return 'Direkten içeri girdi.';
       case 'aut':
-        if (zamanli && h > 0.08) return 'Geç bastın, top yukarı gitti. Bandın ortasında bas.';
-        if (zamanli && h < -0.08) return 'Erken bastın, top alçak ve yavaş gitti.';
+        if (zamanli && h > 0.08) return 'Geç temas vuruş açısını bozdu. Yeşile daha yakın bas.';
+        if (zamanli && h < -0.08) return 'Erken temas şutu yavaşlattı ve alçalttı.';
         return 'Nişan kalenin dışında kaldı.';
       default:
         if (zamanli && !r.bandaGirdi) return 'Gol. Zamanlama bandı kaçtı, bir dahaki sefere yeşilde bas.';
@@ -293,6 +300,7 @@
     $('sonucPuan').textContent = gol ? '+' + p.puan : '0 puan';
     var parca = [];
     if (gol) { parca.push((d.pos.tip === 'frikik' ? 'Frikik golü ' : 'Penaltı golü ') + p.taban); if (p.zaman) parca.push('zamanlama +' + p.zaman); if (p.zor) parca.push((r.sonuc === 'direk_gol' ? 'direk' : 'köşe') + ' +' + p.zor); }
+    parca.push(Math.round(r.speed * 3.6) + ' km/sa');
     $('sonucDetay').textContent = parca.join(' · ');
     $('sonucNeden').textContent = neden(r, girdi);
     $('devamBtn').textContent = d.idx + 1 >= VURUS_SAYISI ? 'Turu bitir' : 'Sıradaki vuruş';
@@ -311,7 +319,7 @@
     d.faz = 'bos';
     var t = toplam(), gol = d.sonuclar.filter(function (s) { return s.puan > 0; }).length;
     ekranGoster('tursonu');
-    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png?v=20261003d';
+    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png?v=20261003f';
     $('turBaslik').textContent = gol + ' gol, ' + VURUS_SAYISI + ' vuruş';
     $('turToplam').textContent = t;
     var ADLAR = { gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
@@ -322,12 +330,15 @@
       liste.appendChild(li);
     });
     if (d.mod === 'resmi') {
+      var records = kupaKayit();
+      records[d.karakter] = { id:d.karakter, puan:t, gol:gol, yesil:d.sonuclar.filter(function(s){return s.yesil === true;}).length };
+      yaz('dt5_kupa_' + kupaKod,records); kupaGoster();
       var en = oku(ANAHTAR.enIyi, 0), gecmis = oku(ANAHTAR.gecmis, []);
       gecmis.push({ karakter: d.karakter, puan: t, tarih: new Date().toISOString() });
       yaz(ANAHTAR.gecmis, gecmis.slice(-20));
       if (t > en) yaz(ANAHTAR.enIyi, t);
       sil(ANAHTAR.resmi);
-      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Ortak skor tablosu sonraki aşamada.';
+      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Kupa kodu: ' + kupaKod + '. Sonuç kodunu gruba paylaş.';
     } else {
       $('turNot').textContent = 'Antrenman: skora yazılmadı.';
     }
@@ -353,8 +364,37 @@
   function kadroDoldur() {
     var k = $('kadro'); k.innerHTML = '';
     DT.KARAKTER.forEach(function (c) {
-      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.png?v=20261003d'; k.appendChild(im);
+      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.png?v=20261003f'; k.appendChild(im);
     });
+  }
+
+  var kupaKod = '';
+  function kupaKayit(){return oku('dt5_kupa_' + kupaKod,{});}
+  function kupaGoster(){
+    if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
+    rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
+    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?'Sırası bekleniyor':r.puan+' puan · '+r.gol+' gol · '+r.yesil+' yeşil')+'</span></div>';}).join('');
+    if(rows.every(function(r){return r.puan!==null;})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' kaptan! Grubun taktik tahtası bugün onda.</p>';}
+
+  }
+  function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
+  function kupaKur(){
+    var params=new URLSearchParams(root.location.search||''), q=params.get('kupa');
+    kupaKod=/^[A-F0-9]{6}$/i.test(q||'')?q.toUpperCase():oku('dt5_kod',null)||Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
+    var active=oku(ANAHTAR.resmi,null);if(active&&/^[A-F0-9]{6}$/.test(active.tur||''))kupaKod=active.tur;
+    $('kupaKod').value=kupaKod;yaz('dt5_kod',kupaKod);
+    $('kupaKod').addEventListener('change',function(){var code=this.value.trim().toUpperCase();if(!/^[A-F0-9]{6}$/.test(code)){this.value=kupaKod;return;}if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');this.value=kupaKod;return;}kupaKod=code;yaz('dt5_kod',code);kupaGoster();});
+    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003f');});
+    $('sonucPaylas').addEventListener('click',function(){var r=kupaKayit()[d.karakter];if(!r){root.alert('Sonuç kodu için resmi kupa turunu tamamla.');return;}var token='DT5-'+root.btoa(JSON.stringify({kod:kupaKod,r:r}));paylas(d.karakter.toUpperCase()+' · '+r.puan+' puan\nSonuç kodu: '+token);});
+    $('sonucEkle').addEventListener('click',function(){var str=root.prompt('Arkadaşının DT5- ile başlayan sonuç kodunu yapıştır:');if(!str)return;try{var m=/DT5-([A-Za-z0-9+/=]+)/.exec(str),v=JSON.parse(root.atob(m[1]));if(v.kod!==kupaKod||!DT.KARAKTER.some(function(k){return k.id===v.r.id;})||!Number.isInteger(v.r.puan)||v.r.puan<0||v.r.puan>595||!Number.isInteger(v.r.gol)||v.r.gol<0||v.r.gol>5||!Number.isInteger(v.r.yesil)||v.r.yesil<0||v.r.yesil>5)throw Error();var r=kupaKayit();if(r[v.r.id]){root.alert('Bu oyuncunun sonucu zaten kayıtlı.');return;}r[v.r.id]=v.r;yaz('dt5_kupa_'+kupaKod,r);kupaGoster();}catch(e){root.alert('Sonuç kodu geçersiz veya başka kupaya ait.');}});
+  }
+  function temasCiz(){var cv=$('temasTop'),g=cv.getContext('2d'),x=110+d.contact.x*90,y=110-d.contact.y*90;
+    g.clearRect(0,0,220,220);var fill=g.createRadialGradient(78,65,5,110,110,100);fill.addColorStop(0,'#fff');fill.addColorStop(1,'#aaa');g.fillStyle=fill;g.beginPath();g.arc(110,110,95,0,Math.PI*2);g.fill();g.strokeStyle='#555';g.lineWidth=2;for(var i=0;i<5;i++){var a=i*Math.PI*2/5;g.beginPath();g.moveTo(110,110);g.lineTo(110+Math.cos(a)*90,110+Math.sin(a)*90);g.stroke();}g.fillStyle='#111';g.beginPath();for(i=0;i<5;i++){a=i*Math.PI*2/5-Math.PI/2;g.lineTo(110+Math.cos(a)*25,110+Math.sin(a)*25);}g.closePath();g.fill();g.strokeStyle='#3ddc84';g.lineWidth=4;g.beginPath();g.arc(x,y,10,0,Math.PI*2);g.stroke();
+    $('temasNot').textContent=(Math.abs(d.contact.x)<.12?'Düz':d.contact.x<0?'Sağa falso':'Sola falso')+' · '+(d.contact.y<-.15?'Yükselen':d.contact.y>.15?'Alçalan':'Dengeli')+' şut';
+  }
+  function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
+    cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});
+    $('temasOnay').addEventListener('click',function(){d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
   }
 
   var baslatildi = false;
@@ -369,6 +409,7 @@
     $('cubukBant').style.width = (A.zaman.bant * 200) + '%';
     kadroDoldur(); girisBagla(); ayarGuncelle();
 
+    kupaKur(); temasKur();
     $('yukleme').addEventListener('click', function () { root.location.reload(); });
     $('btnAntrenman').addEventListener('click', function () { secimGoster('antrenman'); });
     $('btnResmi').addEventListener('click', function () {
@@ -382,7 +423,7 @@
     $('secimGeri').addEventListener('click', menuGoster);
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
-    $('turTekrar').addEventListener('click', function () { turBaslat(d.karakter, d.mod, null); });
+    $('turTekrar').addEventListener('click', function () { secimGoster(d.mod); });
     $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary !== false) vur(); });
     $('vurBtn').addEventListener('click', function (e) { if (e.detail === 0) vur(); });
     $('cubukYol').addEventListener('pointerdown', vur);
@@ -400,3 +441,4 @@
   DT.oyun = { baslat: baslat, _durum: d, _vur: vur, _devam: devam, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', baslat); else baslat();
 })(typeof globalThis !== 'undefined' ? globalThis : window);
+

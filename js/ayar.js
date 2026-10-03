@@ -35,7 +35,7 @@
     falsoMetre: 1.6,     // falsonun topu yandan en fazla ne kadar eğdiği (m)
 
     kaleci: {
-      tepki: { penalti: 0.17, frikik: 0.23 },  // top vurulduktan kaç saniye sonra hareket eder
+      tepki: { penalti: 0.17, frikik: 0.38 },  // top vurulduktan kaç saniye sonra hareket eder
       dalis: 0.34,        // dalışın süresi (s)
       okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
       gurultu: 0.12,      // okuma sapması (m)
@@ -44,7 +44,7 @@
       baslangicY: 1.0,
       enAz: 0.45, enCok: 1.9
     },
-    antrenman: { tepkiEk: 0.20, okuma: 0.45 },   // antrenmanda kaleci daha yavaş
+    antrenman: { tepkiEk: 0.035, okuma: 0.90 },   // antrenmanda kaleci daha yavaş
 
     puan: { penalti: 100, frikik: 110, zaman: 10, zor: 5, bonusTavan: 15 },
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
@@ -52,3 +52,4 @@
     zamanCubuguSuresi: 0.80   // çubuğun bir yönde gidiş süresi (s)
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
+

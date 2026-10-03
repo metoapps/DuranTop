@@ -94,7 +94,7 @@
       });
     });
     // Sonradan eklenecek görseller: dosya yoksa çizimle devam edilir.
-    ['kaleci-v2'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
+    ['kaleci-v3'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
   }
   function sprite(id, poz) { return gorseller[id + '_' + poz] || null; }
 
@@ -262,19 +262,21 @@
   }
 
   function kaleciCiz(g, k) {
-    var D = pos.D;
-    var keeper = gorseller['_kaleci-v2'];
-    if (!keeper || !DT.kaleci || !DT.kaleci.siluet) return;
-    var shape = DT.kaleci.siluet(k), box = shape.box, factor = keeper.width / 2048;
-    var dive = k.poz === 'dal';
-    var h = dive ? 1.2 : 1.9;
-    var w = (box[2] / box[3]) * h;
-    var cy = dive ? k.y : 0.92;
-    var cx = k.x;
-    var p = izdus(cx, cy, D);
+    var keeper = gorseller['_kaleci-v3'];
+    if (!keeper) return;
+    var m = DT.kaleci.model(k), pose = m.pose;
+    if (k.landing && k.poz === 'dal') pose = 5;
+    var boxes = [[100,40,330,410],[580,140,410,320],[1150,20,275,450],
+                 [0,575,490,345],[498,640,548,205],[1060,715,465,155]];
+    var box = boxes[pose], p = izdus(k.x, k.y, pos.D);
     if (!p) return;
+    var h = pose === 3 ? 1.65 : (pose >= 4 ? 1.05 : (pose === 1 ? 1.25 : 1.85));
+    var w = pose === 3 ? 2.1 : (pose >= 4 ? 2.5 : (pose === 1 ? 1.9 : 1.45));
     var pw = w * p.olcek, ph = h * p.olcek;
-    g.drawImage(keeper, box[0] * factor, box[1] * factor, box[2] * factor, box[3] * factor, p.x - pw / 2, p.y - ph * (dive ? 0.5 : 0.55), pw, ph);
+    g.save(); g.translate(p.x, p.y);
+    if (k.yon > 0 && pose >= 3) g.scale(-1, 1);
+    g.drawImage(keeper, box[0], box[1], box[2], box[3], -pw/2, -ph/2, pw, ph);
+    g.restore();
   }
 
   function barajCiz(g, ogeler) {
@@ -300,16 +302,11 @@
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];
     if (!im || !nokta) return;
     g.save();
-    if (kare === 'vurus1') {
-      // Hazırlık: basan ayak yerde, top ayağın önünde. Uç noktası ele denk gelse de top oraya yapışmaz.
-      g.translate(topEkran.x + 28, topEkran.y + 10);
-      g.scale(olcek, olcek);
-      g.drawImage(im, -nokta.tipX, -nokta.bottom, S.genislik, S.yukseklik);
-    } else {
-      g.translate(topEkran.x + r, topEkran.y);
-      g.scale(olcek, olcek);
-      g.drawImage(im, -nokta.tipX, -nokta.tipY, S.genislik, S.yukseklik);
-    }
+    var anchor = DT.SPRITE_NOKTA[karakter].vurus2;
+    var approach = durum.yol ? Math.max(0, 1 - u / temas) : 0;
+    g.translate(topEkran.x + r + approach * 8, topEkran.y);
+    g.scale(olcek, olcek);
+    g.drawImage(im, -anchor.tipX, -anchor.tipY, S.genislik, S.yukseklik);
     g.restore();
   }
 
@@ -436,3 +433,4 @@
     gorselEkle: function (ad, im) { gorseller[ad] = im; }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
+

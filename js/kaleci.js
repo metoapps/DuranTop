@@ -1,80 +1,29 @@
-/* Kaleci: önce ne yapacağına karar verir, sonra o pozu çizer ve aynı pozla temas arar.
- * Ortaya gelen top için dalış yok. Köşe, gövdenin yetişemeyeceği yerdir.
- * Aynı girdi (nişan, zaman, tohum) aynı kararı verir.
- */
-(function (root) {
-  'use strict';
-  var DT = (root.DT = root.DT || {});
-  var A = DT.AYAR;
-
-  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-  function eylemSec(x, y) {
-    var ax = Math.abs(x);
-    // Gövde ve bir adımlık yan: ayakta kal, bacakları kapat, dalma.
-    if (ax <= 1.22 && y >= 0.12 && y <= 2.2) {
-      return {
-        poz: 'bekle',
-        yon: 0,
-        hx: clamp(x, -0.5, 0.5),
-        hy: clamp(y - 0.78, 1.0, 1.32)
-      };
-    }
-    var yon = x >= 0 ? 1 : -1;
-    return {
-      poz: 'dal',
-      yon: yon,
-      hx: clamp(x, -1.32, 1.32),
-      hy: clamp(y, 0.58, 1.42)
-    };
-  }
-
-  function planla(gecis, tip, antrenman, gauss) {
-    var K = A.kaleci;
-    var tepki = K.tepki[tip] + (antrenman ? A.antrenman.tepkiEk : 0);
-    var okuma = antrenman ? A.antrenman.okuma : K.okuma;
-    var yari = A.kale.genislik / 2;
-    var hedefte = Math.abs(gecis.x) <= yari + 0.55 && gecis.y <= A.kale.yukseklik + 0.4 && gecis.y >= 0;
-    var okuX = 0, okuY = K.baslangicY;
-    if (hedefte) {
-      okuX = okuma * gecis.x + K.gurultu * gauss();
-      okuY = K.baslangicY + okuma * (gecis.y - K.baslangicY) + 0.35 * K.gurultu * gauss();
-      okuY = clamp(okuY, 0.2, 2.15);
-    }
-    var eylem = hedefte ? eylemSec(okuX, okuY) : { poz: 'bekle', yon: 0, hx: 0, hy: K.baslangicY };
-
-    function konum(t) {
-      var tau = Math.max(0, Math.min(1, (t - tepki) / K.dalis));
-      var e = tau * tau * (3 - 2 * tau);
-      var dal = eylem.poz === 'dal' && e > 0.42;
-      return {
-        x: eylem.hx * e,
-        y: K.baslangicY + (eylem.hy - K.baslangicY) * e,
-        ilerleme: e,
-        yon: dal ? eylem.yon : 0,
-        poz: dal ? 'dal' : 'bekle'
-      };
-    }
-    return { tepki: tepki, dalis: eylem.poz === 'dal', hedefX: eylem.hx, hedefY: eylem.hy, eylem: eylem.poz, konum: konum };
-  }
-
-  function siluet(k) {
-    var idx = k.poz === 'dal' ? (k.yon < 0 ? 1 : 2) : 0;
-    return DT.KALECI_SILUET[idx];
-  }
-
-  /* Ayakta: dolu gövde (bacak arası delik yok). Dalışta: gövde + giden el. */
-  function tutarMi(plan, t, gecis) {
-    var k = plan.konum(t), R = A.kale.topYaricap;
-    var dx = gecis.x - k.x, dy = gecis.y - k.y;
-    if (k.poz !== 'dal') {
-      return Math.abs(dx) <= 0.62 + R && dy >= -0.96 - R && dy <= 0.86 + R;
-    }
-    var yon = k.yon || 1;
-    var gx = dx - yon * 0.62, gy = dy - 0.02;
-    if ((gx * gx) / (0.78 * 0.78) + (gy * gy) / (0.38 * 0.38) <= 1) return true;
-    return (dx * dx) / (0.48 * 0.48) + (dy * dy) / (0.34 * 0.34) <= 1;
-  }
-
-  DT.kaleci = { planla: planla, tutarMi: tutarMi, siluet: siluet };
-})(typeof globalThis !== 'undefined' ? globalThis : window);
+/* Body and leading hands share geometry with the renderer. Outcomes never depend on a forced save probability. */
+(function(root){
+'use strict';var DT=root.DT,A=DT.AYAR;
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function planla(target,tip,practice,noise,T){
+ var K=A.kaleci,reaction=K.tepki[tip]+(practice?.035:0);
+ var gx=target.x+noise()*.06,gy=clamp(target.y+noise()*.04,.15,2.6);
+ var direction=gx<0?-1:1,action=Math.abs(gx)<.75?'bekle':'dal';
+ var endX=action==='dal'?clamp(gx-direction*.72,-2.6,2.6):clamp(gx,-.42,.42);
+ var endY=action==='dal'?clamp(gy-.16,.23,1.6):(gy<.6?.72:(gy>1.75?1.35:1));
+ var duration=.08+Math.hypot(endX,endY-1)/(practice?5.4:6.2);
+ function konum(t){var u=clamp((t-reaction)/duration,0,1),e=u*u*(3-2*u);
+  return {x:endX*e,y:1+(endY-1)*e,ilerleme:u,yon:action==='dal'?direction:0,
+   poz:action==='dal'&&u>.18?'dal':'bekle',low:gy<.6,high:gy>1.75,eylem:action};}
+ return {eylem:action,tepki:reaction,konum:konum,hedefX:endX,hedefY:endY};
+}
+function model(k){
+ if(k.poz!=='dal')return {w:1.25,h:1.85,shapes:[[-.32,-.84,.32,.75]], hands:[[-.46,.0], [.46,.0]], pose:k.saved?2:(k.low?1:0)};
+ return {w:2.5,h:1.05,shapes:[[-1.10,-.24,1.10,.30]],hands:[[k.yon*1.04,.16]],pose:k.ilerleme<.55?3:4};
+}
+function tutarMi(plan,t,p){var k=plan.konum(t),R=A.kale.topYaricap;
+ if(k.poz!=='dal'){var dx=Math.max(Math.abs(p.x-k.x)-.47,0),dy=Math.max(k.y-.88-p.y,0,p.y-k.y-.80);return dx*dx+dy*dy<=R*R;}
+ // Body capsule and leading arms follow the same dive direction.
+ var dx=p.x-k.x,dy=p.y-k.y;
+ var a=dx*k.yon, body=Math.max(Math.abs(dx)-.55,0);
+ return body*body+dy*dy<=.28*.28 || (a>=.25-R&&a<=1.15+R&&Math.abs(dy-.16)<=.20+R);
+}
+DT.kaleci={planla:planla,tutarMi:tutarMi,model:model,siluet:function(k){return DT.KALECI_SILUET[k.poz==='dal'?(k.yon<0?1:2):0];}};
+})(typeof globalThis!=='undefined'?globalThis:window);

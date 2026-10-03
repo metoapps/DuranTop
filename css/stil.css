@@ -131,3 +131,14 @@ h2 { font-size: clamp(34px, 10vw, 48px); }
  .alt { gap: 6px; padding-top: 14px; }
  .alt-dugmeler .btn.ikinci { font-size: 15px; }
 }
+
+.kupa-kutu { background:#171717; border:1px solid #444; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; font-size:14px; }
+.kupa-kutu label { display:flex; align-items:center; gap:10px; }
+#kupaKod { width:120px; padding:8px; background:#000; color:#fff; border:1px solid #777; font:700 20px monospace; text-transform:uppercase; }
+#kupaTablo>div {display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #333;font-size:12px;}
+.temas-panel {position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.92);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;padding:16px;pointer-events:auto;}
+.temas-panel h2 {font-size:32px;}.temas-panel p {margin:4px 0;font-size:14px;}
+#temasTop {width:200px;height:200px;touch-action:none;}
+.temas-panel .btn {width:min(340px,100%);font-size:24px;}
+#menu {display:block;overflow-y:auto;} .menu-ust{padding-top:20px;} .kadro{margin:20px 0;} .kadro img{height:min(18vh,130px);}
+@media(max-height:650px){#temasTop{width:150px;height:150px;}.temas-panel h2{font-size:26px;}}
