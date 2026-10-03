@@ -46,16 +46,10 @@
       var px = uz, pz = -ux;
       var mesafe = A.baraj.mesafe;
       baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe, merkezZ: uz * mesafe };
-      for (var k = 1; k < ornekler.length; k++) {
-        var o = ornekler[k], pr = (o.x - bx) * ux + o.z * uz;
-        if (pr >= mesafe) {
-          var yanal = (o.x - bx) * px + o.z * pz;
-          if (Math.abs(yanal) <= A.baraj.yarimGenislik + R && o.y <= A.baraj.boy + R) {
-            sonuc = 'baraj'; olayIndex = k;
-          }
-          break;
-        }
-      }
+      baraj.oyuncular=DT.baraj.kur(pos);
+      var hit=DT.baraj.ilkTemas(baraj,ornekler,R);
+      if(hit){sonuc='baraj';olayIndex=hit.index;baraj.temas=hit;}
+
     }
 
     // 4) Kale çizgisine yaklaşırken kaleci, yoksa direk / gol / aut.
@@ -63,7 +57,7 @@
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
     var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T);
-    var bolge = A.kale.direk / 2 + R;
+    plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;
 
@@ -84,7 +78,7 @@
       if (temas >= 0) {
         sonuc = 'kurtaris';
         olayIndex = temas;
-      } else {
+      } else if(!flight.reached){sonuc='kisa';} else {
         var disDirek = Math.abs(Math.abs(gecis.x) - yari);
         var direkte = false, iceride = false;
         if (disDirek <= bolge && gecis.y <= H + bolge) {
@@ -132,7 +126,7 @@
     var sonrasi = [];
     for (var j = 1; j <= Math.round(kalan / dt); j++) {
       if (tuttu) {
-        var kk = plan.konum(tt + j * dt), blend = Math.min(1, j * dt / .24);
+        var kk = plan.cizimKonum(tt + j * dt), blend = Math.min(1, j * dt / .24);
         blend = blend * blend * (3 - 2 * blend);
         sonrasi.push({ t: tt + j * dt, x: kk.x + (e.x - capture.x) * (1 - blend),
           y: kk.y + (e.y - capture.y) * (1 - blend) + .2 * blend, z: e.z }); continue;
@@ -149,7 +143,7 @@
 
     return {
       quality: quality, speed: flight.speed, spin: flight.spin, spinRps: flight.spinRps,
-      ucusYol: ornekler, contact: {x:cx,y:cy}, tuttu: tuttu,
+      cizgiyiGecti:flight.reached,ucusYol: ornekler, contact: {x:cx,y:cy}, tuttu: tuttu,
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,

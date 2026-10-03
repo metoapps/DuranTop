@@ -161,7 +161,7 @@
   function onizlemeHesapla() {
     if (!d.aim) { d.onizleme = null; return; }
     var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, antrenman: true });
-    d.onizleme = r.sonuc === 'baraj' ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
+    d.onizleme = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
   function kilitle(yenilenmis) {
@@ -255,7 +255,7 @@
     var R = A.kale.topYaricap, pos = d.pos;
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
-      top: B, topAci: 0, baraj: d.barajGeo,
+      zaman:0,top: B, topAci: 0, baraj: d.barajGeo,
       kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle' },
       oyuncu: { karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
@@ -269,9 +269,9 @@
       out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if (simT > 0) {
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); }
-        var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
+        out.zaman=simT;var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
-        out.kaleci = r.sonuc === 'baraj' ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
+        out.kaleci = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
         var se = simT - r.olayT;
         if(se >= 0){out.kaleci.saved = r.tuttu;}
         if (se >= 0) {
@@ -284,10 +284,10 @@
           if (se < 0.3 && r.sonuc !== 'aut') out.sarsinti = 7 * (1 - se / 0.3);
           if ((r.sonuc === 'gol' || r.sonuc === 'direk_gol') && se < 0.4) out.flas = 0.3 * (1 - se / 0.4);
         }
-        if (simT >= sonT + 0.3 && !an.bitti) { an.bitti = true; d.son = { top: out.top, kaleci: out.kaleci }; sonucGoster(); }
+        if (simT >= sonT + 0.3 && !an.bitti) { an.bitti = true; d.son = { top: out.top, kaleci: out.kaleci, zaman:simT }; sonucGoster(); }
       }
     } else if (d.faz === 'sonuc' && d.son) {
-      out.top = d.son.top; out.kaleci = d.son.kaleci;
+      out.top = d.son.top; out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.kaleci=(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa')?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
       var gol = gecerliSonuc.r.sonuc === 'gol' || gecerliSonuc.r.sonuc === 'direk_gol';
       out.oyuncu = null;
       out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol };
@@ -296,11 +296,12 @@
   }
 
   /* ---------- sonuç ---------- */
-  var BASLIK = { gol: 'GOL', direk_gol: 'DİREKTEN GOL', direk_disari: 'DİREK', kurtaris: 'KURTARDI', baraj: 'BARAJ', aut: 'AUT' };
+  var BASLIK = { kisa: 'KISA KALDI', gol: 'GOL', direk_gol: 'DİREKTEN GOL', direk_disari: 'DİREK', kurtaris: 'KURTARDI', baraj: 'BARAJ', aut: 'AUT' };
 
   function neden(r, girdi) {
     var h = r.hata, zamanli = typeof girdi.zaman === 'number';
     switch (r.sonuc) {
+      case 'kisa': return 'Top kale çizgisine ulaşmadı. Daha temiz temas ve zamanlama gerekiyor.';
       case 'baraj': return 'Top barajda kaldı. Daha yükseğe nişan al ya da falsoyla duvarın yanından dolandır.';
       case 'kurtaris': return r.quality < .8 ? 'Zamanlama şutu yavaşlattı; kaleci yetişti.' : 'Kaleci topun yoluna yetişti. Daha uzak köşeyi dene.';
       case 'direk_disari': return 'Direk! Birkaç santim içeride olsaydı gol olurdu.';

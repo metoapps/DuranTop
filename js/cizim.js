@@ -279,6 +279,7 @@
   }
 
   function kaleciCiz(g, k) {
+    if(DT.model3d){DT.model3d.kaleciCiz(g,izdus,k,pos.D);return;}
     var keeper = gorseller['_kaleci-v3'];
     if (!keeper) return;
     var m = DT.kaleci.model(k), pose = m.pose;
@@ -298,12 +299,10 @@
 
   function barajCiz(g, ogeler) {
     if (!pos || pos.tip !== 'frikik') return;
-    var b = ogeler.baraj, n = A.baraj.oyuncu, aralik = (2 * A.baraj.yarimGenislik) / n;
-    for (var i = 0; i < n; i++) {
-      var off = (i - (n - 1) / 2) * aralik;
-      var x = b.merkezX + b.px * off, z = b.merkezZ + b.pz * off;
-      insan(g, x, z, A.baraj.boy, '#cf9f7c', i % 2 ? '#5b5c60' : '#8a8b8f');
-    }
+    var b=ogeler.baraj, players=b.oyuncular||DT.baraj.kur(pos);
+    players.forEach(function(player,i){var state=DT.baraj.durum(player,ogeler.zaman||0),x=b.merkezX+b.px*player.off,z=b.merkezZ+b.pz*player.off;
+      DT.model3d.barajCiz(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i);
+    });
   }
 
   /* Şutçu her zaman aynı yöne bakar. Köşe seçimi karakteri aynalamaz.
