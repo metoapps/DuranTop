@@ -360,7 +360,10 @@
         if (!p) continue;
         if (ilk) { g.moveTo(p.x, p.y); ilk = false; } else g.lineTo(p.x, p.y);
       }
-      g.stroke(); g.restore();
+      g.stroke();
+      var son = onizleme[onizleme.length-1], end = son && izdus(son.x,son.y,son.z);
+      if(end){g.setLineDash([]);g.strokeStyle='#ffcc66';g.beginPath();g.arc(end.x,end.y,5,0,Math.PI*2);g.stroke();}
+      g.restore();
     }
     var c = izdus(aim.x, aim.y, D);
     if (!c) return;

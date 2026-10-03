@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261003g">
+  <link rel="stylesheet" href="css/stil.css?v=20261003h">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -22,7 +22,7 @@
     </div>
     <div class="kadro" id="kadro" aria-hidden="true"></div>
     <div class="menu-alt">
-      <div class="kupa-kutu"><strong>Kaptanlık Kupası · 5 arkadaş</strong><label>Ortak kod <input id="kupaKod" maxlength="6" inputmode="text" autocomplete="off" aria-label="Altı haneli kupa kodu"></label><button id="kupaPaylas" class="ayar" type="button">Tur linkini paylaş</button><div id="kupaTablo"></div><button id="sonucEkle" class="ayar" type="button">Arkadaşın sonuç kodunu ekle</button><small>Aynı kod, aynı koşullar. Kişi başı bir resmi tur.</small></div>
+      <div class="kupa-kutu"><strong>Kaptanlık Kupası · 5 arkadaş</strong><label>Kupa kodu (otomatik) <input id="kupaKod" maxlength="6" inputmode="text" autocomplete="off" aria-label="Altı haneli kupa kodu"></label><button id="yeniKupa" class="ayar" type="button">Yeni kupa oluştur</button><button id="kupaPaylas" class="ayar" type="button">Tur linkini paylaş</button><div id="kupaTablo"></div><button id="sonucEkle" class="ayar" type="button">Arkadaşın sonuç kodunu ekle</button><small>Kodu elle yazmana gerek yok. Linki gruba paylaş; herkes kendi karakteriyle bir resmi tur oynasın. Sonuç kodlarını burada birleştir.</small></div>
       <button class="btn ana" id="btnResmi" type="button">Resmi tur</button>
       <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
       <div class="ayarlar">
@@ -57,7 +57,7 @@
     <div class="ipucu" id="ipucu">Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.</div>
 
     <div id="temasPanel" class="temas-panel" hidden>
-      <h2>2 · Topun neresine?</h2><p>Merkez: temiz şut · Alt: yükseltir<br>Yanlar: falso verir</p>
+      <h2>2 · Topun neresine?</h2><p>Merkez: temiz şut · Alt: yükseltir · Üst: bastırır<br>Yanlar: falso · Kenara yaklaştıkça daha güçlü</p>
       <canvas id="temasTop" width="220" height="220" aria-label="Top üzerinde temas noktasını seç"></canvas>
       <p id="temasNot">Merkeze temas · Düz şut</p>
       <button id="temasOnay" class="btn ana" type="button">3 · Zamanlamaya geç</button>
@@ -71,6 +71,7 @@
           <button type="button" data-falso="1">Sağa ↷</button>
         </div>
       </div>
+      <small class="ucus-ipucu">Beyaz yol: yeşilde beklenen uçuş · Sarı halka: varış.</small>
       <div class="cubuk" id="cubukKutu">
         <div class="cubuk-yol" id="cubukYol"><div class="cubuk-bant" id="cubukBant"></div><div class="cubuk-imlec" id="cubukImlec"></div></div>
         <span class="cubuk-yazi">Yeşil: hızlı ve isabetli · Kaçırırsan hız ve isabet düşer</span>
@@ -103,14 +104,15 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261003g"></script>
-  <script src="js/veri.js?v=20261003g"></script>
-  <script src="js/kaleci.js?v=20261003g"></script>
-  <script src="js/fizik.js?v=20261003g"></script>
-  <script src="js/puan.js?v=20261003g"></script>
-  <script src="js/ses.js?v=20261003g"></script>
-  <script src="js/cizim.js?v=20261003g"></script>
-  <script src="js/oyun.js?v=20261003g"></script>
+  <script src="js/ayar.js?v=20261003h"></script>
+  <script src="js/veri.js?v=20261003h"></script>
+  <script src="js/kaleci.js?v=20261003h"></script>
+  <script src="js/ucus.js?v=20261003h"></script>
+  <script src="js/fizik.js?v=20261003h"></script>
+  <script src="js/puan.js?v=20261003h"></script>
+  <script src="js/ses.js?v=20261003h"></script>
+  <script src="js/cizim.js?v=20261003h"></script>
+  <script src="js/oyun.js?v=20261003h"></script>
 </body>
 </html>
 

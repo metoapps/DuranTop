@@ -22,6 +22,8 @@
 
     hiz: { penalti: 25, frikik: 24 },   // m/s
     yercekimi: 9.81,
+    aerodinamik: { kutle:.43, havaYogunlugu:1.20, cd:.25, clEgilim:.9,
+      clTavan:.35, spinAktarimi:.23, spinSonumu:.12, sekme:.35 },
 
     // Zamanlama çubuğu: 0..1, tam isabet 0.5
     zaman: {

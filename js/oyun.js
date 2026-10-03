@@ -6,7 +6,7 @@
   var $ = function (id) { return doc.getElementById(id); };
   var simdi = function () { return root.performance.now(); };
 
-  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt5_resmi', enIyi: 'dt5_en_iyi', gecmis: 'dt5_gecmis' };
+  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt6_resmi', enIyi: 'dt6_en_iyi', gecmis: 'dt6_gecmis' };
   var VURUS_SAYISI = A.pozisyonlar.length;
 
   var ayar = { ses: false, cubuk: true };
@@ -154,9 +154,9 @@
   }
 
   function onizlemeHesapla() {
-    if (!d.aim || d.pos.tip !== 'frikik') { d.onizleme = null; return; }
+    if (!d.aim) { d.onizleme = null; return; }
     var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, antrenman: true });
-    d.onizleme = r.yol.filter(function (o) { return o.t <= r.ucusT + 1e-6; });
+    d.onizleme = r.sonuc === 'baraj' ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
   function kilitle(yenilenmis) {
@@ -250,7 +250,7 @@
       if (simT > 0) {
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); }
         var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
-        out.top = yolOrnek(r.yol, tt); out.topAci = simT * 16;
+        out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
         out.kaleci = r.kaleci.konum(tt);
         var se = simT - r.olayT;
         if(se >= 0){out.kaleci.saved = r.tuttu;out.kaleci.landing = se > .25;}
@@ -307,6 +307,7 @@
     var parca = [];
     if (gol) { parca.push((d.pos.tip === 'frikik' ? 'Frikik golü ' : 'Penaltı golü ') + p.taban); if (p.zaman) parca.push('zamanlama +' + p.zaman); if (p.zor) parca.push((r.sonuc === 'direk_gol' ? 'direk' : 'köşe') + ' +' + p.zor); }
     parca.push(Math.round(r.speed * 3.6) + ' km/sa');
+    if(r.spinRps>1)parca.push((girdi.contact.x<-.12?'Sağa':girdi.contact.x>.12?'Sola':'Dikey')+' falso');
     $('sonucDetay').textContent = parca.join(' · ');
     $('sonucNeden').textContent = neden(r, girdi);
     $('devamBtn').textContent = d.idx + 1 >= VURUS_SAYISI ? 'Turu bitir' : 'Sıradaki vuruş';
@@ -338,7 +339,7 @@
     if (d.mod === 'resmi') {
       var records = kupaKayit();
       records[d.karakter] = { id:d.karakter, puan:t, gol:gol, yesil:d.sonuclar.filter(function(s){return s.yesil === true;}).length };
-      yaz('dt5_kupa_' + kupaKod,records); kupaGoster();
+      yaz('dt6_kupa_' + kupaKod,records); kupaGoster();
       var en = oku(ANAHTAR.enIyi, 0), gecmis = oku(ANAHTAR.gecmis, []);
       gecmis.push({ karakter: d.karakter, puan: t, tarih: new Date().toISOString() });
       yaz(ANAHTAR.gecmis, gecmis.slice(-20));
@@ -375,7 +376,7 @@
   }
 
   var kupaKod = '';
-  function kupaKayit(){return oku('dt5_kupa_' + kupaKod,{});}
+  function kupaKayit(){return oku('dt6_kupa_' + kupaKod,{});}
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
     rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
@@ -386,17 +387,23 @@
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
   function kupaKur(){
     var params=new URLSearchParams(root.location.search||''), q=params.get('kupa');
-    kupaKod=/^[A-F0-9]{6}$/i.test(q||'')?q.toUpperCase():oku('dt5_kod',null)||Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
+    kupaKod=/^[A-F0-9]{6}$/i.test(q||'')?q.toUpperCase():oku('dt6_kod',null)||Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
     var active=oku(ANAHTAR.resmi,null);if(active&&/^[A-F0-9]{6}$/.test(active.tur||''))kupaKod=active.tur;
-    $('kupaKod').value=kupaKod;yaz('dt5_kod',kupaKod);
-    $('kupaKod').addEventListener('change',function(){var code=this.value.trim().toUpperCase();if(!/^[A-F0-9]{6}$/.test(code)){this.value=kupaKod;return;}if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');this.value=kupaKod;return;}kupaKod=code;yaz('dt5_kod',code);kupaGoster();});
-    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003g');});
-    $('sonucPaylas').addEventListener('click',function(){var r=kupaKayit()[d.karakter];if(!r){root.alert('Sonuç kodu için resmi kupa turunu tamamla.');return;}var token='DT5-'+root.btoa(JSON.stringify({kod:kupaKod,r:r}));paylas(d.karakter.toUpperCase()+' · '+r.puan+' puan\nSonuç kodu: '+token);});
-    $('sonucEkle').addEventListener('click',function(){var str=root.prompt('Arkadaşının DT5- ile başlayan sonuç kodunu yapıştır:');if(!str)return;try{var m=/DT5-([A-Za-z0-9+/=]+)/.exec(str),v=JSON.parse(root.atob(m[1]));if(v.kod!==kupaKod||!DT.KARAKTER.some(function(k){return k.id===v.r.id;})||!Number.isInteger(v.r.puan)||v.r.puan<0||v.r.puan>595||!Number.isInteger(v.r.gol)||v.r.gol<0||v.r.gol>5||!Number.isInteger(v.r.yesil)||v.r.yesil<0||v.r.yesil>5)throw Error();var r=kupaKayit();if(r[v.r.id]){root.alert('Bu oyuncunun sonucu zaten kayıtlı.');return;}r[v.r.id]=v.r;yaz('dt5_kupa_'+kupaKod,r);kupaGoster();}catch(e){root.alert('Sonuç kodu geçersiz veya başka kupaya ait.');}});
+    $('kupaKod').value=kupaKod;yaz('dt6_kod',kupaKod);
+    $('kupaKod').addEventListener('change',function(){var code=this.value.trim().toUpperCase();if(!/^[A-F0-9]{6}$/.test(code)){this.value=kupaKod;return;}if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');this.value=kupaKod;return;}kupaKod=code;yaz('dt6_kod',code);kupaGoster();if(root.history){var url=new URL(root.location.href);url.searchParams.set('kupa',code);root.history.replaceState(null,'',url.toString());}});
+    $('yeniKupa').addEventListener('click',function(){
+      if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');return;}
+      kupaKod=Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
+      $('kupaKod').value=kupaKod;yaz('dt6_kod',kupaKod);kupaGoster();
+      if(root.history){var url=new URL(root.location.href);url.searchParams.set('kupa',kupaKod);root.history.replaceState(null,'',url.toString());}
+    });
+    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003h');});
+    $('sonucPaylas').addEventListener('click',function(){var r=kupaKayit()[d.karakter];if(!r){root.alert('Sonuç kodu için resmi kupa turunu tamamla.');return;}var token='DT6-'+root.btoa(JSON.stringify({v:1,kod:kupaKod,r:r}));paylas(d.karakter.toUpperCase()+' · '+r.puan+' puan\nSonuç kodu: '+token);});
+    $('sonucEkle').addEventListener('click',function(){var str=root.prompt('Arkadaşının DT6- ile başlayan sonuç kodunu yapıştır:');if(!str)return;try{var m=/DT6-([A-Za-z0-9+/=]+)/.exec(str),v=JSON.parse(root.atob(m[1]));if(v.v!==1||v.kod!==kupaKod||!DT.KARAKTER.some(function(k){return k.id===v.r.id;})||!Number.isInteger(v.r.puan)||v.r.puan<0||v.r.puan>595||!Number.isInteger(v.r.gol)||v.r.gol<0||v.r.gol>5||!Number.isInteger(v.r.yesil)||v.r.yesil<0||v.r.yesil>5)throw Error();var r=kupaKayit();if(r[v.r.id]){root.alert('Bu oyuncunun sonucu zaten kayıtlı.');return;}r[v.r.id]=v.r;yaz('dt6_kupa_'+kupaKod,r);kupaGoster();}catch(e){root.alert('Sonuç kodu geçersiz veya başka kupaya ait.');}});
   }
   function temasCiz(){var cv=$('temasTop'),g=cv.getContext('2d'),x=110+d.contact.x*90,y=110-d.contact.y*90;
     g.clearRect(0,0,220,220);var fill=g.createRadialGradient(78,65,5,110,110,100);fill.addColorStop(0,'#fff');fill.addColorStop(1,'#aaa');g.fillStyle=fill;g.beginPath();g.arc(110,110,95,0,Math.PI*2);g.fill();g.strokeStyle='#555';g.lineWidth=2;for(var i=0;i<5;i++){var a=i*Math.PI*2/5;g.beginPath();g.moveTo(110,110);g.lineTo(110+Math.cos(a)*90,110+Math.sin(a)*90);g.stroke();}g.fillStyle='#111';g.beginPath();for(i=0;i<5;i++){a=i*Math.PI*2/5-Math.PI/2;g.lineTo(110+Math.cos(a)*25,110+Math.sin(a)*25);}g.closePath();g.fill();g.strokeStyle='#3ddc84';g.lineWidth=4;g.beginPath();g.arc(x,y,10,0,Math.PI*2);g.stroke();
-    $('temasNot').textContent=(Math.abs(d.contact.x)<.12?'Düz':d.contact.x<0?'Sağa falso':'Sola falso')+' · '+(d.contact.y<-.15?'Yükselen':d.contact.y>.15?'Alçalan':'Dengeli')+' şut';
+    $('temasNot').textContent=(Math.abs(d.contact.x)<.12?'Düz':d.contact.x<0?'Sağa falso':'Sola falso')+' · '+(d.contact.y<-.15?'Yükselen':d.contact.y>.15?'Alçalan':'Dengeli')+' şut · '+(Math.hypot(d.contact.x,d.contact.y)>.55?'Güçlü':Math.hypot(d.contact.x,d.contact.y)>.15?'Hafif':'Falsosuz');
   }
   function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
     cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});

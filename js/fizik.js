@@ -31,29 +31,13 @@
     var g = A.yercekimi, R = A.kale.topYaricap;
     var yari = A.kale.genislik / 2, H = A.kale.yukseklik;
 
-    // A reduced mechanics model: launch impulse + gravity + lateral Magnus acceleration.
-    // Contact/timing coefficients are gameplay calibration, not measured athlete data.
     var zamanVar = typeof girdi.zaman === 'number';
     var hata = zamanVar ? girdi.zaman - 0.5 : 0;
     var bandaGirdi = zamanVar && Math.abs(hata) <= A.zaman.bant;
     var quality = Math.exp(-Math.pow(hata / 0.18, 2));
-    var contact = girdi.contact || { x: 0, y: 0 };
-    var cx = Math.max(-.85, Math.min(.85, contact.x || 0));
-    var cy = Math.max(-.85, Math.min(.85, contact.y || 0));
-    var power = (.60 + .40 * quality) * (1 - .10 * Math.abs(cx));
-    var bx = pos.bx, D = pos.D, referenceT = Math.hypot(aim.x - bx, D) / A.hiz[pos.tip];
-    var vz = D / referenceT * power;
-    var vx = (aim.x - bx) / referenceT * power + hata * 2.0 + (1 - quality) * .55 * gauss();
-    var vy = ((aim.y - R + .5 * g * referenceT * referenceT) / referenceT) * power - cy * .5 + hata * 2.5;
-    var spinA = -cx * 4.0 * (vz / 25); // opposite side contact produces lateral spin
-    var T = D / vz, dt = 1 / 120, n = Math.ceil(T / dt), ornekler = [];
-    for (var i = 0; i <= n; i++) {
-      var t = Math.min(i * dt, T);
-      var rawY = R + vy * t - .5 * g * t * t - cy * 7.0 * t * (T - t);
-      ornekler.push({ t: t, x: bx + vx * t + .5 * spinA * t * t,
-        y: Math.max(R, rawY), z: vz * t });
-    }
-    var ax = ornekler[ornekler.length - 1].x, ay = ornekler[ornekler.length - 1].y;
+    var flight = DT.ucus.launch(pos,aim,girdi.contact||{x:0,y:0},hata,quality,gauss);
+    var cx=flight.contact.x,cy=flight.contact.y,bx=pos.bx,D=pos.D,T=flight.T,dt=1/120,ornekler=flight.yol;
+    var ax=flight.son.x,ay=flight.son.y;
 
     // 3) Baraj (yalnız frikik)
     var baraj = null, olayIndex = ornekler.length - 1, sonuc = null;
@@ -153,7 +137,8 @@
         sonrasi.push({ t: tt + j * dt, x: kk.x + (e.x - capture.x) * (1 - blend),
           y: kk.y + (e.y - capture.y) * (1 - blend) + .2 * blend, z: e.z }); continue;
       }
-      v.y -= g * dt;
+      var aero = DT.ucus.acceleration([v.x,v.y,v.z],flight.spin,tt+j*dt);
+      v.x += aero[0]*dt;v.y += aero[1]*dt;v.z += aero[2]*dt;
       if (damp) { var f = Math.exp(-damp * dt); v.x *= f; v.z *= f; }
       p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
       if ((sonuc === 'gol' || sonuc === 'direk_gol') && p.z > netZ) { p.z = netZ; v.z = 0; }
@@ -163,7 +148,8 @@
     var yol = ornekler.slice(0, olayIndex + 1).concat(sonrasi);
 
     return {
-      quality: quality, speed: Math.hypot(vx, vy, vz), contact: {x:cx,y:cy}, tuttu: tuttu,
+      quality: quality, speed: flight.speed, spin: flight.spin, spinRps: flight.spinRps,
+      ucusYol: ornekler, contact: {x:cx,y:cy}, tuttu: tuttu,
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,

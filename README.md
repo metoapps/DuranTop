@@ -8,19 +8,27 @@ Mobil tarayıcıda METO, LORT, FERO, LATTE ve JOSH için 3 penaltı + 2 frikik.
 3. Zamanlamaya geç ve VUR'a bas. Resmi turda zamanlama zorunlu; antrenmanda kapatılabilir. Yeşil bant dar bırakıldı.
 
 ## Fizik ve kaleci
-Metre ve saniye kullanılır. Yerçekimi 9.81 m/s²; temel şut hızı penaltıda 25, frikikte 24 m/s.
-Zamanlama hatası h=zaman−0.5. Temas kalitesi q=exp(−(h/0.18)²); hız çarpanı (0.60+0.40q)(1−0.10|temasX|). Hata ayrıca çıkış açısını ve küçük yanal sapmayı değiştirir. Alt temas, kalibrasyonlu bir yükselme yayı; yan temas, spin kaynaklı yanal ivme ekler. Yerçekimi, dönme ve kuvvet ilkeleri için NASA'nın “Forces on a Soccer Ball” sayfası: https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/forces-on-a-soccer-ball/
-Bu bir sadeleştirilmiş oyun modelidir. Aerodinamik katsayılar ölçülmüş sporcu verisi değildir; tam hava direnci, ayak eklemleri veya doğrulanmış biyomekanik simüle edilmez. Zemine inen topun yüksekliği top yarıçapında sınırlandırılır.
+Metre ve saniye kullanılır. Yerçekimi 9.81 m/s²; top kütlesi 0.43 kg, yarıçap 0.11 m, hava yoğunluğu 1.20 kg/m³. Temel yatay şut hızı penaltıda 25, frikikte 24 m/s.
 
-Kaleci top çıktıktan sonra tepki verir. Gövdeye gelen şutta ayakta kalır; uzak şutta mesafeye bağlı sürede dalar. Yavaş şut daha fazla erişim süresi verir. Kurtarış için ayrı rastgele yüzde yoktur: çizgi önündeki son yarım metrede gövde/kol temas alanı kontrol edilir. Direk, baraj, kaleci ve uçuş aynı örneklenmiş yol üzerinden hesaplanır. Model geometrisi stilize görsellerin yaklaşık uzanımına göre kalibre edilmiştir; piksel düzeyinde maske değildir.
+`js/ucus.js` topun üç boyutlu uçuşunu 1/120 saniyelik RK4 adımlarıyla çözer:
+- Sürükleme: Fd = −½ ρ A Cd |v| v, Cd=0.25.
+- Magnus: Fl = ½ ρ A Cl |v|², yönü ω × v. Spin parametresi S=R|ω×v|/|v|²; Cl=min(0.35,0.9S). Spin saniyede exp(−0.12t) ile azalır.
+- Temas yarıçapı, şut yönüne dik düzlemde seçilir. Temas açısal itkisi L=η(r×mv); ince kabuk yaklaşımı I=2mR²/3 ile ω=L/I. Aktarım η=0.23(0.55+0.45q). Merkez temas sıfır tork verir; yan temas sağ/sol falso, alt/üst temas geri/üst spin üretir.
+- Zamanlama hatası h=zaman−0.5; q=exp(−(h/0.18)²). İleri hız çarpanı (0.60+0.40q)√(1−0.35(temasX²+temasY²)). Kötü zamanlama hız, temas açısı ve spin aktarımını azaltır. Fazla kenar temas daha fazla spin, daha az ileri enerji verir.
+- Temiz merkez vuruşunun çıkış yönü hava direnciyle hedefe ulaşacak şekilde çözülür. Falso uygulandıktan sonra tekrar hedefe ayarlanmaz; dönüş gerçek bitiş yerini değiştirir.
+- Kale düzlemi geçişi kesirli adımla bulunur. Yerde sekme katsayısı 0.35 kullanılır. Yer sürtünmesi ve sekme yaklaşık modellenir.
 
-Yeni `assets/kaleci-v3.png`: altı şeffaf poz (hazırlık, alçak blok, göğüste tutuş, dalışa çıkış, uzanma, iniş). Sağ dalış için yalnız kaleci aynalanır. Şutçu nişana göre çevrilmez; vuruş kareleri aynı ankrajda çizilir ve top temas anında çıkar. Şutçu halen üç poz kullanır; kesintisiz iskelet animasyonu değildir. Grok'un dört karelik karaktere özel sevinçleri korunur.
+Kuvvet yönleri ve spin parametresi: Goff & Carré, 2012, *Investigations into soccer aerodynamics via trajectory analysis and dust experiments*, https://eprints.whiterose.ac.uk/id/eprint/98035/1/1-s2.0-S1877705812016414-main.pdf . NASA Glenn'in sürükleme katsayısı varsayımı: https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/drag-on-a-soccer-ball/ . Falso ilkeleri: https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/bending-a-soccer-ball/ .
+
+Bu model temel aerodinamik kuvvetleri kullanır. Cl eğrisi, temas aktarımı, spin sönümü ve sekme oyun için kalibre edilmiş yaklaşık parametrelerdir; belirli bir top/ayakkabı için deneysel doğrulama yapılmadı. Değişken Reynolds sayısında sürükleme krizi, ters Magnus, panel yönüne bağlı knuckleball ve ayak biyomekaniği modellenmez. Profesyonel ölçüm simülatörü değildir.
+
+Kaleci, baraj, direk ve gol aynı uçuş yolunu kullanır. Kalecinin erişimi tepki ve hareket süresinden hesaplanır; ayrıca rastgele kurtarış yüzdesi yoktur. Çarpışma alanları stilize görsel uzanımının yaklaşık geometrisidir. Beyaz önizleme kusursuz zamanlamanın uçuşudur; gerçek basış sonucu değiştirebilir. Önizleme iki modda da görünür. Şutçu üç kare; kaleci altı poz. Sağ dalış için yalnız kaleci aynalanır. Kaleci ve menü WebP optimizasyonları korunur.
 
 ## Beş arkadaşın kupası
 Ev sahibi altı haneli ortak kodu paylaşır. Herkes aynı kodla aynı beş pozisyonu ve aynı rastgele tohumları oynar. Kişi başı bir resmi tur; antrenman sınırsız. Tur bitince “Sonuç kodunu paylaş”; ev sahibi diğer dört kodu “Arkadaşın sonuç kodunu ekle” ile tabloya ekler.
-Sıralama: puan, yeşil isabet sayısı, gol sayısı. Tam eşitlikte ortak kaptan. Beş sonuç tamamlanınca kaptan açıklanır. Sonuncu bir sonraki kupa kodunu seçsin; günlük veya haftalık rövanşla kaptanlık el değiştirsin.
+Sıralama: puan, yeşil isabet sayısı, gol sayısı. Tam eşitlikte ortak kaptan. Beş sonuç tamamlanınca kaptan açıklanır. “Yeni kupa oluştur” bir sonraki kupa için yeni kod verir. Sonuncu rövanş kupasını açsın; günlük veya haftalık rövanşla kaptanlık el değiştirsin.
 
-Tablo bu telefonda localStorage'da saklanır; canlı sunucu odası veya kimlik doğrulaması yoktur. Sonuç kodları doğrulanmış yarışma kanıtı değildir. Depoyu temizleme, farklı cihaz veya değiştirilmiş istemci tekrar oynamayı mümkün kılar. Kupon ödülü/gerçek değer aktarımı bağlı değildir. Eski `dt_*` resmi turları yeni fizik sürümüne taşınmaz; eski kayıtlar silinmez.
+Tablo bu telefonda localStorage'da saklanır; canlı sunucu odası veya kimlik doğrulaması yoktur. Sonuç kodları doğrulanmış yarışma kanıtı değildir. Depoyu temizleme, farklı cihaz veya değiştirilmiş istemci tekrar oynamayı mümkün kılar. Kupon ödülü/gerçek değer aktarımı bağlı değildir. Yeni aerodinamik sürüm skorları `dt6_*` alanında, sonuç kodları `DT6-` biçiminde v=1 ile tutulur. Eski kayıtlar silinmez; farklı fizik sürümlerinin puanları karıştırılmaz. Yeni sürümle yeni kupa açın.
 
 ## Kontroller
 `node tests/oynanis.cjs`: 540 deterministik yol, 600 merkez kurtarışı, temas/falso/baraj, zamanlama-hız-kurtarış ilişkisi.
@@ -30,3 +38,7 @@ Gerçek iPhone Safari ve gerçek parmakla doğrulanmadı. Chromium kurulumu bu o
 
 ## Açılış yükleme iyileştirmesi (20261003g)
 Açılış artık 30 oyun sprite'ı + 15 menü pozu + kaleci (46 zorunlu görsel) beklemez. Beş menü portresi ve kaleci WebP olarak yüklenir: toplam 307266 bayt. PNG kaynakları korunur. Seçilen karakterin altı oyun pozu karakter seçimi sırasında yüklenir; dört yeni sevinç pozu ardından yüklenir ve oyunu engellemez. Seçilmeyen karakterlerin sprite'ları indirilmez. Menü görsellerinin farklı sorgu parametreleriyle çift indirilmesi kaldırıldı. Google font CSS'i başlangıç scriptlerini engellemeden yüklenir. `node tests/yukleme.cjs` başlangıç istek sayısını, seçili karakter kapısını, istek birleştirmeyi ve isteğe bağlı sevinç yüklemesini doğrular. Gerçek mobil ağda süre ölçülmedi.
+
+
+## Aerodinamik kontrolleri
+`node tests/aerodinamik.cjs`: merkezde sıfır tork, sağ/sol simetri, kenara yaklaştıkça artan kıvrım, mesafe etkisi, yükselme/bastırma, zamanlama-spin ilişkisi, Magnus kuvvetinin hıza dikliği, drag enerji kaybı ve 1/120–1/240 adım yakınsaması. Tam güçlü yan temas ve yeşil zamanlama ile nişan (0,1.1) için kalede yana sapma: penaltı yaklaşık 0.89 m, 22 m frikik yaklaşık 4.53 m. Bunlar simülasyon çıktısıdır, deneysel ölçüm değildir. `tests/akis.cjs` DT6 sonuç importunu, çift oyuncu engelini, sürüm reddini ve yeni kupa oluşturmayı da kontrol eder.
