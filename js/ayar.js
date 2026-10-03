@@ -37,7 +37,7 @@
     falsoMetre: 1.6,     // falsonun topu yandan en fazla ne kadar eğdiği (m)
 
     kaleci: {
-      penaltiYanlisKose: .07, frikikMerkezHatasi: .20, frikikHiz: 7.5,
+      penaltiHiz:6.32, penaltiYanlisKose: .07, frikikMerkezHatasi: .20, frikikHiz: 7.5,
       tepki: { penalti: 0.17, frikik: 0.24 },  // top vurulduktan kaç saniye sonra hareket eder
       dalis: 0.34,        // dalışın süresi (s)
       okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
@@ -53,6 +53,12 @@
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
 
     zamanCubuguSuresi: 0.80   // çubuğun bir yönde gidiş süresi (s)
+  };
+  // Shared by the visible bar, launch quality and server-side bonus calculation.
+  DT.zamanBandi=function(aim){var base=DT.AYAR.zaman.bant;if(!aim)return base;
+    function clamp(v){return Math.max(0,Math.min(1,v));}
+    var side=clamp((Math.abs(aim.x)-2.45)/.85),top=clamp((aim.y-1.65)/.55),bottom=clamp((.70-aim.y)/.50);
+    return base*(1-.48*side*Math.max(top,bottom));
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 

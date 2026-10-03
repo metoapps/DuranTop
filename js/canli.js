@@ -13,6 +13,6 @@ async function join(player){await ensure();var s=set(await api({action:'join',ro
 async function shot(player,idx,input){await ensure();if(pending&&(pending.room!==state.room.id||pending.player!==player||pending.idx!==idx)){pending=null;put('dt_live_pending',null);}if(!pending){pending={action:'shot',room:state.room.id,player:player,idx:idx,aim:input.aim,contact:input.contact,zaman:input.zaman};put('dt_live_pending',pending);}var result=await api(pending);pending=null;put('dt_live_pending',null);set(result.state);return result.entry;}
 function records(){var records={};if(state)state.players.forEach(function(p){var entries=p.entries;records[p.player]={id:p.player,idx:p.idx,puan:entries.reduce(function(t,x){return t+x.puan;},0),gol:entries.filter(function(x){return x.gol;}).length,yesil:entries.filter(function(x){return x.yesil;}).length};});return records;}
 function allowed(player){var slot=state&&state.players.find(function(p){return p.player===player;});return !!state&&(!slot||(slot.mine&&slot.idx<5));}
-function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261003n';}
+function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261003o';}
 DT.live={init:init,ensure:ensure,create:create,join:join,shot:shot,records:records,allowed:allowed,current:current,link:link,getState:function(){return state;}};
 })(window);

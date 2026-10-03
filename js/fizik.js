@@ -33,8 +33,9 @@
 
     var zamanVar = typeof girdi.zaman === 'number';
     var hata = zamanVar ? girdi.zaman - 0.5 : 0;
-    var bandaGirdi = zamanVar && Math.abs(hata) <= A.zaman.bant;
-    var quality = Math.exp(-Math.pow(hata / 0.18, 2));
+    var bant=DT.zamanBandi(aim);
+    var bandaGirdi = zamanVar && Math.abs(hata) <= bant;
+    var quality = Math.exp(-Math.pow(hata / (0.18*bant/A.zaman.bant), 2));
     var flight = DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},hata,quality,gauss);
     var cx=flight.contact.x,cy=flight.contact.y,bx=pos.bx,D=pos.D,T=flight.T,dt=1/120,ornekler=flight.yol;
     var ax=flight.son.x,ay=flight.son.y;

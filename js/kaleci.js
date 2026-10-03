@@ -13,9 +13,9 @@ function planla(target,tip,practice,noise,T,options){
  if(wrong){gx=-gx;direction=-direction;action='dal';}
  if(lapse){direction=decision<K.frikikMerkezHatasi/2?-1:1;gx=direction*3.0;action='dal';}
 
- var endX=action==='dal'?clamp(gx-direction*.72,tip==='frikik'?-2.85:-2.6,tip==='frikik'?2.85:2.6):clamp(gx,-.42,.42);
- var endY=action==='dal'?clamp(gy-.16,.30,1.6):(gy<.6?.72:(gy>1.75?1.35:1));
- var duration=.08+Math.hypot(endX,endY-1)/(tip==='frikik'?(practice?K.frikikHiz-.5:K.frikikHiz):(practice?5.4:6.2));
+ var endX=action==='dal'?clamp(gx-direction*.72,tip==='frikik'?-2.85:-2.72,tip==='frikik'?2.85:2.72):clamp(gx,-.42,.42);
+ var endY=action==='dal'?clamp(gy-.16,.30,tip==='penalti'?1.70:1.6):(gy<.6?.72:(gy>1.75?1.35:1));
+ var duration=.08+Math.hypot(endX,endY-1)/(tip==='frikik'?(practice?K.frikikHiz-.5:K.frikikHiz):(practice?K.penaltiHiz-.6:K.penaltiHiz));
  var startT=Math.max(reaction,T-duration-.04),endT=startT+duration;
  function konum(t){var u=clamp((t-startT)/duration,0,1),e=u*u*(3-2*u),after=Math.max(0,t-endT-.04);
   var dive=action==='dal'&&u>.18,ground=dive?.30:(gy<.6?.72:1),y=1+(endY-1)*e;

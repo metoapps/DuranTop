@@ -164,7 +164,11 @@
     d.onizleme = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
+  function bantGuncelle(){var bant=DT.zamanBandi(d.aim);$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
+    $('cubukYazi').textContent=bant<A.zaman.bant*.85?'Keskin köşe · Yeşil dar: hassas zamanlama gerekiyor':'Yeşil: hızlı ve isabetli · Kaçırırsan hız ve isabet düşer';
+  }
   function kilitle(yenilenmis) {
+    bantGuncelle();
     d.kilit = true;
     onizlemeHesapla();
     $('ipucu').hidden = true;
@@ -421,7 +425,7 @@
   }
   function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
     cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});
-    $('temasOnay').addEventListener('click',function(){d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
+    $('temasOnay').addEventListener('click',function(){bantGuncelle();d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
   }
 
   var baslatildi = false;
