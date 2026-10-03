@@ -1,0 +1,3 @@
+Asset: assets/kaleci-neuer-face.webp
+Generated with the built-in image generation tool, using assets/kaleci-v3.png as a style reference. Output encoded to 320px WebP, preserving alpha. The face is mapped onto a curved surface that follows the procedural 3D head; it is a likeness, not a scanned 3D model.
+Prompt: Create a game-ready isolated frontal head portrait of Manuel Neuer, recognizably resembling his face, short swept blond hair, blue eyes, strong jaw, clean-shaven. Match the previous goalkeeper's polished semi-realistic 3D style. Head only, neutral focused expression, orthographic front view, complete hair and chin, soft even light, genuinely transparent background, no lettering. Intended as the face texture of a moving 3D head.

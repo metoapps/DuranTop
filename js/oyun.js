@@ -33,7 +33,7 @@
     d.faz = 'bos';
     ekranGoster('menu');
     var kayit = oku(ANAHTAR.resmi, null);
-    $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Kaptanlık Kupası';
+    $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Juninho Kupası';
     $('btnSifirla').hidden = !kayit;
     var en = oku(ANAHTAR.enIyi, null);
     $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Kupa sonuçları otomatik güncellenir.' : 'Canlı kupa: arkadaşlarının puanları otomatik güncellenir.';
@@ -402,7 +402,7 @@
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
     rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
     var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?'Sırası bekleniyor':r.puan+' puan · '+r.gol+' gol'+(r.idx===undefined?'':r.idx<5?' · '+r.idx+'/5 oynadı':' · tamamlandı'))+'</span></div>';}).join('');
-    if(rows.every(function(r){return r.puan!==null&&(r.idx===undefined||r.idx===5);})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' kaptan! Grubun taktik tahtası bugün onda.</p>';}
+    if(rows.every(function(r){return r.puan!==null&&(r.idx===undefined||r.idx===5);})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' Juninho Kupası şampiyonu!</p>';}
 
   }
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}

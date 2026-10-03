@@ -84,7 +84,7 @@
     istekler[ad] = new Promise(function(resolve,reject){
       var im = new root.Image(), finished=false;
       var timeout=root.setTimeout(function(){if(finished)return;finished=true;delete istekler[ad];reject(new Error(ad));},15000);
-      im.onload = function(){if(finished)return;finished=true;root.clearTimeout(timeout);gorseller[ad]=im;resolve(im);};
+      im.onload = function(){if(finished)return;finished=true;root.clearTimeout(timeout);gorseller[ad]=im;if(ad==='_kaleci-yuz'&&DT.model3d)DT.model3d.setFace(im);resolve(im);};
       im.onerror = function(){if(finished)return;finished=true;root.clearTimeout(timeout);delete istekler[ad];reject(new Error(ad));};
       im.src = yol;
     });
@@ -95,7 +95,7 @@
   }
   function spriteleriYukle() {
     DT.KARAKTER.forEach(function(k){gorselYukle('_menu_'+k.id+'_bekle','assets/menu/'+k.id+'_bekle.webp');});
-    gorselYukle('_kaleci-v3','assets/kaleci-v3.webp');
+    gorselYukle('_kaleci-yuz','assets/kaleci-neuer-face.webp');
   }
   var VURUS_POZ = ['vurus1','vurus2','vurus3'];
   function karakterHazir(id) {return VURUS_POZ.every(function(p){return !!gorseller[id+'_'+p];});}
