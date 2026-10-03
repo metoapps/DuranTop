@@ -113,7 +113,7 @@
     var ornek = DT.fizik.hesapla({ pos: d.pos, aim: { x: 0, y: 1.2 }, falso: 0, zaman: 0.5, seed: 1, antrenman: true });
     d.barajGeo = ornek.baraj;
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
-    d.seed = d.mod === 'resmi' ? ((parseInt(kupaKod,16) * 977 + d.idx * 7919) | 0) : ((Math.random() * 2147483647) | 0);
+    d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
     d.contact = {x:0,y:0}; d.temasHazir = false; $('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
@@ -408,7 +408,7 @@
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
     rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
-    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?'Sırası bekleniyor':r.puan+' puan · '+r.gol+' gol'+(r.idx===undefined?'':r.idx<5?' · '+r.idx+'/5 oynadı':' · tamamlandı'))+'</span></div>';}).join('');
+    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?(r.idx>0?'Oynuyor ('+r.idx+'/5)':'Sırası bekleniyor'):r.puan+' puan · '+r.gol+' gol'+(r.idx===undefined?'':r.idx<5?' · '+r.idx+'/5 oynadı':' · tamamlandı'))+'</span></div>';}).join('');
     if(rows.every(function(r){return r.puan!==null&&(r.idx===undefined||r.idx===5);})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' Juninho Kupası şampiyonu!</p>';}
 
   }

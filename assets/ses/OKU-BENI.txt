@@ -1,0 +1,9 @@
+Gerçek direk ve file sesi (isteğe bağlı)
+=========================================
+Buraya iki kısa dosya koyarsan oyun sentez yerine onları çalar:
+  direk.mp3   metal direk/üst direk darbesi, 0,4-1,2 sn, ağ ve kalabalık sesi olmadan
+  file.mp3    topun ağa girişi, 0,3-0,6 sn, kalabalık olmadan
+Kurallar: kullanım hakkı sende olan kayıtlar; mono ya da stereo; tepe ses seviyesi -3 dB civarı; başta ve sonda sessizlik yok.
+Dosya yoksa ya da çözülemezse oyun sessizce sentez sese döner.
+A/B dinleme: oyun adresine ?ses=sentez eklersen kayıtlar devre dışı kalır; eklemezsen kayıtlar çalınır.
+Ses olayı topun temas anında çalınır (oyun.js); kayıt eklemek zamanlamayı değiştirmez.

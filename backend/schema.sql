@@ -27,3 +27,20 @@ begin
 end; $$;
 revoke all on function public.dt_live_save_shot(uuid,text,text,integer,jsonb) from public,anon,authenticated;
 grant execute on function public.dt_live_save_shot(uuid,text,text,integer,jsonb) to service_role;
+
+-- Atomik oda oluşturma (20261004b): sayım ve ekleme tek işlemde, tüm odalar için tek sıra (advisory lock).
+-- Önceden sayım ve ekleme ayrı isteklerdi; eşzamanlı istekler günlük sınırı aşabiliyordu.
+create or replace function public.dt_live_create_room(p_code text,p_creator_hash text,p_version integer,p_token_limit integer,p_global_limit integer)
+returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
+declare r public.dt_live_rooms%rowtype; since timestamptz:=now()-interval '24 hours';
+begin
+ perform pg_advisory_xact_lock(hashtext('dt_live_create_room'));
+ if (select count(*) from public.dt_live_rooms where creator_hash=p_creator_hash and created_at>=since)>=p_token_limit
+    or (select count(*) from public.dt_live_rooms where created_at>=since)>=p_global_limit then
+  raise exception 'ROOM_LIMIT';
+ end if;
+ insert into public.dt_live_rooms(code,creator_hash,version) values(p_code,p_creator_hash,p_version) returning * into r;
+ return to_jsonb(r);
+end; $$;
+revoke all on function public.dt_live_create_room(text,text,integer,integer,integer) from public,anon,authenticated;
+grant execute on function public.dt_live_create_room(text,text,integer,integer,integer) to service_role;

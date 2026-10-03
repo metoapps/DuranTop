@@ -58,8 +58,22 @@
     if(peak>.70)for(i=0;i<n;i++)data[i]*=.70/peak;
     return data;
   }
-  function darbe(ad,options){var t=ctx.currentTime,values=ornekUret(ad,ctx.sampleRate,1+Math.floor(Math.random()*100000)),buffer=ctx.createBuffer(1,values.length,ctx.sampleRate);buffer.getChannelData(0).set(values);
-    var source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;gain.gain.value=Math.max(.45,Math.min(1.05,((options&&options.hiz)||24)/24));source.connect(gain);gain.connect(ana);source.start(t);
+  /* Gerçek kayıt (isteğe bağlı): assets/ses/direk.mp3 ve assets/ses/file.mp3 varsa onlar çalınır, yoksa yukarıdaki sentez.
+   * Karşılaştırma için adrese ?ses=sentez eklemek kayıtları devre dışı bırakır (telefonda A/B dinleme). */
+  var kayit = {}, kayitDenendi = false, zorlaSentez = !!(root.location && /[?&]ses=sentez/.test(root.location.search || ''));
+  function kayitlariYukle() {
+    if (kayitDenendi || zorlaSentez || !ctx || !root.fetch) return; kayitDenendi = true;
+    ['direk', 'file'].forEach(function (ad) {
+      root.fetch('assets/ses/' + ad + '.mp3?v=20261004c').then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (b) { return b ? ctx.decodeAudioData(b) : null; })
+        .then(function (buf) { if (buf) kayit[ad] = buf; }).catch(function () { /* dosya yok ya da çözülemedi: sentez kullanılır */ });
+    });
+  }
+  function darbe(ad,options){var t=ctx.currentTime,hiz=Math.max(.45,Math.min(1.05,((options&&options.hiz)||24)/24)),buffer;
+    var source=ctx.createBufferSource(),gain=ctx.createGain();
+    if(kayit[ad]){buffer=kayit[ad];source.playbackRate.value=.97+.06*Math.random();}   // gerçek kayıt: hıza göre ses şiddeti, küçük perde farkı
+    else{var values=ornekUret(ad,ctx.sampleRate,1+Math.floor(Math.random()*100000));buffer=ctx.createBuffer(1,values.length,ctx.sampleRate);buffer.getChannelData(0).set(values);}
+    source.buffer=buffer;gain.gain.value=hiz;source.connect(gain);gain.connect(ana);source.start(t);
     source.onended=function(){source.disconnect();gain.disconnect();};
   }
   var sesler = {
@@ -74,10 +88,11 @@
   };
 
   DT.ses = {
-    ornekUret:ornekUret,acikMi: function () { return acik; },
+    ornekUret:ornekUret,acikMi: function () { return acik; },kayitVarMi: function (ad) { return !!kayit[ad]; },
     ayarla: function (v) {                       // kullanıcı dokunuşuyla çağrılmalı
       acik = !!v;
       if (acik && baslat() && ctx.state === 'suspended') ctx.resume();
+      if (acik) kayitlariYukle();
     },
     cal: function (ad,options) {
       if (!acik || !ctx || !sesler[ad]) return;

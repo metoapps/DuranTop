@@ -36,19 +36,19 @@
 
     falsoMetre: 1.6,     // falsonun topu yandan en fazla ne kadar eğdiği (m)
 
+    // Kaleci: yalnızca js/kaleci.js'in gerçekten kullandığı sayılar (eski kullanılmayan okuma/gürültü/erişim/dalış alanları kaldırıldı).
     kaleci: {
-      penaltiHiz:6.32, penaltiYanlisKose: .07, frikikMerkezHatasi: .20, frikikHiz: 7.5,
-      tepki: { penalti: 0.17, frikik: 0.24 },  // top vurulduktan kaç saniye sonra hareket eder
-      dalis: 0.34,        // dalışın süresi (s)
-      okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
-      gurultu: 0.12,      // okuma sapması (m)
-      erisimX: 0.80,      // yana erişim (m)
-      erisimY: 0.90,      // yukarı-aşağı erişim (m)
-      baslangicY: 1.0,
-      enAz: 0.45, enCok: 1.9
+      penaltiHiz: 6.6, frikikHiz: 7.5,          // beden hızı (m/s): erişim hız ve süreden çıkar
+      penaltiYanlisKose: .07, frikikMerkezHatasi: .20,   // yanlış karar olasılıkları (tohumdan gelir)
+      tepki: { penalti: 0.17, frikik: 0.24 },    // vuruştan sonra harekete geçme süresi (s)
+      okumaGecikme: { penalti: 0.02, frikik: 0.30 },   // tepkiden sonra topun hızını görüp tahmin ettiği an (s)
+      hedefGurultuX: 0.06, hedefGurultuY: 0.04,  // tahmin sapması (m)
+      merkezEsik: 0.75,                          // |x| bunun altı "üstüne gelen" top: yerinde bekler/bloklar
+      elMenzili: 0.72,                           // gövde, hedefin bu kadar yanına dalar (eldiven öne uzanır)
+      hareketSabit: 0.08,                        // her hareketin sabit süresi (s)
+      baslangicY: 1.0
     },
-    antrenman: { tepkiEk: 0.035, okuma: 0.90 },   // antrenmanda kaleci daha yavaş
-
+    antrenman: { tepkiEk: 0.035, hizAzalt: 0.6 },   // antrenmanda kaleci biraz yavaş
     puan: { penalti: 100, frikik: 110, zaman: 10, zor: 5, bonusTavan: 15 },
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
 

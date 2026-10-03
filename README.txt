@@ -124,3 +124,14 @@ ChatGPT kontrolü / yayın 20261003e
 - Yeni yaklaşma/temas, kaleci eylem ve karaktere özel sevinç PNG'leri
   bu pakette henüz bulunmuyor; manifest boş. Mevcut kareler yedek olarak kullanılır.
 - Yeni fizik incelemesi yapıldı; gerçek iPhone/Safari kontrolü yapılmadı.
+
+
+4 Ekim 2026 - sürüm 20261004c, oda fiziği 6 (2eed886 üzerine) — ayrıntı: DEGISIKLIK-20261004c.md
+- Adalet: aynı odada, aynı vuruşta beş arkadaşın kaleci koşulları aynıdır (sunucu sırrından ortak HMAC tohumu); aynı girdi herkese aynı sonucu verir.
+  %7 yanlış köşe ve %20 merkez frikik hatası resmi turda da var (odada ortak). Başkasının nişan/temas/zamanlama/tohumu hiç görünmez;
+  rakibin vuruş sonuçları sen turunu bitirince, toplamı o bitirince görünür.
+- Kaleci nedensel: okuma anından önce hareket etmez, yalnızca geçmiş örneklere bakar. Penaltı kaleci hızı 6,6 m/s.
+- Oda sınırı atomik: schema.sql içindeki dt_live_create_room (token başına 8, sistem için günlük 100). Edge'den ÖNCE çalıştırılmalı.
+- ayar.js: kullanılmayan kaleci ayarları kaldırıldı; testler her ayarın kullanıldığını denetler.
+- Ses: assets/ses/direk.mp3 ve file.mp3 eklenirse sentez yerine çalınır (?ses=sentez ile A/B). Dosyalar pakette YOK.
+- Testler: 15 dosya; tests/e2e gerçek PostgreSQL/PostgREST ile denenmiştir (gerçek Supabase, Safari ve telefon değil).
