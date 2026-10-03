@@ -1,0 +1,3 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),r={DT:{}};vm.createContext(r);vm.runInContext(fs.readFileSync(__dirname+'/../js/ses.js','utf8'),r);
+for(const name of ['direk','file']){const d=r.DT.ses.ornekUret(name,44100,17),same=r.DT.ses.ornekUret(name,44100,17);assert.equal(d.length,same.length);let peak=0;for(let i=0;i<d.length;i++){assert(Number.isFinite(d[i]));assert.equal(d[i],same[i]);peak=Math.max(peak,Math.abs(d[i]));}assert(peak<=.70001&&peak>.1);const rms=(a,b)=>Math.sqrt(d.slice(a,b).reduce((s,x)=>s+x*x,0)/(b-a));assert(rms(0,2205)>rms(d.length-2205,d.length)*5);assert.equal(d[0],0);assert(Math.abs(d[d.length-1])<.001);}
+console.log('PASS deterministic impact buffers, bounded peaks, decaying tails and click-free endpoints');

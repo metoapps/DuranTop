@@ -236,7 +236,8 @@
     if(serverEntry)giris=serverEntry;
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.faz = 'vurus';
-    d.an = { t0: now, on: 0.32, vurdu: false, olay: false, bitti: false };
+    var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
+    d.an = { t0: now, on: 0.44, vurdu: false, olay: false, file:false, fileT:netPoint?netPoint.t:Infinity, bitti: false };
     $('alt').hidden = true;
     if (d.mod === 'resmi') {          // vuruş açıldığı anda sayılır; yenileme ya da kopma sonucu değiştirmez
       var k = oku(ANAHTAR.resmi, null);
@@ -253,7 +254,7 @@
     return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f };
   }
 
-  var SONUC_SES = { gol: 'file', direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
+  var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
   function cizimDurumu(now) {
     var R = A.kale.topYaricap, pos = d.pos;
@@ -267,8 +268,9 @@
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.onizleme };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
-      out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.28)));
-      out.oyuncu.temas = an.on / (an.on + 0.28);
+      out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
+      out.oyuncu.sure=el;out.oyuncu.on=an.on;
+      out.oyuncu.temas = an.on / (an.on + 0.40);
       out.oyuncu.yol = r.yol;
       out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if (simT > 0) {
@@ -277,11 +279,12 @@
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
         out.kaleci = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
         var se = simT - r.olayT;
+        if(!an.file&&(r.sonuc==='gol'||r.sonuc==='direk_gol')&&simT>=an.fileT){an.file=true;DT.ses.cal('file',{hiz:r.speed});}
         if(se >= 0){out.kaleci.saved = r.tuttu;}
         if (se >= 0) {
           if (!an.olay) {
             an.olay = true;
-            var ses = SONUC_SES[r.sonuc]; if (ses) DT.ses.cal(ses);
+            var ses = SONUC_SES[r.sonuc]; if (ses) DT.ses.cal(ses,{hiz:r.speed});
             if (r.sonuc === 'gol' || r.sonuc === 'direk_gol') DT.ses.cal('gol');
             else if (r.sonuc !== 'aut') DT.ses.cal('ah');
           }

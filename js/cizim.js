@@ -319,10 +319,15 @@
     if (!im || !nokta) return;
     g.save();
     var anchor = DT.SPRITE_NOKTA[karakter].vurus2;
-    var approach = durum.yol ? Math.max(0, 1 - u / temas) : 0;
-    g.translate(topEkran.x + r + approach * 8, topEkran.y);
-    g.scale(olcek, olcek);
-    g.drawImage(im, -anchor.tipX, -anchor.tipY, S.genislik, S.yukseklik);
+    var elapsed=durum.sure||0,windup=durum.on||.44,active=!!durum.yol;
+    var before=Math.max(0,Math.min(1,elapsed/windup)),after=Math.max(0,elapsed-windup);
+    var approach=active?(1-before)*(1-before):0;
+    // Rotate around the planted foot, keeping the original face and uniform pixels intact.
+    var lean=active?(elapsed<windup?Math.sin(before*Math.PI)*.055:-.075*Math.sin(Math.min(1,after/.55)*Math.PI)):0;
+    var footX=S.ankrajX,footY=nokta.bottom,px=topEkran.x+r+(footX-anchor.tipX)*olcek+approach*18,
+        py=topEkran.y+(footY-anchor.tipY)*olcek;
+    g.translate(px,py);g.rotate(lean);g.scale(olcek,olcek);
+    g.drawImage(im,-footX,-footY,S.genislik,S.yukseklik);
     g.restore();
   }
 
