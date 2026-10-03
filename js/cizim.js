@@ -287,7 +287,7 @@
                  [0,575,490,345],[498,640,548,205],[1060,715,465,155]];
     var box = boxes[pose], p = izdus(k.x, k.y, pos.D);
     if (!p) return;
-    var h = pose === 3 ? 1.65 : (pose >= 4 ? 1.05 : (pose === 1 ? 1.25 : 1.85));
+    var h = pose === 5 ? 2*k.y : (pose === 3 ? 1.65 : (pose >= 4 ? 1.05 : (pose === 1 ? 1.25 : 1.85)));
     var w = pose === 3 ? 2.1 : (pose >= 4 ? 2.5 : (pose === 1 ? 1.9 : 1.45));
     var pw = w * p.olcek, ph = h * p.olcek;
     g.save(); g.translate(p.x, p.y);

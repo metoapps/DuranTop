@@ -16,11 +16,11 @@ Deno.serve(async(req:Request)=>{
   const text=await req.text();if(text.length>4096)fail('INPUT');const b=JSON.parse(text);let result:any;
   if(b.action==='create'){
    const recent=await db('dt_live_rooms?creator_hash=eq.'+h+'&created_at=gte.'+encodeURIComponent(new Date(Date.now()-86400000).toISOString())+'&select=id');if(recent.length>=8)fail('LIMIT');
-   let r;for(let i=0;i<3;i++){try{const code=[...crypto.getRandomValues(new Uint8Array(3))].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();r=(await db('dt_live_rooms','POST',{code,creator_hash:h}))[0];break;}catch(e){if((e as Error).message!=='TAKEN')throw e;}}
+   let r;for(let i=0;i<3;i++){try{const code=[...crypto.getRandomValues(new Uint8Array(3))].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();r=(await db('dt_live_rooms','POST',{code,creator_hash:h,version:2}))[0];break;}catch(e){if((e as Error).message!=='TAKEN')throw e;}}
    if(!r)fail('DB');result=await state(r,h);
   }else{
-   const r=await room(b.room);
-   if(b.action==='state')result=await state(r,h);
+   const r=await room(b.room);if(r.version!==2)fail('VERSION');
+   if(b.action==='state'){if(r.version!==2)fail('VERSION');result=await state(r,h);}
    else if(b.action==='join'){
     if(!players.includes(b.player))fail('INPUT');const rows=await db('dt_live_players?room_id=eq.'+r.id+'&select=player,token_hash');const mine=rows.find((x:any)=>x.token_hash===h);if(mine&&mine.player!==b.player)fail('ONE_PLAYER');const slot=rows.find((x:any)=>x.player===b.player);if(slot&&slot.token_hash!==h)fail('TAKEN');if(!slot)await db('dt_live_players','POST',{room_id:r.id,player:b.player,token_hash:h});result=await state(r,h);
    }else if(b.action==='shot'){
@@ -36,5 +36,5 @@ Deno.serve(async(req:Request)=>{
    }else fail('INPUT');
   }
   return new Response(JSON.stringify(result),{headers});
- }catch(e){const errors:any={AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı veya süresi doldu.',TAKEN:'Bu karakter başka bir arkadaş tarafından seçildi.',ONE_PLAYER:'Bu kupada zaten bir karakter seçtin.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',LIMIT:'Bugün yeterince kupa oluşturuldu.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='DB'?503:400,headers});}
+ }catch(e){const errors:any={VERSION:'Bu kupa önceki oyun sürümünde. Yeni kupa oluştur.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı veya süresi doldu.',TAKEN:'Bu karakter başka bir arkadaş tarafından seçildi.',ONE_PLAYER:'Bu kupada zaten bir karakter seçtin.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',LIMIT:'Bugün yeterince kupa oluşturuldu.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='DB'?503:400,headers});}
 });

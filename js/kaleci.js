@@ -12,7 +12,13 @@ function planla(target,tip,practice,noise,T){
  function konum(t){var u=clamp((t-reaction)/duration,0,1),e=u*u*(3-2*u);
   return {x:endX*e,y:1+(endY-1)*e,ilerleme:u,yon:action==='dal'?direction:0,
    poz:action==='dal'&&u>.18?'dal':'bekle',low:gy<.6,high:gy>1.75,eylem:action};}
- return {eylem:action,tepki:reaction,konum:konum,hedefX:endX,hedefY:endY};
+ function cizimKonum(t,impactT){var k=konum(t);
+  if(action!=='dal'||t<=impactT)return k;
+  var start=konum(impactT),fall=Math.max(0,t-impactT-.08),ground=Math.min(.30,start.y);
+  k.y=Math.max(ground,start.y-.5*A.yercekimi*fall*fall);
+  k.landing=k.y<=ground+1e-6;return k;
+ }
+ return {eylem:action,tepki:reaction,konum:konum,cizimKonum:cizimKonum,hedefX:endX,hedefY:endY};
 }
 function model(k){
  if(k.poz!=='dal')return {w:1.25,h:1.85,shapes:[[-.32,-.84,.32,.75]], hands:[[-.46,.0], [.46,.0]], pose:k.saved?2:(k.low?1:0)};
