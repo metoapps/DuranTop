@@ -37,7 +37,8 @@
     falsoMetre: 1.6,     // falsonun topu yandan en fazla ne kadar eğdiği (m)
 
     kaleci: {
-      tepki: { penalti: 0.17, frikik: 0.38 },  // top vurulduktan kaç saniye sonra hareket eder
+      penaltiYanlisKose: .07, frikikMerkezHatasi: .20, frikikHiz: 7.5,
+      tepki: { penalti: 0.17, frikik: 0.24 },  // top vurulduktan kaç saniye sonra hareket eder
       dalis: 0.34,        // dalışın süresi (s)
       okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
       gurultu: 0.12,      // okuma sapması (m)

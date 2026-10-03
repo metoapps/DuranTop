@@ -256,7 +256,7 @@
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
       zaman:0,top: B, topAci: 0, baraj: d.barajGeo,
-      kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle' },
+      kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle',gesture:pos.tip==='penalti'?now/1000:undefined },
       oyuncu: { karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {

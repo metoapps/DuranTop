@@ -11,6 +11,12 @@ function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*Math.
  else if(dive){nodes.el=p(-.18,.70,-.05);nodes.er=p(.18,.70,-.05);nodes.hl=p(-.15,1.03,-.12);nodes.hr=p(.15,1.03,-.12);}
  else if(k.high){nodes.el=p(-.30,.63,-.07);nodes.er=p(.30,.63,-.07);nodes.hl=p(-.18,.96,-.18);nodes.hr=p(.18,.96,-.18);}
  else {nodes.el=p(-.36,.02,-.05);nodes.er=p(.36,.02,-.05);nodes.hl=p(-.26,low?-.37:.03,-.30);nodes.hr=p(.26,low?-.37:.03,-.30);}
+ // Non-contact pre-kick gestures are driven only by visual time, not the scoring seed.
+ if(k.gesture!==undefined&&!dive){var time=k.gesture,cycle=Math.floor(time/2.8)%3,phase=(time%2.8)/2.8,beat=Math.sin(phase*Math.PI),side=cycle===1?-1:1;
+  if(cycle===0){nodes.el=p(-.38,.43,-.04);nodes.er=p(.38,.43,-.04);nodes.hl=p(-.50,.55+.17*Math.sin(time*7),-.08);nodes.hr=p(.50,.55-.17*Math.sin(time*7),-.08);}
+  else {var hand=p(side*(.35+.5*beat),.30+.12*beat,-.10),elbow=p(side*.46,.26,-.04);if(side<0){nodes.el=elbow;nodes.hl=hand;}else{nodes.er=elbow;nodes.hr=hand;}}
+ }
+ if(k.block>0&&!dive&&!k.saved){var open=k.block,height=k.high?.76:(k.low?-.28:.21);nodes.el=p(-.30-.18*open,height+.05,-.14);nodes.er=p(.30+.18*open,height+.05,-.14);nodes.hl=p(-.22-.50*open,height,-.30);nodes.hr=p(.22+.50*open,height,-.30);}
  // Recovery key poses keep support hands, knees and planted feet on the ground.
  if(dive&&k.recovery>0){
   var dir=k.yon||1,x=k.x,cz=z;

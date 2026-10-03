@@ -56,7 +56,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T);
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),quality:quality,speed:flight.speed});
     plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;
