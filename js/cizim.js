@@ -6,8 +6,8 @@
   var A = DT.AYAR, S = DT.SPRITE;
 
   var KAMERA = {
-    penalti: { geri: 5.0, yuk: 3.2, kaleGen: 0.74, kaleY: 0.27 },
-    frikik:  { geri: 15.0, yuk: 4.5, kaleGen: 0.74, kaleY: 0.27 }
+    penalti: { geri: 5.0, yuk: 3.2, kaleGen: 0.74, kaleY: 0.33 },
+    frikik:  { geri: 15.0, yuk: 4.5, kaleGen: 0.74, kaleY: 0.33 }
   };
 
   var cv, ctx, W = 360, H = 640, dpr = 1;
@@ -29,8 +29,8 @@
   function kameraKur(p) {
     var ayar = KAMERA[p.tip];
     var wide=W>H&&H>=600;
-    if(wide)ayar={geri:p.tip==='penalti'?8:18,yuk:ayar.yuk,kaleGen:.74,kaleY:.24};
-    if (H < 650) ayar = { geri: ayar.geri, yuk: 1.8, kaleGen: ayar.kaleGen, kaleY: .25 };
+    if(wide)ayar={geri:p.tip==='penalti'?8:18,yuk:ayar.yuk,kaleGen:.74,kaleY:.33};
+    if (H < 650) ayar = { geri: ayar.geri, yuk: 1.8, kaleGen: ayar.kaleGen, kaleY: .33 };
     var ul = Math.hypot(-p.bx, p.D), ux = -p.bx / ul, uz = p.D / ul;
     var C = [p.bx - ux * ayar.geri, ayar.yuk, -uz * ayar.geri];
     var hedef = [0, 1.0, p.D];
@@ -140,22 +140,6 @@
     gk.addColorStop(0, '#050506'); gk.addColorStop(1, '#1a1b1e');
     g.fillStyle = gk; g.fillRect(0, 0, W, uy + 2);
 
-    // tribün (kalenin arkasında dikey bir duvar)
-    var t0 = izdus(-60, 0, D + 22), t1 = izdus(60, 14, D + 22);
-    if (t0 && t1) {
-      var tx0 = Math.min(t0.x, t1.x), tx1 = Math.max(t0.x, t1.x), ty0 = Math.min(t0.y, t1.y), ty1 = Math.max(t0.y, t1.y);
-      var tg = g.createLinearGradient(0, ty0, 0, ty1);
-      tg.addColorStop(0, '#1b1c1f'); tg.addColorStop(1, '#4a4b50');
-      g.fillStyle = tg; g.fillRect(tx0, ty0, tx1 - tx0, ty1 - ty0);
-      var r = rng(7);
-      for (var i = 0; i < 1400; i++) {
-        var x = tx0 + r() * (tx1 - tx0), y = ty0 + r() * (ty1 - ty0);
-        var a = 0.15 + r() * 0.5;
-        g.fillStyle = r() < 0.5 ? 'rgba(235,235,235,' + a + ')' : 'rgba(120,120,125,' + a + ')';
-        g.fillRect(x, y, 1.6, 1.6);
-      }
-    }
-
     // projektör ışıkları
     [[-26, 16], [26, 16], [-10, 18], [12, 18]].forEach(function (j) {
       var p = izdus(j[0], j[1], D + 30);
@@ -177,6 +161,27 @@
     var sis = g.createLinearGradient(0, uy - 6, 0, uy + 70);
     sis.addColorStop(0, 'rgba(180,185,190,0.18)'); sis.addColorStop(1, 'rgba(180,185,190,0)');
     g.fillStyle = sis; g.fillRect(0, uy - 6, W, 76);
+
+    // Stepped, occupied terrace behind the goal. Draw once with the background.
+    var goalTop=izdus(0,A.kale.yukseklik,D),standBottom=goalTop.y+14;
+    var standGradient=g.createLinearGradient(0,35,0,standBottom);
+    standGradient.addColorStop(0,'#13171e');standGradient.addColorStop(1,'#34383d');
+    g.fillStyle=standGradient;g.fillRect(0,35,W,standBottom-35);
+    var crowd=rng(19),row=0;
+    for(var sy=48;sy<standBottom-8;sy+=Math.min(15,8+row*.65),row++){
+      var scale=Math.min(1.4,.7+row*.065),spacing=10*scale;
+      g.fillStyle='#0c1015';g.fillRect(0,sy+7*scale,W,3);
+      for(var sx=-8+(row%2)*spacing*.5;sx<W+8;sx+=spacing){
+        var px=sx+(crowd()-.5)*3,py=sy+(crowd()-.5)*3;
+        g.fillStyle=['#cdc6b2','#af8d75','#d6ad8a','#adada8'][Math.floor(crowd()*4)];
+        g.beginPath();g.arc(px,py,1.7*scale,0,Math.PI*2);g.fill();
+        g.strokeStyle=crowd()<.5?'#e1e0d8':'#08090b';g.lineWidth=2.8*scale;
+        g.beginPath();g.moveTo(px,py+2);g.lineTo(px,py+6*scale);g.stroke();
+        g.lineWidth=1.2*scale;g.beginPath();g.moveTo(px-3*scale,py+(crowd()<.4?-2:4)*scale);g.lineTo(px,py+3*scale);g.lineTo(px+3*scale,py-1*scale);g.stroke();
+      }
+      g.strokeStyle='rgba(177,184,194,.23)';g.lineWidth=1;g.beginPath();g.moveTo(0,sy+10*scale);g.lineTo(W,sy+10*scale);g.stroke();
+    }
+    g.fillStyle='#a4a6a3';g.fillRect(0,standBottom-4,W,2);
 
     // reklam panoları: kale arkasında alçak, siyah-beyaz bloklar
     for (var bxw = -42, bi = 0; bxw < 42; bxw += 3, bi++) {
@@ -398,17 +403,19 @@
   function pankartCiz(g, id) {
     var text=pankartMetinleri[id]; if(!text)return;
     var goal=izdus(0,A.kale.yukseklik,pos.D); if(!goal)return;
-    var wide=W>H, bw=wide?Math.min(W*.34,430):W*.88;
-    var bh=wide?44:Math.max(20,Math.min(44,goal.y-72));
-    var x=wide?W-bw-18:(W-bw)/2;
-    var y=wide?Math.max(76,goal.y-10):goal.y-bh-7;
+    var wide=W>H, bw=wide?Math.min(W*.43,520):W*.86;
+    var gap=Math.max(24,Math.min(48,H*.052));
+    var bh=Math.max(20,Math.min(48,goal.y-gap-68));
+    var x=Math.max(12,Math.min(W-bw-12,goal.x-bw/2));
+    var y=goal.y-bh-gap;
     var key=id+'_'+Math.round(bw)+'_'+Math.round(bh)+'_'+dpr;
     var c=pankartCache[key];
     if(!c){
       c=yerelCanvas(Math.ceil(bw*dpr),Math.ceil(bh*dpr));var b=c.getContext('2d');b.scale(dpr,dpr);
       // Uneven cloth edges and stitched white borders distinguish it from the HUD.
-      b.fillStyle='#151518';b.beginPath();b.moveTo(1,3);b.lineTo(bw-2,0);b.lineTo(bw-1,bh-3);b.lineTo(3,bh);b.closePath();b.fill();
-      b.strokeStyle='#eee8d9';b.lineWidth=1.5;b.stroke();
+      b.fillStyle='#151518';b.beginPath();b.moveTo(1,3);b.lineTo(bw-2,0);b.lineTo(bw-1,bh-4);b.quadraticCurveTo(bw*.5,bh+3,3,bh-3);b.closePath();b.fill();
+      b.strokeStyle='#ddd7c7';b.lineWidth=1;b.stroke();
+      var cloth=b.createLinearGradient(0,0,0,bh);cloth.addColorStop(0,'rgba(255,255,255,.15)');cloth.addColorStop(.4,'rgba(255,255,255,0)');cloth.addColorStop(1,'rgba(0,0,0,.4)');b.fillStyle=cloth;b.fill();
       b.fillStyle='#ece8da';b.fillRect(7,5,3,bh-10);b.fillRect(bw-10,5,3,bh-10);
       b.strokeStyle='rgba(255,255,255,.08)';b.lineWidth=1;
       for(var fold=20;fold<bw;fold+=36){b.beginPath();b.moveTo(fold,3);b.lineTo(fold+4,bh-3);b.stroke();}
@@ -427,7 +434,7 @@
       });
       if(Object.keys(pankartCache).length>20)pankartCache={};pankartCache[key]=c;
     }
-    g.save();g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=4;g.drawImage(c,x,y,bw,bh);g.restore();
+    g.save();g.strokeStyle='#beb6a1';g.lineWidth=1;[x+5,x+bw-5].forEach(function(px){g.beginPath();g.moveTo(px,y-9);g.lineTo(px,y+6);g.stroke();});g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=5;g.translate(x+bw/2,y+bh/2);g.rotate(-.012);g.drawImage(c,-bw/2,-bh/2,bw,bh);g.restore();
   }
 
   /* ---------- ana çizim ---------- */

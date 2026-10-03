@@ -3,10 +3,10 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 async function dene({kayitVar,sorgu}){
  const calan=[];const buf={decoded:true};
  function ctx(){return{currentTime:0,sampleRate:44100,state:'running',destination:{},resume(){},createGain(){return{gain:{value:1},connect(){},disconnect(){}};},
-  createBuffer(c,n){return{getChannelData(){return new Float32Array(n);},sentez:true};},createBufferSource(){const s={playbackRate:{value:1},connect(){},disconnect(){},start(){calan.push({kaynak:s.buffer.sentez?'sentez':'kayit',rate:s.playbackRate.value});}};return s;},
+  createBuffer(c,n){return{getChannelData(){return new Float32Array(n);},sentez:true};},createBufferSource(){const s={playbackRate:{value:1},connect(){},disconnect(){},stop(){s.stopped=true;},start(){calan.push({kaynak:s.buffer.sentez?'sentez':'kayit',rate:s.playbackRate.value,loop:!!s.loop});}};return s;},
   createBiquadFilter(){return{frequency:{},Q:{},connect(){}};},createOscillator(){return{frequency:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},start(){},stop(){}};},decodeAudioData(){return Promise.resolve(buf);}};}
  const root={AudioContext:ctx,location:{search:sorgu||''},fetch:(u)=>Promise.resolve(kayitVar?{ok:true,arrayBuffer:()=>Promise.resolve(new ArrayBuffer(8))}:{ok:false})};root.globalThis=root;vm.createContext(root);
- vm.runInContext(fs.readFileSync(__dirname+'/../js/ses.js','utf8'),root);const DT=root.DT;DT.ses.ayarla(true);await new Promise(r=>setTimeout(r,20));DT.ses.cal('direk',{hiz:24});DT.ses.cal('file',{hiz:24});return {calan,varMi:DT.ses.kayitVarMi('direk')};
+ vm.runInContext(fs.readFileSync(__dirname+'/../js/ses.js','utf8'),root);const DT=root.DT;DT.ses.ayarla(true);await new Promise(r=>setTimeout(r,20));DT.ses.cal('direk',{hiz:24});DT.ses.cal('file',{hiz:24});assert.equal(calan.filter(c=>c.loop).length,1,'one quiet music loop starts with sound');DT.ses.ayarla(false);return {calan:calan.filter(c=>!c.loop),varMi:DT.ses.kayitVarMi('direk')};
 }
 (async()=>{
  const a=await dene({kayitVar:true});assert(a.varMi);assert(a.calan.every(c=>c.kaynak==='kayit'),'kayıt varsa kayıt çalınır');assert(a.calan.every(c=>c.rate>=.97&&c.rate<=1.03));
