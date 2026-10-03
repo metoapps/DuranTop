@@ -386,6 +386,40 @@
     g.restore();
   }
 
+  // Player supporters' cloth banner. Cached separately from the stadium: no new downloads.
+  var pankartMetinleri = {
+    meto: '20 CM DAMARLIM',
+    fero: 'ÇIKAR MASAYA KOY FERO BABA ♥️',
+    lort: 'Gökhanlort 28 GİRESUNLUMM',
+    josh: 'Yozgatlım ♥️',
+    latte: 'IceLatte 📍 Bergen'
+  };
+  var pankartCache = {};
+  function pankartCiz(g, id) {
+    var text=pankartMetinleri[id]; if(!text)return;
+    var goal=izdus(0,A.kale.yukseklik,pos.D); if(!goal)return;
+    var wide=W>H, bw=wide?Math.min(W*.34,430):W*.88;
+    var bh=wide?44:Math.max(20,Math.min(44,goal.y-72));
+    var x=wide?W-bw-18:(W-bw)/2;
+    var y=wide?Math.max(76,goal.y-10):goal.y-bh-7;
+    var key=id+'_'+Math.round(bw)+'_'+Math.round(bh)+'_'+dpr;
+    var c=pankartCache[key];
+    if(!c){
+      c=yerelCanvas(Math.ceil(bw*dpr),Math.ceil(bh*dpr));var b=c.getContext('2d');b.scale(dpr,dpr);
+      // Uneven cloth edges and stitched white borders distinguish it from the HUD.
+      b.fillStyle='#151518';b.beginPath();b.moveTo(1,3);b.lineTo(bw-2,0);b.lineTo(bw-1,bh-3);b.lineTo(3,bh);b.closePath();b.fill();
+      b.strokeStyle='#eee8d9';b.lineWidth=1.5;b.stroke();
+      b.fillStyle='#ece8da';b.fillRect(7,5,3,bh-10);b.fillRect(bw-10,5,3,bh-10);
+      b.strokeStyle='rgba(255,255,255,.08)';b.lineWidth=1;
+      for(var fold=20;fold<bw;fold+=36){b.beginPath();b.moveTo(fold,3);b.lineTo(fold+4,bh-3);b.stroke();}
+      var fs=Math.min(19,bh*.48);b.font='bold '+fs+'px Arial, sans-serif';
+      while(b.measureText(text).width>bw-34&&fs>8){fs-=.5;b.font='bold '+fs+'px Arial, sans-serif';}
+      b.fillStyle='#fff6dc';b.textAlign='center';b.textBaseline='middle';b.fillText(text,bw/2,bh/2+.5);
+      if(Object.keys(pankartCache).length>20)pankartCache={};pankartCache[key]=c;
+    }
+    g.save();g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=4;g.drawImage(c,x,y,bw,bh);g.restore();
+  }
+
   /* ---------- ana çizim ---------- */
   var ogeAdlari = null;
   function ciz(d) {
@@ -395,6 +429,7 @@
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
+    if(d.oyuncu)pankartCiz(g,d.oyuncu.karakter);
 
     kaleArka(g);
 
