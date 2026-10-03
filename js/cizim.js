@@ -28,6 +28,8 @@
 
   function kameraKur(p) {
     var ayar = KAMERA[p.tip];
+    var wide=W>H&&H>=600;
+    if(wide)ayar={geri:p.tip==='penalti'?8:18,yuk:ayar.yuk,kaleGen:.74,kaleY:.24};
     if (H < 650) ayar = { geri: ayar.geri, yuk: 1.8, kaleGen: ayar.kaleGen, kaleY: .25 };
     var ul = Math.hypot(-p.bx, p.D), ux = -p.bx / ul, uz = p.D / ul;
     var C = [p.bx - ux * ayar.geri, ayar.yuk, -uz * ayar.geri];
@@ -35,11 +37,11 @@
     var f = norm([hedef[0] - C[0], hedef[1] - C[1], hedef[2] - C[2]]);
     var r = norm(cross([0, 1, 0], f));
     var up = cross(f, r);
-    var k = { C: C, f: f, r: r, up: up, cx: W / 2, cy: 0, F: 1, ky: 1 };
+    var k = { C: C, f: f, r: r, up: up, cx: (W>H ? W*.4 : W/2), cy: 0, F: 1, ky: 1 };
     var merkez = [0, 1.2, p.D];
     var d = [merkez[0] - C[0], merkez[1] - C[1], merkez[2] - C[2]];
     var zc = dot(d, f);
-    k.F = ayar.kaleGen * W * zc / A.kale.genislik;
+    k.F = ayar.kaleGen * Math.min(W,H*(wide?.95:1.15)) * zc / A.kale.genislik;
     var yc = dot(d, up);
     var kaleYpx = ayar.kaleY * H;
     // Top, alttaki kontrol panelinin ve oyuncunun üstünde kalsın: panel yaklaşık 235 px, oyuncunun ayakları topun ~0.083H altında.
@@ -47,7 +49,8 @@
     var db = [p.bx - C[0], A.kale.topYaricap - C[1], 0 - C[2]];
     var zb = dot(db, f);
     var terim = k.F * (dot(d, up) / zc - dot(db, up) / zb);       // ky = 1 için top, kale merkezinin bu kadar altında
-    k.ky = terim > 1 ? Math.max(H < 650 ? 1.1 : 0.82, Math.min(1.3, (topHedef - kaleYpx) / terim)) : 1;
+    k.ky = terim > 1 ? Math.max(W>H ? .45 : (H < 650 ? 1.1 : 0.82), Math.min(1.3, (topHedef - kaleYpx) / terim)) : 1;
+    if(wide)k.ky=1;
     k.cy = kaleYpx + k.F * k.ky * yc / zc;
     return k;
   }
@@ -247,7 +250,7 @@
     var p = izdus(t.x, t.y, t.z);
     if (!p) return;
     golgeTop(g, t.x, t.z);
-    var r = Math.max(2, R * p.olcek);
+    var r = Math.min(H*.012,Math.max(2, R * p.olcek));
     if (gorseller._top) { g.drawImage(gorseller._top, p.x - r, p.y - r, r * 2, r * 2); return; }
     g.save(); g.translate(p.x, p.y);
     g.fillStyle = '#f4f4f4'; g.beginPath(); g.arc(0, 0, r, 0, 6.3); g.fill();
@@ -305,8 +308,8 @@
   function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     if (!topEkran) return;
     durum = durum || {};
-    var olcek = (Math.min(0.21 * H, Math.max(100, H - topEkran.y - 155))) / S.boy;
-    var r = Math.max(2, A.kale.topYaricap * topEkran.olcek);
+    var olcek = (W>H&&H>=600?Math.min(240,H*.27):Math.min(0.21 * H, Math.max(100, H - topEkran.y - 155))) / S.boy;
+    var r = Math.min(H*.012,Math.max(2, A.kale.topYaricap * topEkran.olcek));
     var u = durum.ilerleme || 0, temas = durum.temas || 0.533333;
     var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
     var im = sprite(karakter, kare);
@@ -421,8 +424,8 @@
 
   function boyutla() {
     var kutu = cv.getBoundingClientRect();
-    W = Math.max(280, Math.round(kutu.width)); H = Math.max(420, Math.round(kutu.height));
-    dpr = Math.min(2, root.devicePixelRatio || 1);
+    W = Math.max(280, Math.round(kutu.width)); H = Math.max(280, Math.round(kutu.height));
+    dpr = Math.min(3, root.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     if (pos) sahneKur(pos);
   }

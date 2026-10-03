@@ -6,7 +6,7 @@
   var $ = function (id) { return doc.getElementById(id); };
   var simdi = function () { return root.performance.now(); };
 
-  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt6_resmi', enIyi: 'dt6_en_iyi', gecmis: 'dt6_gecmis' };
+  var ANAHTAR = { ayar: 'dt_ayar', resmi: 'dt7_resmi', enIyi: 'dt6_en_iyi', gecmis: 'dt6_gecmis' };
   var VURUS_SAYISI = A.pozisyonlar.length;
 
   var ayar = { ses: false, cubuk: true };
@@ -36,7 +36,7 @@
     $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Kaptanlık Kupası';
     $('btnSifirla').hidden = !kayit;
     var en = oku(ANAHTAR.enIyi, null);
-    $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Skorlar yalnızca bu telefonda tutulur.' : 'Kupa tablosu bu telefonda tutulur; arkadaşların sonuç kodlarını ekle.';
+    $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Kupa sonuçları otomatik güncellenir.' : 'Canlı kupa: arkadaşlarının puanları otomatik güncellenir.';
     menuSahne();
   }
 
@@ -65,13 +65,13 @@
     d.mod = mod;
     ekranGoster('secim');
     $('secimNot').textContent = mod === 'resmi'
-      ? 'Kupa: 3 penaltı + 2 frikik. Her arkadaşın bir resmi tur hakkı var.'
+      ? 'Canlı kupa: karakterini seç. Skorun otomatik kaydedilir.'
       : 'Antrenman: skora yazılmaz, kaleci daha yavaş.';
     var iz = $('secimIzgara'); iz.innerHTML = '';
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
       b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.webp"><span>' + k.ad + '</span>';
-      b.disabled = mod === 'resmi' && !!kupaKayit()[k.id];
+      b.disabled = mod === 'resmi' && (DT.live ? !DT.live.allowed(k.id) : !!kupaKayit()[k.id]);
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
     });
@@ -88,9 +88,13 @@
       return;
     }
     d.karakter = karakter; d.mod = mod;
-    if (mod === 'resmi' && !kayit && kupaKayit()[karakter]) return;
+    if (mod === 'resmi' && DT.live && !(kayit && kayit.live)) {
+      turYukleniyor=true;
+      DT.live.join(karakter).then(function(member){turYukleniyor=false;var state=DT.live.getState();turBaslat(karakter,mod,{live:true,tur:state.room.code,idx:member.idx,sonuclar:member.entries,karakter:karakter});}).catch(function(e){turYukleniyor=false;root.alert(e.message);});return;
+    }
+    if (mod === 'resmi' && !DT.live && !kayit && kupaKayit()[karakter]) return;
     if (kayit) {
-      d.tur = kayit.tur; d.idx = kayit.idx; d.sonuclar = kayit.sonuclar || [];
+      d.tur = kayit.tur; d.idx = kayit.idx; d.sonuclar = (kayit.sonuclar || []).slice();
       if (d.idx >= VURUS_SAYISI) { d.pos = A.pozisyonlar[0]; ekranGoster('tursonu'); turSonu(); return; }
     } else {
       d.tur = mod === 'resmi' ? kupaKod : turKimligi(); d.idx = 0; d.sonuclar = [];
@@ -111,6 +115,7 @@
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = d.mod === 'resmi' ? ((parseInt(kupaKod,16) * 977 + d.idx * 7919) | 0) : ((Math.random() * 2147483647) | 0);
     d.contact = {x:0,y:0}; d.temasHazir = false; $('temasPanel').hidden = true;
+    $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
     $('hudVurus').textContent = 'Vuruş ' + (d.idx + 1) + '/' + VURUS_SAYISI;
     $('hudTip').textContent = d.pos.ad + (d.mod === 'antrenman' ? ' · antrenman' : '');
@@ -138,7 +143,7 @@
   function nisanGuncelle(e) {
     var p = ekranNoktasi(e), k = DT.cizim.ekranToKale(p.x, p.y);
     if (!k) return;
-    d.aim = { x: Math.max(-4.6, Math.min(4.6, k.x)), y: Math.max(0.05, Math.min(3.1, k.y)) };
+    d.aim = { x: Math.max(-4.5, Math.min(4.5, k.x)), y: Math.max(0.11, Math.min(3.1, k.y)) };
   }
   function girisBagla() {
     var cv = $('sahne'), basili = false;
@@ -207,9 +212,24 @@
     var now = simdi();
     var zaman = cubukAktif() ? cubukDegeri(now) : null;
     var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed, antrenman: d.mod === 'antrenman' };
+    if(d.mod==='resmi' && DT.live){
+      var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
+      d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
+      DT.live.shot(d.karakter,d.idx,girdi).then(function(entry){
+        if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
+        $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;
+        vurusUygula(girdi,entry);
+      }).catch(function(e){d.faz='nisan';$('vurBtn').disabled=false;$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
+    }
+    vurusUygula(girdi,null);
+  }
+  function vurusUygula(girdi,serverEntry){
+    var now=simdi();
     var r = DT.fizik.hesapla(girdi);
     var p = DT.puan.puanla(d.pos.tip, r);
     var giris = { yesil:r.bandaGirdi, quality: r.quality, speed: r.speed, ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
+    if(serverEntry)giris=serverEntry;
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.faz = 'vurus';
     d.an = { t0: now, on: 0.32, vurdu: false, olay: false, bitti: false };
@@ -345,7 +365,7 @@
       yaz(ANAHTAR.gecmis, gecmis.slice(-20));
       if (t > en) yaz(ANAHTAR.enIyi, t);
       sil(ANAHTAR.resmi);
-      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Kupa kodu: ' + kupaKod + '. Sonuç kodunu gruba paylaş.';
+      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Canlı kupa: '+kupaKod+'. Skorun ortak tabloya otomatik kaydedildi.';
     } else {
       $('turNot').textContent = 'Antrenman: skora yazılmadı.';
     }
@@ -376,31 +396,24 @@
   }
 
   var kupaKod = '';
-  function kupaKayit(){return oku('dt6_kupa_' + kupaKod,{});}
+  function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,puan:null,gol:0,yesil:0};});
     rows.sort(function(a,b){return (b.puan===null?-1:b.puan)-(a.puan===null?-1:a.puan)||b.yesil-a.yesil||b.gol-a.gol;});
-    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?'Sırası bekleniyor':r.puan+' puan · '+r.gol+' gol · '+r.yesil+' yeşil')+'</span></div>';}).join('');
-    if(rows.every(function(r){return r.puan!==null;})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' kaptan! Grubun taktik tahtası bugün onda.</p>';}
+    var rank=1; $('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&!(r.puan===rows[i-1].puan&&r.yesil===rows[i-1].yesil&&r.gol===rows[i-1].gol))rank=i+1;return '<div><b>'+ rank+'. '+r.id.toUpperCase()+'</b><span>'+(r.puan===null?'Sırası bekleniyor':r.puan+' puan · '+r.gol+' gol'+(r.idx===undefined?'':r.idx<5?' · '+r.idx+'/5 oynadı':' · tamamlandı'))+'</span></div>';}).join('');
+    if(rows.every(function(r){return r.puan!==null&&(r.idx===undefined||r.idx===5);})){var best=rows[0],winners=rows.filter(function(r){return r.puan===best.puan&&r.yesil===best.yesil&&r.gol===best.gol;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' kaptan! Grubun taktik tahtası bugün onda.</p>';}
 
   }
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
   function kupaKur(){
-    var params=new URLSearchParams(root.location.search||''), q=params.get('kupa');
-    kupaKod=/^[A-F0-9]{6}$/i.test(q||'')?q.toUpperCase():oku('dt6_kod',null)||Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
-    var active=oku(ANAHTAR.resmi,null);if(active&&/^[A-F0-9]{6}$/.test(active.tur||''))kupaKod=active.tur;
-    $('kupaKod').value=kupaKod;yaz('dt6_kod',kupaKod);
-    $('kupaKod').addEventListener('change',function(){var code=this.value.trim().toUpperCase();if(!/^[A-F0-9]{6}$/.test(code)){this.value=kupaKod;return;}if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');this.value=kupaKod;return;}kupaKod=code;yaz('dt6_kod',code);kupaGoster();if(root.history){var url=new URL(root.location.href);url.searchParams.set('kupa',code);root.history.replaceState(null,'',url.toString());}});
-    $('yeniKupa').addEventListener('click',function(){
-      if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');return;}
-      kupaKod=Math.floor(Math.random()*16777216).toString(16).padStart(6,'0').toUpperCase();
-      $('kupaKod').value=kupaKod;yaz('dt6_kod',kupaKod);kupaGoster();
-      if(root.history){var url=new URL(root.location.href);url.searchParams.set('kupa',kupaKod);root.history.replaceState(null,'',url.toString());}
-    });
-    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003h');});
-    $('sonucPaylas').addEventListener('click',function(){var r=kupaKayit()[d.karakter];if(!r){root.alert('Sonuç kodu için resmi kupa turunu tamamla.');return;}var token='DT6-'+root.btoa(JSON.stringify({v:1,kod:kupaKod,r:r}));paylas(d.karakter.toUpperCase()+' · '+r.puan+' puan\nSonuç kodu: '+token);});
-    $('sonucEkle').addEventListener('click',function(){var str=root.prompt('Arkadaşının DT6- ile başlayan sonuç kodunu yapıştır:');if(!str)return;try{var m=/DT6-([A-Za-z0-9+/=]+)/.exec(str),v=JSON.parse(root.atob(m[1]));if(v.v!==1||v.kod!==kupaKod||!DT.KARAKTER.some(function(k){return k.id===v.r.id;})||!Number.isInteger(v.r.puan)||v.r.puan<0||v.r.puan>595||!Number.isInteger(v.r.gol)||v.r.gol<0||v.r.gol>5||!Number.isInteger(v.r.yesil)||v.r.yesil<0||v.r.yesil>5)throw Error();var r=kupaKayit();if(r[v.r.id]){root.alert('Bu oyuncunun sonucu zaten kayıtlı.');return;}r[v.r.id]=v.r;yaz('dt6_kupa_'+kupaKod,r);kupaGoster();}catch(e){root.alert('Sonuç kodu geçersiz veya başka kupaya ait.');}});
+    if(!DT.live)return;
+    $('kupaKod').readOnly=true;
+    DT.live.init(function(state){kupaKod=state.room.code;$('kupaKod').value=kupaKod;kupaGoster();},function(message){$('canliDurum').textContent=message;}).catch(function(){});
+    $('yeniKupa').addEventListener('click',function(){DT.live.create().catch(function(e){root.alert(e.message);});});
+    $('kupaPaylas').addEventListener('click',function(){DT.live.ensure().then(function(){paylas('Duran Top canlı kupa! Karakterini seç, resmi turunu oyna. Skorlar otomatik birleşir.\n'+DT.live.link());}).catch(function(e){root.alert(e.message);});});
+    $('sonucPaylas').addEventListener('click',function(){if(DT.live.getState())paylas(d.karakter.toUpperCase()+' · '+toplam()+' puan!\n'+DT.live.link());});
   }
+
   function temasCiz(){var cv=$('temasTop'),g=cv.getContext('2d'),x=110+d.contact.x*90,y=110-d.contact.y*90;
     g.clearRect(0,0,220,220);var fill=g.createRadialGradient(78,65,5,110,110,100);fill.addColorStop(0,'#fff');fill.addColorStop(1,'#aaa');g.fillStyle=fill;g.beginPath();g.arc(110,110,95,0,Math.PI*2);g.fill();g.strokeStyle='#555';g.lineWidth=2;for(var i=0;i<5;i++){var a=i*Math.PI*2/5;g.beginPath();g.moveTo(110,110);g.lineTo(110+Math.cos(a)*90,110+Math.sin(a)*90);g.stroke();}g.fillStyle='#111';g.beginPath();for(i=0;i<5;i++){a=i*Math.PI*2/5-Math.PI/2;g.lineTo(110+Math.cos(a)*25,110+Math.sin(a)*25);}g.closePath();g.fill();g.strokeStyle='#3ddc84';g.lineWidth=4;g.beginPath();g.arc(x,y,10,0,Math.PI*2);g.stroke();
     $('temasNot').textContent=(Math.abs(d.contact.x)<.12?'Düz':d.contact.x<0?'Sağa falso':'Sola falso')+' · '+(d.contact.y<-.15?'Yükselen':d.contact.y>.15?'Alçalan':'Dengeli')+' şut · '+(Math.hypot(d.contact.x,d.contact.y)>.55?'Güçlü':Math.hypot(d.contact.x,d.contact.y)>.15?'Hafif':'Falsosuz');
@@ -427,6 +440,7 @@
     $('btnAntrenman').addEventListener('click', function () { secimGoster('antrenman'); });
     $('btnResmi').addEventListener('click', function () {
       var k = oku(ANAHTAR.resmi, null);
+      if (DT.live){DT.live.ensure().then(function(){var mine=DT.live.current();if(mine)turBaslat(mine.player,'resmi',null);else secimGoster('resmi');}).catch(function(e){root.alert(e.message);});return;}
       if (k) turBaslat(k.karakter, 'resmi', k); else secimGoster('resmi');
     });
     $('btnSifirla').addEventListener('click', function () { sil(ANAHTAR.resmi); menuGoster(); });
