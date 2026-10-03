@@ -76,3 +76,22 @@ Yerleşik görüntü üretimiyle oluşturuldu. İstem özeti: Neuer'i andıran k
 saçlı, yeşil formalı kaleci; hazır, sola dalış ve sağa dalış; şeffaf sprite sayfası.
 Kontrol: üç ekran boyutunda Canvas çizimi, 135 nişan izdüşüm tersleme kontrolü,
 3000 deterministik şut. Gerçek mobil tarayıcı/dokunmatik test yapılmadı.
+
+İnceleme sonrası düzeltmeler (20261003c)
+- Hayalet gövde üreten alfa harmanlama kaldırıldı. Tek opak vuruş pozu ve
+  sürekli yaklaşma/ağırlık aktarımı kullanılıyor. Beş temas ayağı yeniden ölçüldü.
+- Kaleci çizimi ve kurtarış, aynı PNG'den ölçülmüş 64 silüet bandını kullanıyor.
+  El ve vücut teması top yarıçapı dahil kontrol ediliyor. Kaleci artık kale
+  çizgisinde çiziliyor. Yaklaşım hâlâ 2D silüet; tam hacim fiziği değil.
+- Frikik hızı 24 m/s. Her iki tarafta merkez 2.2 m hedefte baraj üstü gol yolu var.
+- Resmi turda zamanlama her zaman açık; kapatma yalnızca antrenmanı etkiliyor.
+  Yeşil bant %7 olarak korundu; gerçek telefon denemesi bekleniyor.
+- 320x568 kamerada kale yaklaşık 103 px yüksekliğinde. Ön plandaki karakter
+  kompakt ekrana göre küçültülüyor. Menü ve seçim gerektiğinde kaydırılabiliyor.
+- Tüm gerekli oyun/menü görselleri yüklenene kadar yükleme ekranı gösteriliyor;
+  hata olursa yenileme mesajı çıkıyor. Görsel URL'leri de sürümlendi.
+- Eksik top.png isteği kaldırıldı; top Canvas ile çiziliyor.
+- Kontroller: node tests/oynanis.cjs; üç Canvas ekran boyutu ve beş karakterin
+  hazırlık/temas/devam görüntüsü; 135 nişan tersleme kontrolü; girdi akışı kontrolü.
+  Gerçek iPhone Safari testi yapılmadı. Sevinçler mevcut görsellerin hareketleri;
+  yeni eklemli sevinç animasyonları üretilmedi.

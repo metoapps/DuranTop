@@ -20,7 +20,7 @@
 
     baraj: { mesafe: 9.15, yarimGenislik: 1.1, boy: 1.82, oyuncu: 4 },
 
-    hiz: { penalti: 25, frikik: 27 },   // m/s
+    hiz: { penalti: 25, frikik: 24 },   // m/s
     yercekimi: 9.81,
 
     // Zamanlama çubuğu: 0..1, tam isabet 0.5
@@ -37,8 +37,8 @@
     kaleci: {
       tepki: { penalti: 0.17, frikik: 0.23 },  // top vurulduktan kaç saniye sonra hareket eder
       dalis: 0.34,        // dalışın süresi (s)
-      okuma: 0.77,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
-      gurultu: 0.25,      // okuma sapması (m)
+      okuma: 0.84,        // topun gideceği yeri ne kadar doğru okur (1 = kusursuz)
+      gurultu: 0.12,      // okuma sapması (m)
       erisimX: 0.80,      // yana erişim (m)
       erisimY: 0.90,      // yukarı-aşağı erişim (m)
       baslangicY: 1.0,
