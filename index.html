@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Duran Top</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/stil.css">
+</head>
+<body>
+  <canvas id="sahne" aria-label="Oyun sahnesi"></canvas>
+
+  <!-- Ana ekran -->
+  <section id="menu" class="ekran">
+    <div class="menu-ust">
+      <h1>Duran Top</h1>
+      <p class="alt-baslik">Beş vuruş. Aynı kale. Herkes aynı pozisyonlarda.</p>
+    </div>
+    <div class="kadro" id="kadro" aria-hidden="true"></div>
+    <div class="menu-alt">
+      <button class="btn ana" id="btnResmi" type="button">Resmi tur</button>
+      <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
+      <div class="ayarlar">
+        <button class="ayar" id="btnSes" type="button">Ses: kapalı</button>
+        <button class="ayar" id="btnCubuk" type="button">Zamanlama çubuğu: açık</button>
+      </div>
+      <p class="not" id="menuNot">Prototip. Skorlar yalnızca bu telefonda tutulur.</p>
+      <button class="link" id="btnSifirla" type="button" hidden>Devam eden resmi turu sıfırla (test)</button>
+    </div>
+  </section>
+
+  <!-- Karakter seçimi -->
+  <section id="secim" class="ekran" hidden>
+    <button class="geri" id="secimGeri" type="button">‹ Menü</button>
+    <h2>Kimi seçiyorsun?</h2>
+    <p class="not" id="secimNot">Beşinin oynanışı aynı. Fark yalnızca forma ve tepkilerde.</p>
+    <div class="secim-izgara" id="secimIzgara"></div>
+  </section>
+
+  <!-- Oyun arayüzü -->
+  <section id="oyun" class="ekran oyun" hidden>
+    <header class="hud">
+      <button class="hud-geri" id="hudGeri" type="button">‹ Menü</button>
+      <div class="hud-orta">
+        <span id="hudVurus">Vuruş 1/5</span>
+        <span class="hud-tip" id="hudTip">Penaltı</span>
+      </div>
+      <div class="hud-puan"><span id="hudPuan">0</span><small>puan</small></div>
+      <button class="hud-ses" id="hudSes" type="button" aria-label="Sesi aç veya kapat">Ses kapalı</button>
+    </header>
+
+    <div class="ipucu" id="ipucu">Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.</div>
+
+    <div class="alt" id="alt" hidden>
+      <div class="falso" id="falsoKutu" hidden>
+        <span class="etiket">Falso</span>
+        <div class="segment" role="group" aria-label="Falso yönü">
+          <button type="button" data-falso="-1">↶ Sola</button>
+          <button type="button" data-falso="0" class="secili">Düz</button>
+          <button type="button" data-falso="1">Sağa ↷</button>
+        </div>
+      </div>
+      <div class="cubuk" id="cubukKutu">
+        <div class="cubuk-yol" id="cubukYol"><div class="cubuk-bant" id="cubukBant"></div><div class="cubuk-imlec" id="cubukImlec"></div></div>
+        <span class="cubuk-yazi">Yeşil bantta bas</span>
+      </div>
+      <div class="alt-dugmeler">
+        <button class="btn ikinci kucuk" id="duzeltBtn" type="button">Nişanı değiştir (1)</button>
+        <button class="btn ana vur" id="vurBtn" type="button">VUR</button>
+      </div>
+    </div>
+
+    <div class="sonuc" id="sonuc" hidden>
+      <div class="sonuc-ust"><div class="sonuc-baslik" id="sonucBaslik">GOL</div><div class="sonuc-puan" id="sonucPuan">+100</div></div>
+      <div class="sonuc-detay" id="sonucDetay"></div>
+      <div class="sonuc-neden" id="sonucNeden"></div>
+      <button class="btn ana" id="devamBtn" type="button">Devam</button>
+    </div>
+  </section>
+
+  <!-- Tur sonu -->
+  <section id="tursonu" class="ekran" hidden>
+    <img id="turKarakter" class="tur-karakter" alt="">
+    <h2 id="turBaslik">Tur bitti</h2>
+    <div class="tur-toplam"><span id="turToplam">0</span><small>puan</small></div>
+    <ol class="tur-liste" id="turListe"></ol>
+    <p class="not" id="turNot"></p>
+    <div class="tur-dugmeler">
+      <button class="btn ana" id="turTekrar" type="button">Tekrar oyna</button>
+      <button class="btn ikinci" id="turMenu" type="button">Menü</button>
+    </div>
+  </section>
+
+  <script src="js/ayar.js"></script>
+  <script src="js/kaleci.js"></script>
+  <script src="js/fizik.js"></script>
+  <script src="js/puan.js"></script>
+  <script src="js/veri.js"></script>
+  <script src="js/ses.js"></script>
+  <script src="js/cizim.js"></script>
+  <script src="js/oyun.js"></script>
+</body>
+</html>
