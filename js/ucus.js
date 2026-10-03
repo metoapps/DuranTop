@@ -41,7 +41,7 @@ function launch(pos,aim,contact,hata,quality,noise,baseOverride,airOnly){var x=c
  var endPos={bx:pos.bx,D:pos.D+R,tip:pos.tip};var flight=integrate(endPos,v,omega,{zemin:!airOnly});flight.initialVelocity=v.slice();flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=Math.hypot.apply(null,v);flight.contact={x:x,y:y};return flight;
 }
 var aimedCache=new Map();
-function hedefliLaunch(pos,aim,contact,hata,quality,noise){
+function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc){
  var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y,contact.x,contact.y].join(':'),base=aimedCache.get(key);
  if(!base){base=temizHiz(pos,aim).slice();
   // Solve the launch impulse, never bend the sampled path back towards its target.
@@ -56,7 +56,8 @@ function hedefliLaunch(pos,aim,contact,hata,quality,noise){
   }
   if(aimedCache.size>=128)aimedCache.clear();aimedCache.set(key,base.slice());
  }
- return launch(pos,aim,contact,hata,quality,noise,base);
+ var chosen=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
+ return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return v*chosen;}));
 }
 DT.ucus={hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);

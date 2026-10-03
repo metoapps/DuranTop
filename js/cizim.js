@@ -312,6 +312,16 @@
 
   /* Şutçu her zaman aynı yöne bakar. Köşe seçimi karakteri aynalamaz.
    * Nişan beklerken ayaklar topun yanındadır. Top, vurus2 karesine geçince çıkar. */
+  var kafaDokulari={};
+  function kafaDoku(id,im){
+    if(kafaDokulari[id])return kafaDokulari[id];
+    var c=yerelCanvas(900,560),g=c.getContext('2d');g.drawImage(im,0,0,900,560);
+    var data=g.getImageData(0,0,900,560).data,top=560,bottom=0;
+    for(var y=0;y<560;y++)for(var x=0;x<900;x++)if(data[(y*900+x)*4+3]>30){top=Math.min(top,y);bottom=Math.max(bottom,y);}
+    var end=Math.round(top+(bottom-top)*.36),left=900,right=0;
+    for(y=top;y<end;y++)for(x=0;x<900;x++)if(data[(y*900+x)*4+3]>30){left=Math.min(left,x);right=Math.max(right,x);}
+    var face=yerelCanvas(192,192);if(right>left)face.getContext('2d').drawImage(c,left,top,right-left,end-top,0,0,192,192);kafaDokulari[id]=face;return face;
+  }
   function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     if (!topEkran) return;
     durum = durum || {};
@@ -322,8 +332,16 @@
     var im = sprite(karakter, kare);
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];
     if (!im || !nokta) return;
-    g.save();
     var anchor = DT.SPRITE_NOKTA[karakter].vurus2;
+    if(durum.yurume&&DT.model3d.oyuncuYuru){
+      var walk=durum.yurume,e=walk.u*walk.u*(3-2*walk.u),offset=(walk.from+(walk.to-walk.from)*e)*26,
+          foot=topEkran.y+(nokta.bottom-anchor.tipY)*olcek,h=S.boy*olcek;
+      var colors={meto:'#1a1a1e',lort:'#2266da',fero:'#e7e7e4',latte:'#ca2029',josh:'#694299'};
+      var palette={shirt:colors[karakter],shorts:'#17191e',socks:colors[karakter],skin:'#d0a080',hair:karakter==='fero'?'#d0a080':'#352823',gloves:'#d0a080',boots:DT.KARAKTER.find(function(k){return k.id===karakter;}).renk};
+      var project=function(x,y,z){var depth=7+z,perspective=7/depth;return{x:topEkran.x+r+offset+x*h*.48*perspective,y:foot-(y-.06)*h*.48*perspective,d:depth};};
+      DT.model3d.oyuncuYuru(g,project,walk,palette,kafaDoku(karakter,im));return;
+    }
+    g.save();
     var elapsed=durum.sure||0,windup=durum.on||.44,active=!!durum.yol;
     var before=Math.max(0,Math.min(1,elapsed/windup)),after=Math.max(0,elapsed-windup);
     var approach=active?(1-before)*(1-before):0;
@@ -331,7 +349,9 @@
     var lean=active?(elapsed<windup?Math.sin(before*Math.PI)*.055:-.075*Math.sin(Math.min(1,after/.55)*Math.PI)):0;
     var footX=S.ankrajX,footY=nokta.bottom,px=topEkran.x+r+(footX-anchor.tipX)*olcek+approach*18,
         py=topEkran.y+(footY-anchor.tipY)*olcek;
+    px+=(durum.durus||0)*26*(active?(1-before):1);
     g.translate(px,py);g.rotate(lean);g.scale(olcek,olcek);
+    var turn=(durum.durus||0)*(active?(1-before):1);g.transform(1-.10*Math.abs(turn),0,-turn*.12,1,0,0);
     g.drawImage(im,-footX,-footY,S.genislik,S.yukseklik);
     g.restore();
   }

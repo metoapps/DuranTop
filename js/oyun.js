@@ -114,7 +114,8 @@
     d.barajGeo = ornek.baraj;
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
-    d.contact = {x:0,y:0}; d.temasHazir = false; $('temasPanel').hidden = true;
+    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.yurume=null;d.durusHazir=!!acik;
+    $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=!!acik; $('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
     $('hudVurus').textContent = 'Vuruş ' + (d.idx + 1) + '/' + VURUS_SAYISI;
@@ -122,13 +123,13 @@
     $('hudPuan').textContent = toplam();
     $('falsoKutu').hidden = true;
     falsoSec(0);
-    $('ipucu').hidden = false;
+    $('ipucu').hidden = !d.durusHazir;
     $('ipucu').textContent = d.pos.tip === 'frikik'
       ? 'Barajın üstünden ya da yanından geçecek yere dokun, sürükle, bırak.'
       : 'Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.';
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
       d.seed = acik.seed; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
-      d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;
+      d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;$('gucSec').value=Math.round(d.guc*100);
       falsoSec(acik.falso || 0);
       kilitle(true);
     }
@@ -148,7 +149,7 @@
   function girisBagla() {
     var cv = $('sahne'), basili = false;
     cv.addEventListener('pointerdown', function (e) {
-      if (d.faz !== 'nisan' || d.kilit) return;
+      if (d.faz !== 'nisan' || !d.durusHazir || d.kilit) return;
       basili = true; try { cv.setPointerCapture(e.pointerId); } catch (x) { /* yok say */ }
       nisanGuncelle(e);
     });
@@ -160,7 +161,7 @@
 
   function onizlemeHesapla() {
     if (!d.aim) { d.onizleme = null; return; }
-    var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, antrenman: true });
+    var r = DT.fizik.hesapla({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, guc:d.guc,antrenman: true });
     d.onizleme = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
@@ -172,7 +173,8 @@
     d.kilit = true;
     onizlemeHesapla();
     $('ipucu').hidden = true;
-    $('alt').hidden = !d.temasHazir;
+    $('alt').hidden = !d.temasHazir||!d.gucHazir;
+    $('gucPanel').hidden=!d.temasHazir||d.gucHazir;
     $('temasPanel').hidden = d.temasHazir; temasCiz();
     $('cubukKutu').hidden = !cubukAktif();
     $('duzeltBtn').textContent = 'Nişanı değiştir (' + d.duzeltHak + ')';
@@ -185,12 +187,12 @@
     if (d.mod !== 'resmi') return;
     var k = oku(ANAHTAR.resmi, null);
     if (!k) return;
-    k.acik = d.kilit ? { aim: d.aim, falso: d.falso, seed: d.seed, duzeltHak: d.duzeltHak, contact: d.contact, temasHazir: d.temasHazir } : null;
+    k.acik = d.kilit ? { aim: d.aim, falso: d.falso, seed: d.seed, duzeltHak: d.duzeltHak, contact: d.contact, temasHazir: d.temasHazir,guc:d.guc,gucHazir:d.gucHazir,durus:d.durus } : null;
     yaz(ANAHTAR.resmi, k);
   }
   function duzelt() {
     if (!d.kilit || d.duzeltHak <= 0 || d.faz !== 'nisan') return;
-    d.duzeltHak--; d.kilit = false; d.temasHazir = false; $('temasPanel').hidden = true;
+    d.duzeltHak--; d.kilit = false; d.temasHazir = false;d.gucHazir=false;$('gucPanel').hidden=true; $('temasPanel').hidden = true;
     $('alt').hidden = true; $('ipucu').hidden = false;
     $('ipucu').textContent = 'Yeniden dokun, sürükle, bırak. Bu son düzeltme.';
     acikKaydet();
@@ -212,17 +214,17 @@
   /* ---------- vuruş ---------- */
   var gecerliSonuc = null;
   function vur() {
-    if (d.faz !== 'nisan' || !d.kilit || !d.temasHazir || !DT.cizim.hazir()) return;
+    if (d.faz !== 'nisan' || !d.kilit || !d.temasHazir || !d.gucHazir || !d.durusHazir || !DT.cizim.hazir()) return;
     var now = simdi();
     var zaman = cubukAktif() ? cubukDegeri(now) : null;
-    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed, antrenman: d.mod === 'antrenman' };
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,antrenman: d.mod === 'antrenman' };
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
       d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
       DT.live.shot(d.karakter,d.idx,girdi).then(function(entry){
         if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
-        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;
         vurusUygula(girdi,entry);
       }).catch(function(e){d.faz='nisan';$('vurBtn').disabled=false;$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
@@ -257,12 +259,13 @@
   var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
   function cizimDurumu(now) {
+    if(d.yurume&&now-d.yurume.t0>=1100){d.yurume=null;d.durusHazir=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç.';} 
     var R = A.kale.topYaricap, pos = d.pos;
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
       zaman:0,top: B, topAci: 0, baraj: d.barajGeo,
       kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle',gesture:pos.tip==='penalti'?now/1000:undefined },
-      oyuncu: { karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
+      oyuncu: { durus:d.durus,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.onizleme };
@@ -428,7 +431,10 @@
   }
   function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
     cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});
-    $('temasOnay').addEventListener('click',function(){bantGuncelle();d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
+    $('temasOnay').addEventListener('click',function(){d.temasHazir=true;$('temasPanel').hidden=true;$('gucPanel').hidden=false;onizlemeHesapla();acikKaydet();});
+    $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
+    $('gucOnay').addEventListener('click',function(){d.gucHazir=true;$('gucPanel').hidden=true;$('alt').hidden=false;bantGuncelle();d.cubukBasla=simdi();acikKaydet();});
+    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }
 
   var baslatildi = false;

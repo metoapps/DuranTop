@@ -182,3 +182,12 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
  .alt,.sonuc{left:auto;right:clamp(24px,4vw,80px);transform:none;width:340px;bottom:30px;}
  .ipucu{left:20%;right:auto;width:40%;transform:none;bottom:24px;}
 }
+
+.guc-panel input[type=range]{width:100%;height:30px;accent-color:#f04d57;cursor:pointer;touch-action:pan-x;background:transparent;}
+.guc-panel input[type=range]::-webkit-slider-runnable-track{height:16px;border-radius:12px;background:linear-gradient(90deg,#741b27,#e2444f,#ff8c79);border:1px solid #ff9d98;}
+.guc-panel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid #ed4858;margin-top:-7px;}
+.guc-panel input[type=range]{-webkit-appearance:none;appearance:none;}
+.guc-panel input[type=range]::-moz-range-track{height:16px;border-radius:12px;background:linear-gradient(90deg,#741b27,#ff8c79);}
+.guc-panel input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:white;border:3px solid #ed4858;}
+
+#durusPanel .segment { flex:0 0 auto; width:min(420px,100%); }

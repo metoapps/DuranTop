@@ -76,18 +76,19 @@
     source.buffer=buffer;gain.gain.value=hiz;source.connect(gain);gain.connect(ana);source.start(t);
     source.onended=function(){source.disconnect();gain.disconnect();};
   }
-  // Original 8-bar plucked arcade loop; generated once, quiet beneath the impact sounds.
+  // Original upbeat 8-bit pulse arcade loop; generated once, quiet beneath the impact sounds.
   var muzikKaynak=null,muzikBuffer=null;
   function muzikDurdur(){if(muzikKaynak){try{muzikKaynak.stop();muzikKaynak.disconnect();}catch(e){}muzikKaynak=null;}}
   function muzikGuncelle(){
     if(!acik||!ctx||(root.document&&root.document.hidden)){muzikDurdur();return;}
     if(muzikKaynak)return;
     if(!muzikBuffer){
-      var sr=ctx.sampleRate,beat=60/108,length=beat*32,buf=ctx.createBuffer(1,Math.ceil(sr*length),sr),samples=buf.getChannelData(0);
-      var melody=[72,76,79,76,74,77,81,77,71,74,79,74,72,76,79,83];
+      var sr=ctx.sampleRate,beat=60/132,length=beat*32,buf=ctx.createBuffer(1,Math.ceil(sr*length),sr),samples=buf.getChannelData(0);
+      var melody=[76,79,84,79,81,0,79,76,74,77,81,77,79,0,77,74,71,74,79,83,81,79,74,0,72,76,79,84,83,79,76,0];
       function note(midi,at,duration,level){var hz=440*Math.pow(2,(midi-69)/12),begin=Math.floor(at*sr),end=Math.min(samples.length,begin+Math.floor(duration*sr));
-        for(var i=begin;i<end;i++){var t=(i-begin)/sr,env=Math.min(1,t/.008)*Math.exp(-t*7)*Math.min(1,(end-i)/(sr*.025));samples[i]+=level*env*(Math.sin(2*Math.PI*hz*t)+.2*Math.sin(4*Math.PI*hz*t));}}
-      for(var step=0;step<64;step++){var at=step*beat/2;note(melody[step%16],at,beat*.8,.055);if(step%4===0)note([48,53,55,48][Math.floor(step/16)],at,beat*1.5,.055);}
+        for(var i=begin;i<end;i++){var t=(i-begin)/sr,env=Math.min(1,t/.008)*Math.exp(-t*7)*Math.min(1,(end-i)/(sr*.025));samples[i]+=level*env*((Math.sin(2*Math.PI*hz*t)>=0?1:-1)*.65+.18*Math.sin(4*Math.PI*hz*t));}}
+      for(var step=0;step<64;step++){var at=step*beat/2;if(melody[step%32])note(melody[step%32],at,beat*.48,.038);if(step%2===0)note([48,53,55,48][Math.floor(step/16)]+(step%4===2?12:0),at,beat*.7,.045);
+        var start=Math.floor(at*sr);for(var j=0;j<sr*.055&&start+j<samples.length;j++){var t=j/sr,noise=((Math.imul(j+step*977,1664525)>>>8)%1024)/512-1;samples[start+j]+=.012*noise*Math.exp(-t*75);}}
       muzikBuffer=buf;
     }
     muzikKaynak=ctx.createBufferSource();muzikKaynak.buffer=muzikBuffer;muzikKaynak.loop=true;muzikKaynak.connect(ana);muzikKaynak.start();

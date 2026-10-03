@@ -4,10 +4,10 @@ const tok=()=>require('crypto').randomBytes(32).toString('hex');
 async function api(token,body){const r=await fetch(EP,{method:'POST',headers:{'content-type':'application/json','x-player-token':token},body:JSON.stringify(body)});return {status:r.status,data:await r.json()};}
 (async()=>{
  const A=tok(),B=tok(),C=tok();
- const c=await api(A,{action:'create'});assert.equal(c.status,200,JSON.stringify(c.data));const room=c.data.room.id;assert.equal(c.data.room.version,6);
+ const c=await api(A,{action:'create'});assert.equal(c.status,200,JSON.stringify(c.data));const room=c.data.room.id;assert.equal(c.data.room.version,7);
  for(const [t,p] of [[A,'meto'],[B,'lort'],[C,'fero']])assert.equal((await api(t,{action:'join',room,player:p})).status,200);
  // beş vuruşluk aynı girdi seti: ikinci pozisyonda köşe, frikiklerde merkez yüksek
- const girdiler=[{x:3.0,y:1.1},{x:1.0,y:1.0},{x:-3.0,y:1.7},{x:0,y:2.1},{x:0.2,y:2.1}].map(a=>({aim:a,contact:{x:0,y:0},zaman:.5}));
+ const girdiler=[{x:3.0,y:1.1},{x:1.0,y:1.0},{x:-3.0,y:1.7},{x:0,y:2.1},{x:0.2,y:2.1}].map(a=>({aim:a,contact:{x:0,y:0},zaman:.5,guc:1,durus:0}));
  const state=async(t)=>(await api(t,{action:'state',room})).data.players;
  const por=(ps,n)=>ps.find(p=>p.player===n);
  const a=[],b=[];

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261004e">
+  <link rel="stylesheet" href="css/stil.css?v=20261004f">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -56,11 +56,21 @@
 
     <div class="ipucu" id="ipucu">Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.</div>
 
+    <div id="durusPanel" class="temas-panel" hidden>
+      <h2>Nasıl yaklaşacaksın?</h2><p>Oyuncu seçtiğin tarafa yürüyerek hazırlanır.</p>
+      <div class="segment"><button id="durusSol" type="button">Soldan</button><button id="durusDuz" type="button">Düz</button><button id="durusSag" type="button">Sağdan</button></div>
+    </div>
+    <div id="gucPanel" class="temas-panel guc-panel" hidden>
+      <h2>Ne kadar sert?</h2><p id="gucNot">%100 · Tam güç</p>
+      <input id="gucSec" type="range" min="30" max="100" value="100" step="1" aria-label="Vuruş gücü">
+      <p>Az güç: daha yavaş uçuş · Fazla güç: kaleciye daha az süre</p>
+      <button id="gucOnay" class="btn ana" type="button">Zamanlamaya geç</button>
+    </div>
     <div id="temasPanel" class="temas-panel" hidden>
-      <h2>2 · Topun neresine?</h2><p>Merkez: temiz şut · Alt: geri dönüş · Üst: öne dönüş<br>Yanlar: falso · Yeşilde seçtiğin hedefe kıvrılır</p>
+      <h2>2 · Topun neresine?</h2><p>Merkez: temiz şut · Alt: geri dönüş · Üst: öne dönüş<br>Yanlar: falso · Tam güç ve yeşilde hedefe kıvrılır</p>
       <canvas id="temasTop" width="220" height="220" aria-label="Top üzerinde temas noktasını seç"></canvas>
       <p id="temasNot">Merkeze temas · Düz şut</p>
-      <button id="temasOnay" class="btn ana" type="button">3 · Zamanlamaya geç</button>
+      <button id="temasOnay" class="btn ana" type="button">3 · Gücü seç</button>
     </div>
     <div class="alt" id="alt" hidden>
       <div class="falso" id="falsoKutu" hidden>
@@ -71,7 +81,7 @@
           <button type="button" data-falso="1">Sağa ↷</button>
         </div>
       </div>
-      <p id="ucusDurum" role="status"></p><small class="ucus-ipucu">Beyaz yol: yeşilde beklenen uçuş · Sarı halka: varış.</small>
+      <p id="ucusDurum" role="status"></p><small class="ucus-ipucu">Beyaz yol: seçtiğin güçte, yeşilde beklenen uçuş · Sarı halka: varış.</small>
       <div class="cubuk" id="cubukKutu">
         <div class="cubuk-yol" id="cubukYol"><div class="cubuk-bant" id="cubukBant"></div><div class="cubuk-imlec" id="cubukImlec"></div></div>
         <span class="cubuk-yazi" id="cubukYazi">Yeşil: hızlı ve isabetli · Kaçırırsan hız ve isabet düşer</span>
@@ -104,18 +114,18 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261004e"></script>
-  <script src="js/veri.js?v=20261004e"></script>
-  <script src="js/baraj.js?v=20261004e"></script>
-  <script src="js/model3d.js?v=20261004e"></script>
-  <script src="js/kaleci.js?v=20261004e"></script>
-  <script src="js/ucus.js?v=20261004e"></script>
-  <script src="js/fizik.js?v=20261004e"></script>
-  <script src="js/puan.js?v=20261004e"></script>
-  <script src="js/ses.js?v=20261004e"></script>
-  <script src="js/cizim.js?v=20261004e"></script>
-  <script src="js/canli.js?v=20261004e"></script>
-  <script src="js/oyun.js?v=20261004e"></script>
+  <script src="js/ayar.js?v=20261004f"></script>
+  <script src="js/veri.js?v=20261004f"></script>
+  <script src="js/baraj.js?v=20261004f"></script>
+  <script src="js/model3d.js?v=20261004f"></script>
+  <script src="js/kaleci.js?v=20261004f"></script>
+  <script src="js/ucus.js?v=20261004f"></script>
+  <script src="js/fizik.js?v=20261004f"></script>
+  <script src="js/puan.js?v=20261004f"></script>
+  <script src="js/ses.js?v=20261004f"></script>
+  <script src="js/cizim.js?v=20261004f"></script>
+  <script src="js/canli.js?v=20261004f"></script>
+  <script src="js/oyun.js?v=20261004f"></script>
 </body>
 </html>
 
