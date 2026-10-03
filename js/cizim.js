@@ -82,9 +82,10 @@
     if (gorseller[ad]) return Promise.resolve(gorseller[ad]);
     if (istekler[ad]) return istekler[ad];
     istekler[ad] = new Promise(function(resolve,reject){
-      var im = new root.Image();
-      im.onload = function(){gorseller[ad]=im;resolve(im);};
-      im.onerror = function(){delete istekler[ad];reject(new Error(ad));};
+      var im = new root.Image(), finished=false;
+      var timeout=root.setTimeout(function(){if(finished)return;finished=true;delete istekler[ad];reject(new Error(ad));},15000);
+      im.onload = function(){if(finished)return;finished=true;root.clearTimeout(timeout);gorseller[ad]=im;resolve(im);};
+      im.onerror = function(){if(finished)return;finished=true;root.clearTimeout(timeout);delete istekler[ad];reject(new Error(ad));};
       im.src = yol;
     });
     return istekler[ad];
@@ -96,15 +97,17 @@
     DT.KARAKTER.forEach(function(k){gorselYukle('_menu_'+k.id+'_bekle','assets/menu/'+k.id+'_bekle.webp');});
     gorselYukle('_kaleci-v3','assets/kaleci-v3.webp');
   }
-  function karakterHazir(id) {return DT.POZ.every(function(p){return !!gorseller[id+'_'+p];});}
+  var VURUS_POZ = ['vurus1','vurus2','vurus3'];
+  function karakterHazir(id) {return VURUS_POZ.every(function(p){return !!gorseller[id+'_'+p];});}
   function karakterYukle(id) {
     if(karakterHazir(id))return Promise.resolve(true);
     if(karakterIstekleri[id])return karakterIstekleri[id];
-    karakterBekleniyor=true;yuklemeBildir();
+    yuklemeHatasi=false;karakterBekleniyor=true;yuklemeBildir();
     var el=root.document&&root.document.getElementById('yukleme');
-    if(el)el.textContent=id.toUpperCase()+' hazırlanıyor…';
-    karakterIstekleri[id]=Promise.all(DT.POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png');})).then(function(){
+    var loaded=0;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… 0/3';
+    karakterIstekleri[id]=Promise.all(VURUS_POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').then(function(im){loaded++;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… '+loaded+'/3';return im;});})).then(function(){
       karakterBekleniyor=false;yuklemeBildir();
+      ['bekle','sevinc','kacirma'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').catch(function(){});});
       ['sevinc1','sevinc2','sevinc3','sevinc4'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png').catch(function(){});});
       return true;
     },function(){delete karakterIstekleri[id];karakterBekleniyor=false;yuklemeHatasi=true;yuklemeBildir();return false;});
