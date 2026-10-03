@@ -70,7 +70,7 @@
     var iz = $('secimIzgara'); iz.innerHTML = '';
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
-      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.png?v=20261003f"><span>' + k.ad + '</span>';
+      b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.webp"><span>' + k.ad + '</span>';
       b.disabled = mod === 'resmi' && !!kupaKayit()[k.id];
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
@@ -79,8 +79,14 @@
 
   function turKimligi() { return Math.floor(Math.random() * 1e9).toString(36); }
 
+  var turYukleniyor = false;
   function turBaslat(karakter, mod, kayit) {
-    if (!DT.cizim.hazir()) return;
+    if (!DT.cizim.hazir() || turYukleniyor) return;
+    if (DT.cizim.karakterHazir && !DT.cizim.karakterHazir(karakter)) {
+      turYukleniyor=true;
+      DT.cizim.karakterYukle(karakter).then(function(ok){turYukleniyor=false;if(ok)turBaslat(karakter,mod,kayit);});
+      return;
+    }
     d.karakter = karakter; d.mod = mod;
     if (mod === 'resmi' && !kayit && kupaKayit()[karakter]) return;
     if (kayit) {
@@ -319,7 +325,7 @@
     d.faz = 'bos';
     var t = toplam(), gol = d.sonuclar.filter(function (s) { return s.puan > 0; }).length;
     ekranGoster('tursonu');
-    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png?v=20261003f';
+    $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png';
     $('turBaslik').textContent = gol + ' gol, ' + VURUS_SAYISI + ' vuruş';
     $('turToplam').textContent = t;
     var ADLAR = { gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
@@ -364,7 +370,7 @@
   function kadroDoldur() {
     var k = $('kadro'); k.innerHTML = '';
     DT.KARAKTER.forEach(function (c) {
-      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.png?v=20261003f'; k.appendChild(im);
+      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.webp'; k.appendChild(im);
     });
   }
 
@@ -384,7 +390,7 @@
     var active=oku(ANAHTAR.resmi,null);if(active&&/^[A-F0-9]{6}$/.test(active.tur||''))kupaKod=active.tur;
     $('kupaKod').value=kupaKod;yaz('dt5_kod',kupaKod);
     $('kupaKod').addEventListener('change',function(){var code=this.value.trim().toUpperCase();if(!/^[A-F0-9]{6}$/.test(code)){this.value=kupaKod;return;}if(oku(ANAHTAR.resmi,null)){root.alert('Önce devam eden resmi turu bitir.');this.value=kupaKod;return;}kupaKod=code;yaz('dt5_kod',code);kupaGoster();});
-    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003f');});
+    $('kupaPaylas').addEventListener('click',function(){paylas('Kaptanlık Kupası! Aynı 5 vuruş, kişi başı tek tur. Kod: '+kupaKod+'\nhttps://metoapps.github.io/DuranTop/?kupa='+kupaKod+'&v=20261003g');});
     $('sonucPaylas').addEventListener('click',function(){var r=kupaKayit()[d.karakter];if(!r){root.alert('Sonuç kodu için resmi kupa turunu tamamla.');return;}var token='DT5-'+root.btoa(JSON.stringify({kod:kupaKod,r:r}));paylas(d.karakter.toUpperCase()+' · '+r.puan+' puan\nSonuç kodu: '+token);});
     $('sonucEkle').addEventListener('click',function(){var str=root.prompt('Arkadaşının DT5- ile başlayan sonuç kodunu yapıştır:');if(!str)return;try{var m=/DT5-([A-Za-z0-9+/=]+)/.exec(str),v=JSON.parse(root.atob(m[1]));if(v.kod!==kupaKod||!DT.KARAKTER.some(function(k){return k.id===v.r.id;})||!Number.isInteger(v.r.puan)||v.r.puan<0||v.r.puan>595||!Number.isInteger(v.r.gol)||v.r.gol<0||v.r.gol>5||!Number.isInteger(v.r.yesil)||v.r.yesil<0||v.r.yesil>5)throw Error();var r=kupaKayit();if(r[v.r.id]){root.alert('Bu oyuncunun sonucu zaten kayıtlı.');return;}r[v.r.id]=v.r;yaz('dt5_kupa_'+kupaKod,r);kupaGoster();}catch(e){root.alert('Sonuç kodu geçersiz veya başka kupaya ait.');}});
   }

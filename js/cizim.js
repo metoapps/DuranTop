@@ -13,11 +13,11 @@
   var cv, ctx, W = 360, H = 640, dpr = 1;
   var kam = null, arka = null, pos = null;
   var gorseller = {};          // yüklenen sprite görselleri
-  var yuklenen = 0, gereken = DT.KARAKTER.length * (DT.POZ.length + 3) + 1, yuklemeHatasi = false;
+  var yuklenen = 0, gereken = DT.KARAKTER.length + 1, yuklemeHatasi = false;
   function yuklemeBildir() {
     var el = root.document && root.document.getElementById("yukleme");
     if (!el) return;
-    el.hidden = !yuklemeHatasi && yuklenen >= gereken;
+    el.hidden = !yuklemeHatasi && !karakterBekleniyor && yuklenen >= gereken;
     el.textContent = yuklemeHatasi ? "Görseller yüklenemedi. Yenilemek için buraya dokun." : "Görseller yükleniyor…";
   }
   var opsiyonel = {};          // varsa assets/ içindeki top, kaleci vb. görselleri
@@ -74,27 +74,38 @@
   }
 
   /* ---------- görseller ---------- */
-  function gorselYukle(ad, yol, hata) {
-    var im = new root.Image();
-    im.onload = function () { gorseller[ad] = im; yuklenen++; yuklemeBildir(); };
-    im.onerror = function () { yuklemeHatasi = true; yuklemeBildir(); if (hata) hata(); };
-    im.src = yol + "?v=20261003d";
+  var istekler = {}, karakterIstekleri = {}, karakterBekleniyor = false;
+  function gorselDosya(ad, yol) {
+    if (gorseller[ad]) return Promise.resolve(gorseller[ad]);
+    if (istekler[ad]) return istekler[ad];
+    istekler[ad] = new Promise(function(resolve,reject){
+      var im = new root.Image();
+      im.onload = function(){gorseller[ad]=im;resolve(im);};
+      im.onerror = function(){delete istekler[ad];reject(new Error(ad));};
+      im.src = yol;
+    });
+    return istekler[ad];
   }
-  function gorselOpsiyonel(ad, yol) {
-    var im = new root.Image();
-    im.onload = function () { gorseller[ad] = im; };
-    im.src = yol + "?v=20261003d";
+  function gorselYukle(ad, yol) {
+    gorselDosya(ad,yol).then(function(){yuklenen++;yuklemeBildir();},function(){yuklemeHatasi=true;yuklemeBildir();});
   }
   function spriteleriYukle() {
-    DT.KARAKTER.forEach(function (k) {
-      DT.POZ.forEach(function (p) { gorselYukle(k.id + '_' + p, 'assets/sprites/' + k.id + '_' + p + '.png'); });
-      ['bekle', 'sevinc', 'kacirma'].forEach(function (p) { gorselYukle('_menu_' + k.id + '_' + p, 'assets/menu/' + k.id + '_' + p + '.png'); });
-      ['sevinc1', 'sevinc2', 'sevinc3', 'sevinc4'].forEach(function (p) {
-        gorselOpsiyonel(k.id + '_' + p, 'assets/sprites/' + k.id + '_' + p + '.png');
-      });
-    });
-    // Sonradan eklenecek görseller: dosya yoksa çizimle devam edilir.
-    ['kaleci-v3'].forEach(function (ad) { gorselYukle('_' + ad, 'assets/' + ad + '.png'); });
+    DT.KARAKTER.forEach(function(k){gorselYukle('_menu_'+k.id+'_bekle','assets/menu/'+k.id+'_bekle.webp');});
+    gorselYukle('_kaleci-v3','assets/kaleci-v3.webp');
+  }
+  function karakterHazir(id) {return DT.POZ.every(function(p){return !!gorseller[id+'_'+p];});}
+  function karakterYukle(id) {
+    if(karakterHazir(id))return Promise.resolve(true);
+    if(karakterIstekleri[id])return karakterIstekleri[id];
+    karakterBekleniyor=true;yuklemeBildir();
+    var el=root.document&&root.document.getElementById('yukleme');
+    if(el)el.textContent=id.toUpperCase()+' hazırlanıyor…';
+    karakterIstekleri[id]=Promise.all(DT.POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png');})).then(function(){
+      karakterBekleniyor=false;yuklemeBildir();
+      ['sevinc1','sevinc2','sevinc3','sevinc4'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png').catch(function(){});});
+      return true;
+    },function(){delete karakterIstekleri[id];karakterBekleniyor=false;yuklemeHatasi=true;yuklemeBildir();return false;});
+    return karakterIstekleri[id];
   }
   function sprite(id, poz) { return gorseller[id + '_' + poz] || null; }
 
@@ -428,6 +439,7 @@
     kameraAyar: KAMERA,
     kur: kur, sahneKur: sahneKur, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
+    karakterHazir: karakterHazir, karakterYukle: karakterYukle,
     hazir: function () { return yuklenen >= gereken && !yuklemeHatasi; },
     gorselHazir: function (ad) { return !!gorseller[ad]; },
     gorselEkle: function (ad, im) { gorseller[ad] = im; }

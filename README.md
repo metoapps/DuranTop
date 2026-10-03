@@ -27,3 +27,6 @@ Tablo bu telefonda localStorage'da saklanır; canlı sunucu odası veya kimlik d
 `node tests/akis.cjs`: DOM taklidiyle hedef→temas→zamanlama, beş vuruşluk resmi akış, tek kayıt, resmi çubuk zorunluluğu, tamamlanan oyuncu kilidi.
 `node tests/cizim.cjs`: @napi-rs/canvas ile 320×568, 390×844 ve 430×932; izdüşüm ve altı kaleci pozunun çizimi.
 Gerçek iPhone Safari ve gerçek parmakla doğrulanmadı. Chromium kurulumu bu ortamda başarısız olduğundan gerçek tarayıcı testi yapılmadı.
+
+## Açılış yükleme iyileştirmesi (20261003g)
+Açılış artık 30 oyun sprite'ı + 15 menü pozu + kaleci (46 zorunlu görsel) beklemez. Beş menü portresi ve kaleci WebP olarak yüklenir: toplam 307266 bayt. PNG kaynakları korunur. Seçilen karakterin altı oyun pozu karakter seçimi sırasında yüklenir; dört yeni sevinç pozu ardından yüklenir ve oyunu engellemez. Seçilmeyen karakterlerin sprite'ları indirilmez. Menü görsellerinin farklı sorgu parametreleriyle çift indirilmesi kaldırıldı. Google font CSS'i başlangıç scriptlerini engellemeden yüklenir. `node tests/yukleme.cjs` başlangıç istek sayısını, seçili karakter kapısını, istek birleştirmeyi ve isteğe bağlı sevinç yüklemesini doğrular. Gerçek mobil ağda süre ölçülmedi.
