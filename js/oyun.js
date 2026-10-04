@@ -268,16 +268,16 @@
     var out = {
       zaman:0,top: B, topAci: 0, baraj: d.barajGeo,
       kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle',gesture:pos.tip==='penalti'?now/1000:undefined },
-      oyuncu: { durus:d.durus,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', aim: d.aim, falso: d.falso, ilerleme: 0 }
+      oyuncu: { durus:d.durus,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', guide:d.onizleme, aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
-      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.onizleme };
+      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.temasHazir?d.onizleme:null };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
       out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
       out.oyuncu.sure=el;out.oyuncu.on=an.on;
       out.oyuncu.temas = an.on / (an.on + 0.40);
-      out.oyuncu.yol = r.yol;
+      out.oyuncu.yol = r.yol; out.oyuncu.guide=r.ucusYol;
       out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if (simT > 0) {
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); }

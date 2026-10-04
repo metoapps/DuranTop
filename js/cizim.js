@@ -6,8 +6,8 @@
   var A = DT.AYAR, S = DT.SPRITE;
 
   var KAMERA = {
-    penalti: { geri: 5.0, yuk: 3.2, kaleGen: 0.74, kaleY: 0.33 },
-    frikik:  { geri: 15.0, yuk: 4.5, kaleGen: 0.74, kaleY: 0.33 }
+    penalti: { geri: 8.0, yuk: 6.0, kaleGen: 0.74, kaleY: 0.24 },
+    frikik:  { geri: 15.0, yuk: 7.0, kaleGen: 0.74, kaleY: 0.24 }
   };
 
   var cv, ctx, W = 360, H = 640, dpr = 1;
@@ -30,7 +30,7 @@
     var ayar = KAMERA[p.tip];
     var wide=W>H&&H>=600;
     if(wide)ayar={geri:p.tip==='penalti'?8:18,yuk:ayar.yuk,kaleGen:.74,kaleY:.33};
-    if (H < 650) ayar = { geri: ayar.geri, yuk: 1.8, kaleGen: ayar.kaleGen, kaleY: .33 };
+    if (H < 650) ayar = { geri: ayar.geri, yuk: 4.5, kaleGen: ayar.kaleGen, kaleY: .24 };
     var ul = Math.hypot(-p.bx, p.D), ux = -p.bx / ul, uz = p.D / ul;
     var C = [p.bx - ux * ayar.geri, ayar.yuk, -uz * ayar.geri];
     var hedef = [0, 1.0, p.D];
@@ -45,7 +45,7 @@
     var yc = dot(d, up);
     var kaleYpx = ayar.kaleY * H;
     // Top, alttaki kontrol panelinin ve oyuncunun üstünde kalsın: panel yaklaşık 235 px, oyuncunun ayakları topun ~0.083H altında.
-    var topHedef = Math.max(0.56 * H, Math.min(0.66 * H, H - 210));
+    var topHedef = Math.max(0.43 * H, Math.min(0.52 * H, H - 300));
     var db = [p.bx - C[0], A.kale.topYaricap - C[1], 0 - C[2]];
     var zb = dot(db, f);
     var terim = k.F * (dot(d, up) / zc - dot(db, up) / zb);       // ky = 1 için top, kale merkezinin bu kadar altında
@@ -343,7 +343,7 @@
   }
 
   /* Şutçu yalnız seçilen duruş yönüne döner. Köşe nişanı yönünü değiştirmez.
-   * Nişan beklerken ayaklar topun yanındadır. Top, vurus2 karesine geçince çıkar. */
+   * Nişan beklerken oyuncu topun arkasında bekler. Top, vurus2 karesine geçince çıkar. */
   function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     if (!topEkran) return;
     durum = durum || {};
@@ -353,11 +353,23 @@
     var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
     if(DT.futbolcu3d && gorseller[karakter+'_bekle'] && gorseller[karakter+'_vurus1']){
       var walk3=durum.yurume,dir=durum.durus||0;
-      var fraction=walk3?walk3.from+(walk3.to-walk3.from)*(walk3.u*walk3.u*(3-2*walk3.u)):dir;
       var elapsed3=durum.sure||0,windup3=durum.on||.44;
       var progress3=durum.yol?Math.min(1,elapsed3/windup3):0;
+      var baseYaw=Math.atan2(-pos.bx,pos.D),launchYaw=baseYaw;
+      var path=durum.guide;
+      if(path&&path.length>1){var a=path[0],b=path[1];launchYaw=Math.atan2(b.x-a.x,b.z-a.z);}
+      var yaw=baseYaw+dir*.40;
+      if(durum.yol)yaw+=(launchYaw-yaw)*progress3*progress3*(3-2*progress3);
+      // All feet, the ball and the approach now share the pitch's world coordinates.
+      var unit=olcek*.55/(topEkran.olcek*kam.ky),approach=2.3;
+      var startX=pos.bx-Math.sin(baseYaw)*approach,startZ=-Math.cos(baseYaw)*approach;
+      var endX=pos.bx-Math.sin(launchYaw)*28*unit,endZ=-Math.cos(launchYaw)*28*unit;
+      var rootX=startX+(endX-startX)*progress3,rootZ=startZ+(endZ-startZ)*progress3;
+      var anchor=izdus(rootX,0,rootZ),actorScale=unit*anchor.olcek*kam.ky;
+      var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
       DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
-        x:topEkran.x+fraction*52*olcek*(1-progress3)-Math.sin(dir*.60)*28*olcek*progress3,y:topEkran.y+10*olcek,scale:olcek,direction:dir,walk:walk3,
+        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,
+        viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),
         shot:durum.yol?{elapsed:elapsed3,windup:windup3}:null});
       return;
     }
@@ -420,20 +432,22 @@
       g.beginPath();
       var ilk = true;
       for (var i = 0; i < onizleme.length; i += 3) {
-        var o = onizleme[i], p = izdus(o.x, o.y, o.z);
+        var o = onizleme[i]; if(o.z>D)break; var p = izdus(o.x, o.y, o.z);
         if (!p) continue;
         if (ilk) { g.moveTo(p.x, p.y); ilk = false; } else g.lineTo(p.x, p.y);
       }
       g.stroke();
-      var son = onizleme[onizleme.length-1], end = son && izdus(son.x,son.y,son.z);
-      if(end){g.setLineDash([]);g.strokeStyle='#ffcc66';g.beginPath();g.arc(end.x,end.y,5,0,Math.PI*2);g.stroke();}
+      var son=null;
+      for(var j=1;j<onizleme.length;j++){var prev=onizleme[j-1],next=onizleme[j];if(prev.z<=D&&next.z>=D){var t=(D-prev.z)/(next.z-prev.z);son={x:prev.x+(next.x-prev.x)*t,y:prev.y+(next.y-prev.y)*t,z:D};break;}}
+      var end = son && izdus(son.x,son.y,D);
+      if(end){g.setLineDash([]);g.strokeStyle='#ffcc66';g.beginPath();g.arc(end.x,end.y,5,0,Math.PI*2);g.stroke();g.font='11px sans-serif';g.fillStyle='#ffcc66';g.fillText('Tahmini',end.x+9,end.y-8);}
       g.restore();
     }
     var c = izdus(aim.x, aim.y, D);
     if (!c) return;
     var r = Math.max(12, 0.22 * c.olcek);
     g.save(); g.translate(c.x, c.y);
-    g.strokeStyle = kilit ? '#3ddc84' : '#ffffff'; g.fillStyle = kilit ? 'rgba(61,220,132,0.22)' : 'rgba(255,255,255,0.1)'; g.lineWidth = 2.5;
+    g.strokeStyle = '#ffffff'; g.fillStyle = 'rgba(255,255,255,0.1)'; g.lineWidth = 2.5;
     g.beginPath(); g.arc(0, 0, r, 0, 6.3); g.fill(); g.stroke();
     g.beginPath(); g.moveTo(-r - 6, 0); g.lineTo(-r * 0.4, 0); g.moveTo(r + 6, 0); g.lineTo(r * 0.4, 0);
     g.moveTo(0, -r - 6); g.lineTo(0, -r * 0.4); g.moveTo(0, r + 6); g.lineTo(0, r * 0.4); g.stroke();
@@ -510,7 +524,7 @@
       var bd = izdus(d.baraj.merkezX, 1, d.baraj.merkezZ);
       liste.push({ z: bd ? bd.d : 0, ciz: function () { barajCiz(g, d); } });
     }
-    if (d.top) {
+    if (d.top && !d.oyuncu) {
       var td = izdus(d.top.x, d.top.y, d.top.z);
       liste.push({ z: td ? td.d : 0, ciz: function () { topCiz(g, d.top, d.topAci); } });
     }
@@ -520,6 +534,7 @@
     // oyuncu ve nişan her zaman en önde
     var topEkran = izdus(pos.bx, A.kale.topYaricap, 0);
     if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran, d.oyuncu);
+    if(d.top&&d.oyuncu)topCiz(g,d.top,d.topAci);
     if (d.onKarakter) {
       var boy = Math.min(0.38 * H, 260);
       var taban = Math.min(H * 0.76, H - 156);

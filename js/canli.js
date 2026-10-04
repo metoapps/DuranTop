@@ -21,6 +21,6 @@ async function join(player){await ensure();if(player!==who.player)throw Error('B
 async function shot(player,idx,input){await ensure();if(player!==who.player)throw Error('Bu oyuncu sana ait değil.');if(pending&&(pending.room!==state.room.id||pending.player!==player||pending.idx!==idx)){pending=null;put('dt_live_pending',null);}if(!pending){pending={rules:4,action:'shot',room:state.room.id,player:player,idx:idx,aim:input.aim,contact:input.contact,zaman:input.zaman,guc:input.guc===undefined?1:input.guc,durus:input.durus||0};put('dt_live_pending',pending);}pending.rules=4;var result=await api(pending);pending=null;put('dt_live_pending',null);set(result.state);return result.entry;}
 function records(){var out={};if(state)(state.weekly||[]).forEach(function(p){out[p.player]={id:p.player,idx:p.idx,puan:p.puan,gol:p.gol,yesil:p.yesil};});return out;}
 function allowed(player){if(!who||player!==who.player||!state||!state.active)return false;var slot=state.players.find(function(p){return p.player===player;});return !slot||(slot.mine&&slot.idx<10);}
-function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261004q1';}
+function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261004r';}
 DT.live={init:init,ensure:ensure,create:create,join:join,shot:shot,records:records,allowed:allowed,current:current,login:login,logout:logout,identity:function(){return who;},link:link,getState:function(){return state;}};
 })(window);
