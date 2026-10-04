@@ -37,3 +37,8 @@ Güç hedef seçiminden önce kilitlenir. Güç arttıkça yeşil bant kademeli 
 Yeni resmi girdiler `rules:2` taşır. Eski kaydedilmiş sonuçlar ve puanlar korunur; eski girdi canlandırması eski güç/zamanlama hesabını kullanır. Eski açık sekmeler yeni vuruş göndermeden yenilenmelidir. Özel kimlikler ve haftalık haklar değişmez. Forma numaraları METO 10, LORT 28, FERO 35, LATTE 60, JOSH 31; numaralar önbellekli tuval dokusuna çizilir ve yürüyüş/şut dönüşümünü takip eder. Kaynak yüz ve saç görselleri değiştirilmez.
 
 `tests/guc-isabet.cjs` güç/zamanlama/bant/çıkış açısını; `tests/formalar.cjs` 15 vuruş dokusunda doğru numarayı, önbelleği, yüzün korunmasını ve baskının forma içinde kalmasını doğrular.
+
+## Hacimli kale (20261004k)
+Kalenin yan, tavan ve arka ağları dünya koordinatlarıyla ayrı yüzeyler olarak çizilir. Arka destek boruları, taban bağlantıları, iplerde hafif sarkma ve zemine oturan gölge eklendi. Ön direkler yuvarlak uçlu, silindir hissi veren ışık/gölge geçişleriyle çizilir. Kale ağzında ağ düzlemi yoktur. File gerisi mevcut fizik sınırıyla aynı 1.5 m derinliktedir; vuruş hesabı ve hedef koordinatları değişmez. Sabit arka kale çizimi yalnız kale bölgesinin yüksek çözünürlüklü tuvalinde önbelleğe alınır; ekran/pozisyon değişiminde yeniden kurulur.
+
+Yedi ekran boyutunda tuval çizimi, oyun akışı, görsel yükleme ve forma kontrolleri yapıldı. Gerçek iPhone/Safari ve düşük güçlü cihazda hız ölçümü yapılmadı.

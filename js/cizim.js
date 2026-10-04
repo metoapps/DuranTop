@@ -227,37 +227,55 @@
   }
 
   /* ---------- parçalar ---------- */
-  function kaleArka(g) {
-    var D = pos.D, w = A.kale.genislik / 2, h = A.kale.yukseklik, nz = D + 1.5;
-    var a = izdus(-w, 0, nz), b = izdus(w, h, nz);
-    if (!a || !b) return;
-    g.strokeStyle = 'rgba(255,255,255,0.22)'; g.lineWidth = 1;
-    var i, p, q;
-    for (i = 0; i <= 16; i++) {
-      p = izdus(-w + (2 * w) * i / 16, 0, nz); q = izdus(-w + (2 * w) * i / 16, h, nz);
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke();
-    }
-    for (i = 0; i <= 6; i++) {
-      p = izdus(-w, h * i / 6, nz); q = izdus(w, h * i / 6, nz);
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke();
-    }
-    [[-w, 0], [w, 0], [-w, h], [w, h]].forEach(function (c) {
-      var m = izdus(c[0], c[1], D), n = izdus(c[0], c[1], nz);
-      g.beginPath(); g.moveTo(m.x, m.y); g.lineTo(n.x, n.y); g.stroke();
-    });
-    for (i = 1; i < 8; i++) {  // tavan filesi
-      p = izdus(-w + (2 * w) * i / 8, h, D); q = izdus(-w + (2 * w) * i / 8, h, nz);
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke();
-    }
+  // All net surfaces live in world space. The mouth is open, never a flat grid.
+  var kaleArkaCache=null;
+  function kaleCizgi(g,points,color,width){g.beginPath();points.forEach(function(p,i){var q=izdus(p[0],p[1],p[2]);if(!q)return;if(i)g.lineTo(q.x,q.y);else g.moveTo(q.x,q.y);});g.strokeStyle=color;g.lineWidth=width;g.stroke();}
+  function kaleYuz(g,points,color){g.beginPath();points.forEach(function(p,i){var q=izdus(p[0],p[1],p[2]);if(i)g.lineTo(q.x,q.y);else g.moveTo(q.x,q.y);});g.closePath();g.fillStyle=color;g.fill();}
+  function kaleBoru(g,p0,p1,radius,rear){var a=izdus(p0[0],p0[1],p0[2]),b=izdus(p1[0],p1[1],p1[2]);if(!a||!b)return;
+    var width=Math.max(rear?1:3,(a.olcek+b.olcek)*.5*radius),len=Math.hypot(b.x-a.x,b.y-a.y)||1,nx=-(b.y-a.y)/len,ny=(b.x-a.x)/len;
+    var light=g.createLinearGradient(a.x-nx*width/2,a.y-ny*width/2,a.x+nx*width/2,a.y+ny*width/2);
+    light.addColorStop(0,rear?'#59666a':'#919ba0');light.addColorStop(.25,rear?'#b5c0c2':'#fafdfd');light.addColorStop(.48,rear?'#d2d9da':'#ffffff');light.addColorStop(1,rear?'#515d60':'#757f84');
+    g.save();g.lineCap='round';g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=width+1.8;g.beginPath();g.moveTo(a.x,a.y+1);g.lineTo(b.x,b.y+1);g.stroke();g.strokeStyle=light;g.lineWidth=width;g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();g.restore();
   }
-
+  function kaleArka(g) {
+    if(kaleArkaCache){var cache=kaleArkaCache;g.drawImage(cache.canvas,cache.x,cache.y,cache.w,cache.h);return;}
+    var D=pos.D,w=A.kale.genislik/2,h=A.kale.yukseklik,depth=1.5,z=D+depth;
+    var corners=[];[-w-.2,w+.45].forEach(function(x){[0,h+.12].forEach(function(y){[D,z+.6].forEach(function(zz){corners.push(izdus(x,y,zz));});});});
+    var left=Math.max(0,Math.floor(Math.min.apply(null,corners.map(function(p){return p.x;}))-5)),top=Math.max(0,Math.floor(Math.min.apply(null,corners.map(function(p){return p.y;}))-5));
+    var width=Math.min(W-left,Math.ceil(Math.max.apply(null,corners.map(function(p){return p.x;}))-left+5)),height=Math.min(H-top,Math.ceil(Math.max.apply(null,corners.map(function(p){return p.y;}))-top+5));
+    var c=yerelCanvas(Math.ceil(width*dpr),Math.ceil(height*dpr)),b=c.getContext('2d');b.scale(dpr,dpr);b.translate(-left,-top);
+    // Grounded cage shadow and different brightness per surface expose the depth.
+    kaleYuz(b,[[-w-.12,.01,D],[w+.12,.01,D],[w+.4,.01,z+.55],[-w+.15,.01,z+.55]],'rgba(0,0,0,.25)');
+    kaleYuz(b,[[-w,0,z],[w,0,z],[w,h,z],[-w,h,z]],'rgba(155,180,177,.035)');
+    kaleYuz(b,[[-w,0,D],[-w,0,z],[-w,h,z],[-w,h,D]],'rgba(191,215,214,.055)');
+    kaleYuz(b,[[w,0,D],[w,0,z],[w,h,z],[w,h,D]],'rgba(103,134,139,.06)');
+    kaleYuz(b,[[-w,h,D],[w,h,D],[w,h,z],[-w,h,z]],'rgba(213,226,223,.06)');
+    // Rear supports, feet and side stays are thinner than the front goal frame.
+    [-w,w].forEach(function(x){
+      kaleBoru(b,[x,0,z],[x,h,z],.045,true);kaleBoru(b,[x,h,D],[x,h,z],.045,true);kaleBoru(b,[x,.025,D],[x,.025,z],.045,true);
+      kaleBoru(b,[x,0,z+.32],[x,h*.78,z],.035,true);
+      var foot=izdus(x,0,D);b.fillStyle='rgba(0,0,0,.4)';b.beginPath();b.ellipse(foot.x,foot.y,.12*foot.olcek,.035*foot.olcek,0,0,Math.PI*2);b.fill();
+    });
+    kaleBoru(b,[-w,h,z],[w,h,z],.045,true);kaleBoru(b,[-w,.025,z],[w,.025,z],.035,true);
+    var cols=32,rows=11,layers=7,line=Math.max(.55,Math.min(1.1,W/650)),i,j,pts;
+    function rear(x,y){return [x,y,z+.06*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*y/h)];}
+    // Fine cords curve slightly between their attachment points.
+    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=rows;j++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(b,pts,'rgba(225,236,233,.25)',line);}
+    for(j=0;j<=rows;j++){pts=[];for(i=0;i<=cols;i++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(b,pts,'rgba(230,240,237,.3)',line);}
+    [-1,1].forEach(function(side){function sidePoint(y,t){return [side*(w+.04*Math.sin(Math.PI*y/h)*Math.sin(Math.PI*t)),y,D+depth*t];}
+      for(i=0;i<=layers;i++){pts=[];for(j=0;j<=rows;j++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(b,pts,'rgba(231,242,238,.42)',line);}
+      for(j=0;j<=rows;j++){pts=[];for(i=0;i<=layers;i++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(b,pts,'rgba(233,243,240,.4)',line);}
+    });
+    function roof(x,t){return [x,h-.045*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*t),D+depth*t];}
+    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=layers;j++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(b,pts,'rgba(237,245,242,.36)',line);}
+    for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(b,pts,'rgba(226,241,235,.3)',line);}
+    kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
+  }
   function kaleOn(g) {
-    var D = pos.D, w = A.kale.genislik / 2, h = A.kale.yukseklik;
-    var a = izdus(-w, 0, D), b = izdus(-w, h, D), c = izdus(w, h, D), d = izdus(w, 0, D);
-    if (!a || !b || !c || !d) return;
-    var kal = Math.max(2.5, a.olcek * A.kale.direk);
-    g.strokeStyle = '#ffffff'; g.lineWidth = kal; g.lineCap = 'square'; g.lineJoin = 'miter';
-    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.lineTo(c.x, c.y); g.lineTo(d.x, d.y); g.stroke();
+    var D=pos.D,w=A.kale.genislik/2,h=A.kale.yukseklik;
+    kaleBoru(g,[-w,0,D],[-w,h,D],A.kale.direk,false);
+    kaleBoru(g,[w,0,D],[w,h,D],A.kale.direk,false);
+    kaleBoru(g,[-w,h,D],[w,h,D],A.kale.direk,false);
   }
 
   function golgeTop(g, x, z) {
@@ -510,7 +528,7 @@
   }
 
   function sahneKur(p) {
-    pos = p; kam = kameraKur(p); arka = arkaPlanCiz();
+    pos = p; kam = kameraKur(p); kaleArkaCache=null; arka = arkaPlanCiz();
   }
 
   function kur(canvas, genislik, yukseklik, dprZorla) {
