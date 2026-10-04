@@ -9,7 +9,7 @@ fire('btnResmi','click');await flush();
 for(let i=0;i<10;i++){
  assert.equal(d.idx,i);assert.equal(d.faz,'nisan');assert(el('durusPanel').hidden);assert(!el('hazirlikPanel').hidden);
  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});assert.equal(d.aim,null);
- fire('durusAc','click');assert(!el('durusPanel').hidden);fire(['durusSol','durusDuz','durusSag'][i%3],'click');assert(!d.durusHazir);
+ fire('durusAc','click');assert(!el('durusPanel').hidden);fire(['durusSol','durusDuz','durusSag'][i%3],'click');assert.equal(d.durusHazir,i%3===1,'unchanged stance skips artificial walking');
  time+=1200;root.frame();assert(d.durusHazir);assert(!el('gucPanel').hidden);
  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});assert.equal(d.aim,null,'target remains disabled before power');
  el('gucSec').value=[100,80,30,100,80][i%5];fire('gucSec','input');fire('gucOnay','click');assert.equal(d.guc,[1,.8,.3,1,.8][i%5]);assert(el('gucPanel').hidden);

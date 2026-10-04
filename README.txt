@@ -64,3 +64,6 @@ Yeni resmi girdiler rules=4; eski sonuçların hesapları, puanları ve kol çar
 
 
 Güncel bakım sürümü: 20261004o. Kalite toparlanması, giriş işlem koruması, genel tablo puanı ve hafta kapanış açıklaması: DEGISIKLIK-20261004o.md.
+
+
+20261004q: Futbolcu yön, yürüyüş ve şut için eklemli prosedürel 3D model. Sınırlamalar ve kontroller: DEGISIKLIK-20261004q.md.

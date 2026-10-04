@@ -97,15 +97,15 @@
     DT.KARAKTER.forEach(function(k){gorselYukle('_menu_'+k.id+'_bekle','assets/menu/'+k.id+'_bekle.webp');});
     gorselYukle('_kaleci-yuz','assets/kaleci-neuer-face.webp');
   }
-  var VURUS_POZ = ['vurus1','vurus2','vurus3'];
+  var VURUS_POZ = ['vurus1','vurus2','vurus3','bekle'];
   function karakterHazir(id) {return VURUS_POZ.every(function(p){return !!gorseller[id+'_'+p];});}
   function karakterYukle(id) {
     if(karakterHazir(id))return Promise.resolve(true);
     if(karakterIstekleri[id])return karakterIstekleri[id];
     yuklemeHatasi=false;karakterBekleniyor=true;yuklemeBildir();
     var el=root.document&&root.document.getElementById('yukleme');
-    var loaded=0;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… 0/3';
-    karakterIstekleri[id]=Promise.all(VURUS_POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').then(function(im){loaded++;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… '+loaded+'/3';return im;});})).then(function(){
+    var loaded=0;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… 0/4';
+    karakterIstekleri[id]=Promise.all(VURUS_POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').then(function(im){loaded++;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… '+loaded+'/4';return im;});})).then(function(){
       karakterBekleniyor=false;yuklemeBildir();
       ['bekle','sevinc','kacirma'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').catch(function(){});});
       ['sevinc1','sevinc2','sevinc3','sevinc4'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png').catch(function(){});});
@@ -351,6 +351,16 @@
     var r = Math.min(H*.012,Math.max(2, A.kale.topYaricap * topEkran.olcek));
     var u = durum.ilerleme || 0, temas = durum.temas || 0.533333;
     var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
+    if(DT.futbolcu3d && gorseller[karakter+'_bekle'] && gorseller[karakter+'_vurus1']){
+      var walk3=durum.yurume,dir=durum.durus||0;
+      var fraction=walk3?walk3.from+(walk3.to-walk3.from)*(walk3.u*walk3.u*(3-2*walk3.u)):dir;
+      var elapsed3=durum.sure||0,windup3=durum.on||.44;
+      var progress3=durum.yol?Math.min(1,elapsed3/windup3):0;
+      DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
+        x:topEkran.x+fraction*52*olcek*(1-progress3)-Math.sin(dir*.60)*28*olcek*progress3,y:topEkran.y+10*olcek,scale:olcek,direction:dir,walk:walk3,
+        shot:durum.yol?{elapsed:elapsed3,windup:windup3}:null});
+      return;
+    }
     var walk=durum.yurume,reverse=walk?(walk.u<.5?walk.from>0:walk.to>0):durum.durus>0;
     var im = sprite(karakter, kare,reverse);
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];

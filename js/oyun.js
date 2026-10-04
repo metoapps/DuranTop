@@ -446,7 +446,7 @@
     $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
     $('gucOnay').addEventListener('click',function(){if(!d.durusHazir)return;d.gucHazir=true;$('gucPanel').hidden=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç. Sert vuruş ve hassas köşe daha zor.';if(d.kilit)kilitle(true);acikKaydet();});
     $('durusAc').addEventListener('click',function(){if(d.faz!=='nisan'||d.durusHazir)return;$('hazirlikPanel').hidden=true;$('durusPanel').hidden=false;$('ipucu').hidden=true;});
-    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
+    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];if(old===d.durus){d.durusHazir=true;$('durusPanel').hidden=true;$('gucPanel').hidden=false;return;}d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }
 
   var baslatildi = false;
