@@ -87,12 +87,16 @@ function draw(g,o){var r=rig(o),n=r.nodes,T=textures(o.id,o.front,o.back,o.makeC
 
  patch([0,220+(n.chest[1]-249),0],88,112,49,true,T.shirtBack);
  tri.forEach(t=>{t.screen=t.p.map(project);t.depth=t.screen.reduce((a,p)=>a+p.d,0)/3;});tri.sort((a,b)=>b.depth-a.depth);
- tri.forEach(function(t){var p=t.screen;var cx=(p[0].x+p[1].x+p[2].x)/3,cy=(p[0].y+p[1].y+p[2].y)/3;g.beginPath();p.forEach(function(v,i){var dx=v.x-cx,dy=v.y-cy,l=Math.hypot(dx,dy)||1,x=v.x+dx/l*.35,y=v.y+dy/l*.35;if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.closePath();
+ var ballPainted=false;
+ tri.forEach(function(t){if(o.onlyNearDepth!==undefined&&t.depth>=o.onlyNearDepth)return;
+  if(o.ball&&!ballPainted&&t.depth<o.ball.depth){o.ball.draw(g);ballPainted=true;}
+  var p=t.screen;var cx=(p[0].x+p[1].x+p[2].x)/3,cy=(p[0].y+p[1].y+p[2].y)/3;g.beginPath();p.forEach(function(v,i){var dx=v.x-cx,dy=v.y-cy,l=Math.hypot(dx,dy)||1,x=v.x+dx/l*.35,y=v.y+dy/l*.35;if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.closePath();
   if(t.texture){var uv=t.uv.map(v=>[v[0]*t.texture.width,v[1]*t.texture.height]),a=uv[0],b=sub(uv[1],a),cc=sub(uv[2],a),det=b[0]*cc[1]-cc[0]*b[1],dx1=p[1].x-p[0].x,dx2=p[2].x-p[0].x,dy1=p[1].y-p[0].y,dy2=p[2].y-p[0].y;
    if(Math.abs(det)<1e-9)return;var aa=(dx1*cc[1]-dx2*b[1])/det,bb=(dy1*cc[1]-dy2*b[1])/det,ccc=(b[0]*dx2-cc[0]*dx1)/det,dd=(b[0]*dy2-cc[0]*dy1)/det;
    g.save();g.clip();g.transform(aa,bb,ccc,dd,p[0].x-aa*a[0]-ccc*a[1],p[0].y-bb*a[0]-dd*a[1]);g.drawImage(t.texture,0,0);g.restore();
   }else{g.fillStyle=t.color;g.fill();}
  });
+ if(o.ball&&!ballPainted)o.ball.draw(g);
  return r;
 }
 function render(g,o){
@@ -100,11 +104,21 @@ function render(g,o){
  var density=Math.min(2,root.devicePixelRatio||1),key=[o.id,o.direction,o.scale,density,o.viewKey||''].join(':'),stored=idleCache.get(key);
  if(!stored||stored.front!==o.front||stored.back!==o.back){
   var w=Math.ceil(260*o.scale),h=Math.ceil(510*o.scale),cv=o.makeCanvas(Math.ceil(w*density),Math.ceil(h*density)),ctx=cv.getContext('2d');ctx.scale(density,density);
-  var options=Object.assign({},o,{x:w/2,y:h-15*o.scale});
+  var options=Object.assign({},o,{x:w/2,y:h-15*o.scale,ball:null});
   if(o.project)options.project=function(v){var q=o.project(v);return{x:q.x-o.x+w/2,y:q.y-o.y+h-15*o.scale,d:q.d};};
   draw(ctx,options);
-  stored={cv:cv,w:w,h:h,front:o.front,back:o.back};if(idleCache.size>=24)idleCache.clear();idleCache.set(key,stored);
+  stored={cv:cv,w:w,h:h,front:o.front,back:o.back,options:options};if(idleCache.size>=24)idleCache.clear();idleCache.set(key,stored);
  }
- g.drawImage(stored.cv,o.x-stored.w/2,o.y-stored.h+15*o.scale,stored.w,stored.h);return rig(o);
+ var left=o.x-stored.w/2,top=o.y-stored.h+15*o.scale;
+ g.drawImage(stored.cv,left,top,stored.w,stored.h);
+ if(o.ball){
+  o.ball.draw(g);
+  if(!stored.near||stored.nearDepth!==o.ball.depth){
+   var near=o.makeCanvas(stored.cv.width,stored.cv.height),ng=near.getContext('2d');ng.scale(density,density);
+   draw(ng,Object.assign({},stored.options,{onlyNearDepth:o.ball.depth,ball:null}));stored.near=near;stored.nearDepth=o.ball.depth;
+  }
+  g.drawImage(stored.near,left,top,stored.w,stored.h);
+ }
+ return rig(o);
 }
 D.futbolcu3d={rig:rig,draw:render,placement:placement,gaitFeet:gaitFeet,HEIGHT:HEIGHT,UNIT:UNIT};})(typeof globalThis!=='undefined'?globalThis:window);

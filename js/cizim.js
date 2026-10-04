@@ -278,11 +278,11 @@
     g.beginPath(); g.ellipse(p.x, p.y, 0.14 * p.olcek, 0.05 * p.olcek, 0, 0, 6.3); g.fill();
   }
 
-  function topCiz(g, t, aci) {
+  function topCiz(g, t, aci, skipShadow) {
     var R = A.kale.topYaricap;
     var p = izdus(t.x, t.y, t.z);
     if (!p) return;
-    golgeTop(g, t.x, t.z);
+    if(!skipShadow)golgeTop(g, t.x, t.z);
     var r = R * p.olcek;
     if (gorseller._top) { g.drawImage(gorseller._top, p.x - r, p.y - r, r * 2, r * 2); return; }
     g.save(); g.translate(p.x, p.y);
@@ -349,15 +349,18 @@
       var elapsed3=durum.sure||0,windup3=durum.on||1.15;
       var shot=durum.yol?{elapsed:elapsed3,windup:windup3}:null;
       var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide});
+      var ball=durum.renderTop,ballScreen=ball&&izdus(ball.x,ball.y,ball.z);
+      var ballLayer=ballScreen?{depth:ballScreen.d,draw:function(target){topCiz(target,ball,durum.topAci,true);}}:null;
       var rootX=placement.point[0],rootZ=placement.point[1],unit=placement.unit,yaw=placement.yaw;
       var anchor=izdus(rootX,0,rootZ),actorScale=unit*anchor.olcek;
       var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
       var shadow=izdus(rootX,0,rootZ);g.save();g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(shadow.x,shadow.y,.28*shadow.olcek,.09*shadow.olcek,0,0,Math.PI*2);g.fill();g.restore();
       DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
         x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,
-        viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),shot:shot});
+        viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),shot:shot,ball:ballLayer});
       return;
     }
+    if(durum.renderTop)topCiz(g,durum.renderTop,durum.topAci,true);
     var walk=durum.yurume,reverse=walk?(walk.u<.5?walk.from>0:walk.to>0):durum.durus>0;
     var im = sprite(karakter, kare,reverse);
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];
@@ -509,7 +512,8 @@
       var bd = izdus(d.baraj.merkezX, 1, d.baraj.merkezZ);
       liste.push({ z: bd ? bd.d : 0, ciz: function () { barajCiz(g, d); } });
     }
-    if (d.top && !d.oyuncu) {
+    var actorBall=!!(d.top&&d.oyuncu&&Math.hypot(d.top.x-pos.bx,d.top.z)<2);
+    if (d.top && !actorBall) {
       var td = izdus(d.top.x, d.top.y, d.top.z);
       liste.push({ z: td ? td.d : 0, ciz: function () { topCiz(g, d.top, d.topAci); } });
     }
@@ -518,8 +522,8 @@
 
     // oyuncu ve nişan her zaman en önde
     var topEkran = izdus(pos.bx, A.kale.topYaricap, 0);
-    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran, d.oyuncu);
-    if(d.top&&d.oyuncu)topCiz(g,d.top,d.topAci);
+    if(actorBall)golgeTop(g,d.top.x,d.top.z);
+    if (d.oyuncu) oyuncuCiz(g, d.oyuncu.karakter, d.oyuncu.poz, topEkran, Object.assign({},d.oyuncu,{renderTop:actorBall?d.top:null,topAci:d.topAci}));
     if (d.onKarakter) {
       var boy = Math.min(0.38 * H, 260);
       var taban = Math.min(H * 0.76, H - 156);

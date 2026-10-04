@@ -14,12 +14,21 @@ function acceleration(v,omega,t){var P=A.aerodinamik,R=A.kale.topYaricap,speed=M
 function derivative(s,omega,t){return s.slice(3).concat(acceleration(s.slice(3),omega,t));}
 function add(s,k,h){return s.map(function(x,i){return x+h*k[i];});}
 function step(s,omega,t,h){var k1=derivative(s,omega,t),k2=derivative(add(s,k1,h/2),omega,t+h/2),k3=derivative(add(s,k2,h/2),omega,t+h/2),k4=derivative(add(s,k3,h),omega,t+h);return s.map(function(x,i){return x+h*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6;});}
-function integrate(pos,velocity,omega,options){options=options||{};var dt=options.dt||1/120,R=A.kale.topYaricap,s=[pos.bx,R,0].concat(velocity),path=[{t:0,x:s[0],y:s[1],z:s[2]}],t=0;
+function groundImpulse(velocity,omega,normalImpulse){
+ var R=A.kale.topYaricap,m=A.aerodinamik.kutle,I=(2/3)*m*R*R;
+ var slip=[velocity[0]+R*omega[2],velocity[2]-R*omega[0]],speed=Math.hypot.apply(null,slip);
+ var impulse=Math.min(.4*m*speed,.25*Math.max(0,normalImpulse)),j=slip.map(v=>-impulse*v/Math.max(speed,1e-12));
+ return {velocity:[velocity[0]+j[0]/m,velocity[1],velocity[2]+j[1]/m],spin:[omega[0]-R*j[1]/I,omega[1],omega[2]+R*j[0]/I]};
+}
+function integrate(pos,velocity,omega,options){options=options||{};var dt=options.dt||1/120,R=A.kale.topYaricap,t=options.startTime||0,s=(options.initialPosition||[pos.bx,R,0]).concat(velocity),path=[{t:t,x:s[0],y:s[1],z:s[2]}];
+ omega=omega.slice();
  for(var i=0;i<Math.ceil(8/dt);i++){
   var next=step(s,omega,t,dt),h=dt;
   // Locate the goal plane by a fractional RK4 step instead of overshooting it.
   if(next[2]>=pos.D){var lo=0,hi=dt;for(var j=0;j<20;j++){var mid=(lo+hi)/2;if(step(s,omega,t,mid)[2]<pos.D)lo=mid;else hi=mid;}h=(lo+hi)/2;next=step(s,omega,t,h);next[2]=pos.D;}
   if(options.zemin!==false&&next[1]<R){next[1]=R;
+   if(options.groundSpin){var decay=Math.exp(-A.aerodinamik.spinSonumu*(t+h)),contact=groundImpulse(next.slice(3),omega.map(v=>v*decay),A.aerodinamik.kutle*((1+A.aerodinamik.sekme)*Math.max(0,-next[4])+A.yercekimi*h));
+    next[3]=contact.velocity[0];next[5]=contact.velocity[2];omega=contact.spin.map(v=>v/decay);}
    if(Math.abs(next[4])<.45){next[4]=0;var roll=Math.hypot(next[3],next[5]),factor=Math.max(0,1-.055*A.yercekimi*h/Math.max(roll,1e-9));next[3]*=factor;next[5]*=factor;}
    else if(next[4]<0)next[4]=-next[4]*A.aerodinamik.sekme;
   }
@@ -72,5 +81,44 @@ function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc,kontrollu,temasFiz
  }
  return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return adjusted?v:v*chosen;}),false,temasFizigi);
 }
-DT.ucus={hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
+// Rules 5: finite kick energy. The aim selects the low central-contact arc;
+// it never changes the available speed or cancels off-centre spin.
+var energyAimCache=new Map();
+function fixedDirection(pos,aim,speed){
+ var key=[pos.bx,pos.D,aim.x,aim.y,speed].join(':'),saved=energyAimCache.get(key);if(saved)return saved.slice();
+ var yaw=Math.atan2(aim.x-pos.bx,pos.D+A.kale.topYaricap),end={bx:pos.bx,D:pos.D+A.kale.topYaricap};
+ function vector(p){return [speed*Math.cos(p)*Math.sin(yaw),speed*Math.sin(p),speed*Math.cos(p)*Math.cos(yaw)];}
+ function trial(p){var f=integrate(end,vector(p),[0,0,0],{zemin:false});return {p:p,f:f,error:f.son.y-aim.y};}
+ var lower=trial(-.04),best=lower,upper=null;
+ for(var i=1;i<=12;i++){var candidate=trial(i*.09);if(Math.abs(candidate.error)<Math.abs(best.error))best=candidate;
+  if(candidate.f.reached&&lower.f.reached&&lower.error<=0&&candidate.error>=0){upper=candidate;break;}lower=candidate;
+ }
+ if(upper){for(var j=0;j<22;j++){var middle=trial((lower.p+upper.p)/2);if(middle.error<0)lower=middle;else upper=middle;}best=trial((lower.p+upper.p)/2);}
+ var answer=vector(best.p);if(energyAimCache.size>=128)energyAimCache.clear();energyAimCache.set(key,answer);return answer.slice();
+}
+function energyLaunch(pos,aim,contact,hata,quality,noise,guc){
+ var power=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
+ var x=contact.x||0,y=contact.y||0,r=Math.hypot(x,y);if(r>.85){x*=.85/r;y*=.85/r;r=.85;}
+ var R=A.kale.topYaricap,m=A.aerodinamik.kutle,inertia=(2/3)*m*R*R;
+ var nominal=A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal);
+ var yaw=Math.atan2(clean[0],clean[2])+hata*.14+(1-quality)*.010*noise();
+ var pitch=Math.atan2(clean[1],Math.hypot(clean[0],clean[2]));
+ // Under-ball shoe path is an explicit game technique assumption. Contact
+// coordinates alone cannot identify a real foot's impulse direction.
+ pitch+=y<0?.50*Math.pow(-y,1.4):-.18*y;
+ pitch+=hata*.18+(1-quality)*.008*noise();pitch=Math.max(-.45,Math.min(1.35,pitch));
+ var direction=[Math.cos(pitch)*Math.sin(yaw),Math.sin(pitch),Math.cos(pitch)*Math.cos(yaw)];
+ var right=unit(cross([0,1,0],direction)),up=cross(direction,right);
+ var offset=direction.map(function(a,i){return -Math.sqrt(1-r*r)*a+x*right[i]+y*up[i];});
+ // J=m*v, I*w=eta*(r x J). Allocate one finite energy budget to
+// translation AND rotation rather than adding spin energy to a full-speed kick.
+ var eta=A.aerodinamik.spinAktarimi,spinPerSpeed=cross(offset,direction).map(function(a){return 1.5*eta*a/R;});
+ var budget=.5*m*nominal*nominal*Math.pow(.72+.28*quality,2)*(1-.45*r*r);
+ var speed=Math.sqrt(2*budget/(m+inertia*Math.pow(Math.hypot.apply(null,spinPerSpeed),2)));
+ var v=direction.map(function(a){return a*speed;}),omega=spinPerSpeed.map(function(a){return a*speed;});
+ var flight=integrate({bx:pos.bx,D:pos.D+R,tip:pos.tip},v,omega,{groundSpin:true});
+ flight.initialVelocity=v;flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=speed;flight.contact={x:x,y:y};
+ flight.energy={available:budget,translation:.5*m*speed*speed,rotation:.5*inertia*Math.pow(Math.hypot.apply(null,omega),2),nominalSpeed:nominal};return flight;
+}
+DT.ucus={groundImpulse:groundImpulse,energyLaunch:energyLaunch,fixedDirection:fixedDirection,hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);

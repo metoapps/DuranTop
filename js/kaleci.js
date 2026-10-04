@@ -11,7 +11,7 @@ function oku(yol,t){
  while(i+1<yol.length&&yol[i+1].t<=t)i++;
  var b=yol[i],a=yol[Math.max(0,i-6)],dt=b.t-a.t;if(dt<=1e-9)return null;
  var vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt,vz=(b.z-a.z)/dt;if(vz<=1e-6)return null;
- var rem=(end.z-b.z)/vz;return {x:b.x+vx*rem,y:b.y+vy*rem-.5*A.yercekimi*rem*rem,t:b.t};
+ var rem=(end.z-b.z)/vz;return {x:b.x+vx*rem,y:b.y+vy*rem-.5*A.yercekimi*rem*rem,t:b.t,arrival:b.t+rem};
 }
 function planla(target,tip,practice,noise,T,options){
  var K=A.kaleci,reaction=K.tepki[tip]+(practice?A.antrenman.tepkiEk:0);
@@ -30,7 +30,8 @@ function planla(target,tip,practice,noise,T,options){
  var endX=action==='dal'?clamp(gx-direction*K.elMenzili,tip==='frikik'?-2.85:-2.72,tip==='frikik'?2.85:2.72):clamp(gx,-.42,.42);
  var endY=action==='dal'?clamp(gy-.16,.30,tip==='penalti'?1.70:1.6):(gy<.6?.72:(gy>1.75?1.35:1));
  var duration=K.hareketSabit+Math.hypot(endX,endY-1)/(tip==='frikik'?(practice?K.frikikHiz-A.antrenman.hizAzalt:K.frikikHiz):(practice?K.penaltiHiz-A.antrenman.hizAzalt:K.penaltiHiz));
- var startT=Math.max(okumaT,T-duration-.04),endT=startT+duration;   // gözlemden önce hareket yok
+ var arrival=options.enerjiFizigi&&seen?seen.arrival:T;
+ var startT=Math.max(okumaT,arrival-duration-.04),endT=startT+duration;   // gözlemden önce hareket yok
  function konum(t){var u=clamp((t-startT)/duration,0,1),e=u*u*(3-2*u),after=Math.max(0,t-endT-.04);
   var dive=action==='dal'&&u>.18,ground=dive?.30:(gy<.6?.72:1),y=1+(endY-1)*e;
   if(u===1&&y>ground)y=Math.max(ground,y-.5*A.yercekimi*after*after);
