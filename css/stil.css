@@ -308,3 +308,34 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
   #oyun .saha-secimi {top:90px;width:min(260px,28vw);max-height:calc(100% - 106px - var(--guvenli-alt));}
   #oyun .saha-secimi #temasTop {max-width:120px;}
 }
+
+/* Main menu: play first, goals at a glance, optional details on demand. */
+#menu .menu-ust {padding-top:8px;}
+#menu .kadro {margin:10px 0;}
+#menu .kadro img {height:min(19vh,34vw,160px);}
+.menu-oyna {display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.menu-oyna .btn {font-size:24px;min-width:0;padding:8px;}
+.kupa-baslik {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.kupa-baslik strong {font-size:18px;}
+.kupa-baslik .ayar {flex:0 0 auto;font-size:12px;padding:8px;}
+#haftaBaslik {margin:0;font-size:13px;color:var(--duman);}
+#canliDurum {margin:0;font-size:12px;color:var(--duman);}
+#kimlikNot:empty {display:none;}
+.menu-detay {border:1px solid #343434;border-radius:12px;padding:0 12px;background:rgba(15,15,15,.85);}
+.menu-detay > summary {min-height:44px;padding:12px 0;cursor:pointer;font-size:14px;}
+.menu-detay[open] {padding-bottom:12px;}
+.menu-detay .ayarlar {flex-wrap:wrap;}
+.menu-detay .ayar {flex:1 1 120px;}
+.skor-satiri {border-bottom:1px solid #303630;}
+.skor-satiri > summary {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;cursor:pointer;list-style:none;font-size:14px;}
+.skor-satiri > summary::-webkit-details-marker {display:none;}
+.skor-satiri > summary span {font-weight:700;white-space:nowrap;}
+.skor-satiri > summary b::after {content:' ⌄';font-size:12px;color:#999;}
+.skor-satiri[open] > summary b::after {content:' ⌃';}
+.skor-satiri p {margin:0 0 8px;font-size:12px;color:var(--duman);}
+.oyun-kurallari {padding-left:18px;margin:0;font-size:14px;line-height:1.5;}
+.oyun-kurallari li + li {margin-top:8px;}
+@media(min-width:900px) and (min-height:500px) {
+  #menu .menu-ust {padding:0;}
+  #menu .kadro img {height:clamp(120px,22vh,245px);}
+}

@@ -33,8 +33,9 @@
     d.faz = 'bos';
     ekranGoster('menu');
     var kayit = oku(ANAHTAR.resmi, null);
-    $('btnResmi').textContent = kayit ? 'Resmi tura devam (' + kayit.idx + '/' + VURUS_SAYISI + ')' : 'Juninho Kupası';
-    $('btnSifirla').hidden = !kayit;
+    var mine=DT.live&&DT.live.current&&DT.live.current();
+    $('btnResmi').textContent = mine&&mine.idx>=VURUS_SAYISI?'Bu haftayı tamamladın':kayit||mine&&mine.idx>0?'Yarışmaya devam':'Kupaya katıl';
+    $('btnSifirla').hidden = true;
     var en = oku(ANAHTAR.enIyi, null);
     $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Kupa sonuçları otomatik güncellenir.' : 'Canlı kupa: arkadaşlarının puanları otomatik güncellenir.';
     menuSahne();
@@ -380,7 +381,7 @@
       yaz(ANAHTAR.gecmis, gecmis.slice(-20));
       if (t > en) yaz(ANAHTAR.enIyi, t);
       sil(ANAHTAR.resmi);
-      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Canlı kupa: '+kupaKod+'. Skorun ortak tabloya otomatik kaydedildi.';
+      $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Gollerin otomatik kaydedildi.';
     } else {
       $('turNot').textContent = 'Antrenman: skora yazılmadı.';
     }
@@ -415,22 +416,23 @@
   var kupaKod = '';
   function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
   function kimlikGoster(){
-    var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?'🔒 '+me.player.toUpperCase()+' · '+DT.KARAKTER.find(function(k){return k.id===me.player;}).numara+' numara · senin oyuncun':'';
-    $('btnResmi').disabled=!me;$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
+    var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?me.player.toUpperCase()+' ile giriş yaptın':'';
+    var mine=DT.live&&DT.live.current&&DT.live.current();$('btnResmi').disabled=!me||!!(mine&&mine.idx>=VURUS_SAYISI);$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
   }
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,idx:0,puan:0,gol:0,yesil:0};});
     rows.sort(function(a,b){return b.gol-a.gol||b.puan-a.puan||b.yesil-a.yesil;});
-    var rank=1;$('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&(r.gol!==rows[i-1].gol||r.puan!==rows[i-1].puan))rank=i+1;return '<div><b>'+rank+'. '+r.id.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.idx+'/10 · '+r.puan+' puan</span></div>';}).join('');
+    function openRow(id){var node=doc.getElementById(id);return node&&node.open?' open=""':'';}
+    var rank=1;$('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&(r.gol!==rows[i-1].gol||r.puan!==rows[i-1].puan))rank=i+1;return '<details id="skor-hafta-'+r.id+'" class="skor-satiri"'+openRow('skor-hafta-'+r.id)+'><summary><b>'+rank+'. '+r.id.toUpperCase()+'</b><span>'+r.gol+' gol</span></summary><p>'+r.idx+' vuruş kullanıldı · '+r.puan+' puan</p></details>';}).join('');
     if(rows.every(function(r){return r.idx===10;})){var best=rows[0],winners=rows.filter(function(r){return r.gol===best.gol&&r.puan===best.puan;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' haftanın Juninho Kupası şampiyonu!</p>';}
-    var st=DT.live&&DT.live.getState();if(st){$('haftaBaslik').textContent=st.room.week_start?'Hafta: '+st.room.week_start+' · 10 vuruş · Pazartesi 00.00 (İstanbul) kapanır; kalan haklar devretmez.':'10 resmi vuruş';var genel=st.totals||[],grank=1;$('genelTablo').innerHTML=genel.map(function(r,i){if(i&&(r.gol!==genel[i-1].gol||r.puan!==genel[i-1].puan))grank=i+1;return '<div><b>'+grank+'. '+r.player.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.puan+' puan · '+r.vurus+' vuruş</span></div>';}).join('');}
+    var st=DT.live&&DT.live.getState();if(st){var me=DT.live.identity(),mine=me&&r[me.player];$('haftaBaslik').textContent=me?(mine&&mine.idx>=10?'Bu haftanın vuruşlarını tamamladın.':(10-(mine?mine.idx:0))+' vuruş hakkın kaldı.'):'Her hafta yeni bir yarış.';var genel=st.totals||[],grank=1;$('genelTablo').innerHTML=genel.map(function(r,i){if(i&&(r.gol!==genel[i-1].gol||r.puan!==genel[i-1].puan))grank=i+1;return '<details id="skor-toplam-'+r.player+'" class="skor-satiri"'+openRow('skor-toplam-'+r.player)+'><summary><b>'+grank+'. '+r.player.toUpperCase()+'</b><span>'+r.gol+' gol</span></summary><p>'+r.puan+' puan · '+r.vurus+' vuruş</p></details>';}).join('');}
   }
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
   function kupaKur(){
     if(!DT.live)return;
     $('kupaKod').readOnly=true;
     DT.live.init(function(state){kimlikGoster();if(state){kupaKod=state.room.code;$('kupaKod').value=kupaKod;kupaGoster();}},function(message){$('canliDurum').textContent=message;}).catch(function(){});
-    $('kimlikForm').addEventListener('submit',function(e){e.preventDefault();var btn=$('kimlikGiris');btn.disabled=true;$('kimlikNot').textContent='Giriş yapılıyor…';DT.live.login($('kimlikOyuncu').value,$('kimlikKod').value).then(function(){$('kimlikNot').textContent='Giriş tamam. Kendi oyuncunla oynayabilirsin.';menuGoster();}).catch(function(e){$('kimlikNot').textContent=e.message;}).finally(function(){btn.disabled=false;$('kimlikKod').value='';kimlikGoster();});});
+    $('kimlikForm').addEventListener('submit',function(e){e.preventDefault();var btn=$('kimlikGiris');btn.disabled=true;$('kimlikNot').textContent='Giriş yapılıyor…';DT.live.login($('kimlikOyuncu').value,$('kimlikKod').value).then(function(){$('kimlikNot').textContent='';menuGoster();}).catch(function(e){$('kimlikNot').textContent=e.message;}).finally(function(){btn.disabled=false;$('kimlikKod').value='';kimlikGoster();});});
     $('kimlikCikis').addEventListener('click',function(){DT.live.logout().then(menuGoster).catch(function(e){root.alert(e.message);});});
     $('yeniKupa').addEventListener('click',function(){DT.live.create().catch(function(e){root.alert(e.message);});});
     $('kupaPaylas').addEventListener('click',function(){DT.live.ensure().then(function(){paylas('Juninho Kupası! Kendi oyuncunla haftalık 10 vuruşunu oyna. Goller otomatik birleşir.\n'+DT.live.link());}).catch(function(e){root.alert(e.message);});});

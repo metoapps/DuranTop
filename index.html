@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261004u">
+  <link rel="stylesheet" href="css/stil.css?v=20261004v">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -18,23 +18,42 @@
   <section id="menu" class="ekran">
     <div class="menu-ust">
       <h1>Duran Top</h1>
-      <p class="alt-baslik">Her hafta 10 vuruş. Kendi oyuncun. Ortak gol yarışı.</p>
+      <p class="alt-baslik">Juninho Kupası · Arkadaşlar arası gol yarışı.</p>
     </div>
     <div class="kadro" id="kadro" aria-hidden="true"></div>
     <div class="menu-alt">
       <div id="kimlikKutu" class="kimlik-kutu">
-        <form id="kimlikForm"><strong>Kendi oyuncuna giriş yap</strong><label>Oyuncun<select id="kimlikOyuncu"><option value="meto">METO</option><option value="lort">LORT</option><option value="fero">FERO</option><option value="latte">LATTE</option><option value="josh">JOSH</option></select></label><label>Özel giriş kodun<input id="kimlikKod" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" maxlength="40" required></label><button id="kimlikGiris" class="btn ana" type="submit">Giriş yap</button></form>
+        <form id="kimlikForm"><strong>Oyuncuna giriş yap</strong><label>Oyuncun<select id="kimlikOyuncu"><option value="meto">METO</option><option value="lort">LORT</option><option value="fero">FERO</option><option value="latte">LATTE</option><option value="josh">JOSH</option></select></label><label>Giriş şifren<input id="kimlikKod" type="password" autocomplete="current-password" autocapitalize="characters" spellcheck="false" maxlength="40" required></label><button id="kimlikGiris" class="btn ana" type="submit">Giriş yap</button></form>
         <div id="kimlikAcik" hidden><strong id="kimlikAd"></strong><button id="kimlikCikis" class="ayar" type="button">Çıkış yap</button></div><p id="kimlikNot" role="status"></p>
       </div>
-      <div class="kupa-kutu"><strong>Juninho Kupası · 5 arkadaş</strong><label>Kupa kodu (otomatik) <input id="kupaKod" maxlength="6" inputmode="text" autocomplete="off" aria-label="Altı haneli kupa kodu"></label><button id="yeniKupa" class="ayar" type="button">Bu haftanın kupasını aç</button><button id="kupaPaylas" class="ayar" type="button">Tur linkini paylaş</button><p id="haftaBaslik"></p><h3>Haftanın gol sıralaması</h3><div id="kupaTablo"></div><h3>Toplam gol sıralaması</h3><div id="genelTablo"></div><p id="canliDurum" role="status">Canlı kupaya bağlanılıyor…</p><small>5 penaltı · 2 yakın frikik · 3 uzak frikik<br>İstanbul saatiyle pazartesi yenilenir.</small></div>
-      <button class="btn ana" id="btnResmi" type="button">Resmi tur</button>
-      <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
-      <div class="ayarlar">
-        <button class="ayar" id="btnSes" type="button">Ses: kapalı</button>
-        <button class="ayar" id="btnCubuk" type="button">Zamanlama çubuğu: açık</button>
+      <div class="menu-oyna">
+        <button class="btn ana" id="btnResmi" type="button">Kupaya katıl</button>
+        <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
       </div>
-      <p class="not" id="menuNot">Canlı kupa · ortak skor tablosu</p>
-      <button class="link" id="btnSifirla" type="button" hidden>Devam eden resmi turu sıfırla (test)</button>
+      <div class="kupa-kutu">
+        <div class="kupa-baslik"><strong>Haftanın gol yarışı</strong><button id="kupaPaylas" class="ayar" type="button">Gruba paylaş</button></div>
+        <p id="haftaBaslik"></p>
+        <div id="kupaTablo"><p>Giriş yapınca sıralama burada görünür.</p></div>
+        <p id="canliDurum" role="status">Bağlanılıyor…</p>
+      </div>
+      <details class="menu-detay"><summary>Toplam gol sıralaması</summary><div id="genelTablo"></div></details>
+      <details class="menu-detay"><summary>Nasıl oynanır?</summary>
+        <ul class="oyun-kurallari">
+          <li>Her hafta 10 vuruş: 5 penaltı, 2 yakın ve 3 uzak frikik.</li>
+          <li>En çok gol atan kazanır. Gol sayısı eşitse puana bakılır; puan da eşitse birincilik paylaşılır.</li>
+          <li>Hafta pazartesi gece yarısı, İstanbul saatiyle yenilenir. Kullanılmayan vuruşlar devretmez.</li>
+          <li>Yalnızca kendi oyuncunla oynarsın. Antrenman sınırsızdır ve yarışmaya sayılmaz.</li>
+          <li>Duruşunu ve gücünü seç, kalede nişan al, topa temas noktanı belirle ve yeşilde vur. Sert ve hassas köşe vuruşlarında zamanlama daha zordur.</li>
+        </ul>
+      </details>
+      <details class="menu-detay"><summary>Ayarlar</summary><div class="ayarlar">
+        <button class="ayar" id="btnSes" type="button">Ses: kapalı</button>
+        <button class="ayar" id="btnCubuk" type="button">Antrenman çubuğu: açık</button>
+        <button id="yeniKupa" class="ayar" type="button">Bağlantıyı yenile</button>
+      </div></details>
+      <input id="kupaKod" type="hidden">
+      <p class="not" id="menuNot" hidden></p>
+      <button id="btnSifirla" type="button" hidden>Yerel test kaydını sıfırla</button>
     </div>
   </section>
 
@@ -119,19 +138,19 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261004u"></script>
-  <script src="js/veri.js?v=20261004u"></script>
-  <script src="js/baraj.js?v=20261004u"></script>
-  <script src="js/model3d.js?v=20261004u"></script>
-  <script src="js/kaleci.js?v=20261004u"></script>
-  <script src="js/ucus.js?v=20261004u"></script>
-  <script src="js/fizik.js?v=20261004u"></script>
-  <script src="js/puan.js?v=20261004u"></script>
-  <script src="js/ses.js?v=20261004u"></script>
-  <script src="js/futbolcu3d.js?v=20261004u"></script>
-  <script src="js/cizim.js?v=20261004u"></script>
-  <script src="js/canli.js?v=20261004u"></script>
-  <script src="js/oyun.js?v=20261004u"></script>
+  <script src="js/ayar.js?v=20261004v"></script>
+  <script src="js/veri.js?v=20261004v"></script>
+  <script src="js/baraj.js?v=20261004v"></script>
+  <script src="js/model3d.js?v=20261004v"></script>
+  <script src="js/kaleci.js?v=20261004v"></script>
+  <script src="js/ucus.js?v=20261004v"></script>
+  <script src="js/fizik.js?v=20261004v"></script>
+  <script src="js/puan.js?v=20261004v"></script>
+  <script src="js/ses.js?v=20261004v"></script>
+  <script src="js/futbolcu3d.js?v=20261004v"></script>
+  <script src="js/cizim.js?v=20261004v"></script>
+  <script src="js/canli.js?v=20261004v"></script>
+  <script src="js/oyun.js?v=20261004v"></script>
 </body>
 </html>
 
