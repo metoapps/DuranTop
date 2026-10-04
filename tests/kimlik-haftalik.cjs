@@ -28,9 +28,9 @@ const A=(await api({action:'login',player:'meto',password:code})).data.session,B
 assert(A&&B&&A!==B);const week=(await api({action:'create'},A)).data;assert.equal(week.room.id,(await api({action:'create'},B)).data.room.id);assert.equal(week.room.version,8);
 const room=week.room.id;assert.equal((await api({action:'join',room,player:'meto'},B)).data.code,'FORBIDDEN');assert.equal((await api({action:'join',room,player:'meto'})).data.code,'LOGIN');
 for(const [session,player] of [[A,'meto'],[B,'lort']])assert.equal((await api({action:'join',room,player},session)).status,200);
-const shot={rules:2,action:'shot',room,player:'meto',idx:0,aim:{x:3.15,y:1.1},contact:{x:0,y:0},zaman:.5,guc:1,durus:0};assert.equal((await api(shot,B)).data.code,'FORBIDDEN');assert.equal(members[0].idx,0);
+const shot={rules:3,action:'shot',room,player:'meto',idx:0,aim:{x:3.15,y:1.1},contact:{x:0,y:0},zaman:.5,guc:1,durus:0};assert.equal((await api(shot,B)).data.code,'FORBIDDEN');assert.equal(members[0].idx,0);
 assert.equal((await api({...shot,rules:1},A)).data.code,'CLIENT_VERSION');
-let first;for(let idx=0;idx<10;idx++){const r=await api({...shot,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.data.entry.input.rules,2);if(!idx)first=r.data.entry;}
+let first;for(let idx=0;idx<10;idx++){const r=await api({...shot,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.data.entry.input.rules,3);if(!idx)first=r.data.entry;}
 assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].idx,10);assert.equal((await api({...shot,idx:10},A)).data.code,'INPUT');
 const C=(await api({action:'login',player:'meto',password:code})).data.session;const st=(await api({action:'create'},C)).data;assert.equal(st.players.find(p=>p.mine).idx,10,'second device cannot reset weekly rights');
 const publicState=(await api({action:'state',room})).data;assert.equal(publicState.weekly.find(p=>p.player==='meto').idx,10);assert(!JSON.stringify(publicState).includes('"input"'));assert(!JSON.stringify(publicState).includes('credential_hash'));

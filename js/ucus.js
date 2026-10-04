@@ -32,8 +32,15 @@ function temizHiz(pos,aim){var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y].join(':'),
  for(var i=0;i<9;i++){var f=integrate({bx:pos.bx,D:pos.D+A.kale.topYaricap,tip:pos.tip},v,[0,0,0],{zemin:false}),dx=aim.x-f.son.x,dy=aim.y-f.son.y;if(Math.abs(dx)+Math.abs(dy)<1e-5)break;v[0]+=dx/f.T;v[1]+=dy/f.T;}
  if(cache.size>=128)cache.clear();cache.set(key,v.slice());return v;
 }
-function launch(pos,aim,contact,hata,quality,noise,baseOverride,airOnly){var x=contact.x||0,y=contact.y||0,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}var base=baseOverride||temizHiz(pos,aim),power=(.60+.40*quality)*Math.sqrt(1-.35*(x*x+y*y));
+function launch(pos,aim,contact,hata,quality,noise,baseOverride,airOnly,temasFizigi){var x=contact.x||0,y=contact.y||0,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}var base=baseOverride||temizHiz(pos,aim),power=(.60+.40*quality)*Math.sqrt(1-.35*(x*x+y*y));
  var v=base.map(function(a){return a*power;});v[0]+=hata*2+(1-quality)*.55*noise();v[1]+=hata*2.5-y*1.6;
+ if(temasFizigi&&y<0){
+  // Getting under the ball raises launch angle; the stronger strike carries it higher.
+  // Rotate the velocity, preserving its magnitude instead of adding free energy.
+  var horizontal=Math.hypot(v[0],v[2]),speed=Math.hypot.apply(null,v),pitch=Math.atan2(v[1],horizontal);
+  var loft=(-y)*(-y)*.50*(.55+.45*Math.min(1.2,speed/25)),newPitch=Math.min(1.25,pitch+loft),ratio=speed*Math.cos(newPitch)/Math.max(horizontal,1e-9);
+  v[0]*=ratio;v[2]*=ratio;v[1]=speed*Math.sin(newPitch);
+ }
  var forward=unit(v),right=unit(cross([0,1,0],forward)),up=cross(forward,right),R=A.kale.topYaricap;
  // Contact radius in the plane perpendicular to the kick. Central contact has zero torque.
  var radius=forward.map(function(a,i){return R*(-Math.sqrt(1-x*x-y*y)*a+x*right[i]+y*up[i]);});
@@ -41,26 +48,29 @@ function launch(pos,aim,contact,hata,quality,noise,baseOverride,airOnly){var x=c
  var endPos={bx:pos.bx,D:pos.D+R,tip:pos.tip};var flight=integrate(endPos,v,omega,{zemin:!airOnly});flight.initialVelocity=v.slice();flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=Math.hypot.apply(null,v);flight.contact={x:x,y:y};return flight;
 }
 var aimedCache=new Map();
-function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc,kontrollu){
+function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc,kontrollu,temasFizigi){
  var chosen=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
  // Aim at the chosen forward speed: lower speed needs more loft.
  // Very weak shots may still fall short. Do not warp a sampled flight.
  var adjusted=kontrollu&&chosen>=.55&&chosen<1;
- var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y,contact.x,contact.y,adjusted?chosen:'legacy'].join(':'),base=aimedCache.get(key);
+ var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y,contact.x,contact.y,adjusted?chosen:'legacy',temasFizigi?'contact3':'contact2'].join(':'),base=aimedCache.get(key);
  if(!base){base=temizHiz(pos,aim).map(function(v){return adjusted?v*chosen:v;});
-  // Solve the launch impulse, never bend the sampled path back towards its target.
+  // Only a clean central strike is aimed at the marker. Off-centre contact must
+  // alter the launch/spin and landing point, never be cancelled by inverse aiming.
+  var calibrated=temasFizigi?{x:0,y:0}:contact;
+  // Historical rules still solve using their original contact for exact replays.
   for(var i=0;i<8;i++){
-   var f=launch(pos,aim,contact,0,1,function(){return 0;},base,true),dx=aim.x-f.son.x,dy=aim.y-f.son.y;
+   var f=launch(pos,aim,calibrated,0,1,function(){return 0;},base,true),dx=aim.x-f.son.x,dy=aim.y-f.son.y;
    if(Math.hypot(dx,dy)<.002)break;
    var vx=base.slice(),vy=base.slice();vx[0]+=.05;vy[1]+=.05;
-   var fx=launch(pos,aim,contact,0,1,function(){return 0;},vx,true),fy=launch(pos,aim,contact,0,1,function(){return 0;},vy,true);
+   var fx=launch(pos,aim,calibrated,0,1,function(){return 0;},vx,true),fy=launch(pos,aim,calibrated,0,1,function(){return 0;},vy,true);
    var a=(fx.son.x-f.son.x)/.05,b=(fy.son.x-f.son.x)/.05,c=(fx.son.y-f.son.y)/.05,d=(fy.son.y-f.son.y)/.05,det=a*d-b*c;
    if(Math.abs(det)<1e-6)break;
    base[0]+=Math.max(-8,Math.min(8,(dx*d-b*dy)/det));base[1]+=Math.max(-8,Math.min(8,(a*dy-dx*c)/det));
   }
   if(aimedCache.size>=128)aimedCache.clear();aimedCache.set(key,base.slice());
  }
- return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return adjusted?v:v*chosen;}));
+ return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return adjusted?v:v*chosen;}),false,temasFizigi);
 }
 DT.ucus={hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);
