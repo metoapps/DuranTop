@@ -37,7 +37,7 @@
     var kontrolSapmasi=hata*DT.koseBandi(aim)/bant;
     var bandaGirdi = zamanVar && Math.abs(hata) <= bant;
     var quality = Math.exp(-Math.pow(hata / (0.18*bant/A.zaman.bant), 2));
-    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
+    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.takipFizigi===true) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
     var cx=flight.contact.x,cy=flight.contact.y,bx=pos.bx,D=pos.D,T=flight.T,dt=1/120,ornekler=flight.yol;
     var ax=flight.son.x,ay=flight.son.y;
 
@@ -58,7 +58,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true});
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,D:D});
     plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;
@@ -74,13 +74,14 @@
           var aa=dx*dx+dz*dz,bb=2*(a*dx+b*dz),cc=a*a+b*b-bolge*bolge,disc=bb*bb-4*aa*cc;
           if(aa<1e-12||disc<0)return;var u=cc<=0?0:(-bb-Math.sqrt(disc))/(2*aa);if(u<0||u>1)return;
           var at={t:p.t+(q.t-p.t)*u,x:p.x+delta.x*u,y:p.y+delta.y*u,z:p.z+delta.z*u};
-          if(axis==='y'&&(at.y<0||at.y>H))return;if(axis==='x'&&Math.abs(at.x)>yari)return;
+          if(axis==='y'&&(at.y<0||at.y>H+(girdi.takipFizigi?A.kale.direk/2:0)))return;if(axis==='x'&&Math.abs(at.x)>yari+(girdi.takipFizigi?A.kale.direk/2:0))return;
           var n=[0,0,at.z-D];n[k==='x'?0:1]=at[k]-center;var len=Math.hypot.apply(null,n);n=n.map(v=>v/Math.max(len,1e-9));
           var v=[delta.x,delta.y,delta.z].map(v=>v/(q.t-p.t));var dot=v.reduce((sum,v,j)=>sum+v*n[j],0);
           if(dot>=0)return;v=v.map((v,j)=>v-1.55*dot*n[j]);
           if(!first||at.t<first.at.t)first={at:at,index:i,label:label,velocity:v,normal:n};
         }
-        cylinder('y',-yari,'yan');cylinder('y',yari,'yan');cylinder('x',H,'ust');
+        var offset=girdi.takipFizigi?A.kale.direk/2:0;
+        cylinder('y',-yari-offset,'yan');cylinder('y',yari+offset,'yan');cylinder('x',H+offset,'ust');
         if(first)return first;
       }return null;
     }

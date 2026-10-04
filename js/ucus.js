@@ -84,8 +84,8 @@ function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc,kontrollu,temasFiz
 // Rules 5: finite kick energy. The aim selects the low central-contact arc;
 // it never changes the available speed or cancels off-centre spin.
 var energyAimCache=new Map();
-function fixedDirection(pos,aim,speed){
- var key=[pos.bx,pos.D,aim.x,aim.y,speed].join(':'),saved=energyAimCache.get(key);if(saved)return saved.slice();
+function fixedDirection(pos,aim,speed,tracked){
+ var key=[pos.bx,pos.D,aim.x,aim.y,speed,tracked?6:5].join(':'),saved=energyAimCache.get(key);if(saved)return saved.slice();
  var yaw=Math.atan2(aim.x-pos.bx,pos.D+A.kale.topYaricap),end={bx:pos.bx,D:pos.D+A.kale.topYaricap};
  function vector(p){return [speed*Math.cos(p)*Math.sin(yaw),speed*Math.sin(p),speed*Math.cos(p)*Math.cos(yaw)];}
  function trial(p){var f=integrate(end,vector(p),[0,0,0],{zemin:false});return {p:p,f:f,error:f.son.y-aim.y};}
@@ -94,13 +94,25 @@ function fixedDirection(pos,aim,speed){
   if(candidate.f.reached&&lower.f.reached&&lower.error<=0&&candidate.error>=0){upper=candidate;break;}lower=candidate;
  }
  if(upper){for(var j=0;j<22;j++){var middle=trial((lower.p+upper.p)/2);if(middle.error<0)lower=middle;else upper=middle;}best=trial((lower.p+upper.p)/2);}
+ if(tracked&&!upper){
+  // Unreachable airborne target: maximize first-landing range, never compare
+  // a below-ground endpoint to a goal-height target. Keep available speed.
+  var range=-1;
+  for(var k=0;k<=30;k++){var angle=k*Math.PI/120,f=trial(angle).f,dist=0;
+   for(var n=1;n<f.yol.length;n++){var a=f.yol[n-1],b=f.yol[n];
+    if(b.y<=A.kale.topYaricap){var u=(a.y-A.kale.topYaricap)/Math.max(a.y-b.y,1e-12);dist=a.z+(b.z-a.z)*u;break;}
+    dist=b.z;
+   }
+   if(dist>range){range=dist;best={p:angle};}
+  }
+ }
  var answer=vector(best.p);if(energyAimCache.size>=128)energyAimCache.clear();energyAimCache.set(key,answer);return answer.slice();
 }
-function energyLaunch(pos,aim,contact,hata,quality,noise,guc){
+function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked){
  var power=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
  var x=contact.x||0,y=contact.y||0,r=Math.hypot(x,y);if(r>.85){x*=.85/r;y*=.85/r;r=.85;}
  var R=A.kale.topYaricap,m=A.aerodinamik.kutle,inertia=(2/3)*m*R*R;
- var nominal=A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal);
+ var nominal=A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal,tracked);
  var yaw=Math.atan2(clean[0],clean[2])+hata*.14+(1-quality)*.010*noise();
  var pitch=Math.atan2(clean[1],Math.hypot(clean[0],clean[2]));
  // Under-ball shoe path is an explicit game technique assumption. Contact

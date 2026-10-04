@@ -12,7 +12,7 @@ for(const pos of positions)for(const from of [-1,0,1])for(const to of [-1,0,1]){
  const first=D.placement(pos,{direction:to,walk:{from,to,u:0}}),last=D.placement(pos,{direction:to,walk:{from,to,u:1}}),idle=D.placement(pos,{direction:to});
  assert(Math.hypot(...last.point.map((x,j)=>x-idle.point[j]))<1e-12,'end of walking persists into idle');
  assert(Math.abs(Math.hypot(...last.point.map((x,j)=>x-first.point[j]))-Math.abs(to-from)*.35)<1e-10,'actual body displacement, not in-place stepping');
- for(const dir of [-1,0,1]){let shot={elapsed:1.15,windup:1.15},P=D.placement(pos,{direction:dir,shot}),R=D.rig({direction:dir,shot,kick:P.kick}),foot=world(P,R.nodes.fr);assert(Math.hypot(foot[0]-pos.bx,foot[1],foot[2])<1e-8,'same world contact point for every stance');}
+ for(const dir of [-1,0,1]){let shot={elapsed:1.15,windup:1.15},P=D.placement(pos,{direction:dir,shot}),R=D.rig({direction:dir,shot,kick:P.kick}),foot=world(P,R.nodes.fr);const toe=world(P,[R.nodes.fr[0],R.nodes.fr[1]-1,R.nodes.fr[2]+44]);assert(Math.abs(toe[1]-.11)<1e-8,'toe at ball height');assert(Math.abs(Math.hypot(toe[0]-pos.bx,toe[2])-.11)<1e-8,'toe touches rear sphere, ankle stays outside');}
 }
 assert(worst<1e-8,'support foot stays still on the pitch throughout walking');
 console.log('PASS SI height, 54 stance paths, persistent translation, stationary support feet, actual kick contact; max support drift '+worst.toExponential(2)+' m');

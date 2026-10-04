@@ -232,7 +232,7 @@
   }
   function kaleArka(g) {
     if(kaleArkaCache){var cache=kaleArkaCache;g.drawImage(cache.canvas,cache.x,cache.y,cache.w,cache.h);return;}
-    var D=pos.D,w=A.kale.genislik/2,h=A.kale.yukseklik,depth=1.5,z=D+depth;
+    var D=pos.D,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2,depth=1.5,z=D+depth;
     var corners=[];[-w-.2,w+.45].forEach(function(x){[0,h+.12].forEach(function(y){[D,z+.6].forEach(function(zz){corners.push(izdus(x,y,zz));});});});
     var left=Math.max(0,Math.floor(Math.min.apply(null,corners.map(function(p){return p.x;}))-5)),top=Math.max(0,Math.floor(Math.min.apply(null,corners.map(function(p){return p.y;}))-5));
     var width=Math.min(W-left,Math.ceil(Math.max.apply(null,corners.map(function(p){return p.x;}))-left+5)),height=Math.min(H-top,Math.ceil(Math.max.apply(null,corners.map(function(p){return p.y;}))-top+5));
@@ -265,7 +265,7 @@
     kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
   }
   function kaleOn(g) {
-    var D=pos.D,w=A.kale.genislik/2,h=A.kale.yukseklik;
+    var D=pos.D,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2;
     kaleBoru(g,[-w,0,D],[-w,h,D],A.kale.direk,false);
     kaleBoru(g,[w,0,D],[w,h,D],A.kale.direk,false);
     kaleBoru(g,[-w,h,D],[w,h,D],A.kale.direk,false);

@@ -21,7 +21,7 @@ function placement(pos,o){
  else if(shot&&p<.66)gait={u:p/.66,start:start,end:end,yaw0:base+(o.direction||0)*.40,yaw1:launch};
  if(gait&&shot)gait.finishLeft=[-50,28];
  if(gait){gait.steps=Math.max(2,Math.ceil(Math.hypot(gait.end[0]-gait.start[0],gait.end[1]-gait.start[1])/.22));if(gait.steps%2)gait.steps++;}
- return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?clamp((p-.66)/.34,0,1):0};
+ return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?(p>=1?1:clamp((p-.66)/.34,0,1)):0};
 }
 function gaitFeet(g){
  var u=clamp(g.u,0,1),e=ease(u),root=[mix(g.start[0],g.end[0],e),mix(g.start[1],g.end[1],e)],yaw=mix(g.yaw0,g.yaw1,e);
@@ -50,9 +50,19 @@ function rig(o){
   if(o.kick!==undefined)feet[0]=[-50,8,28];
   var b=progress<1?Math.sin(progress*Math.PI/2):Math.exp(-post*6),lean=progress<1?Math.sin(progress*Math.PI)*8:-Math.sin(Math.min(1,post/.55)*Math.PI)*10;
   nodes.chest[2]=lean;nodes.neck[2]=lean;nodes.head[2]=lean;
-  if(progress<.60){var q=ease(progress/.60);feet[1]=[24,8+q*35,-q*55];}
-  else if(progress<1){var q=ease((progress-.60)/.40);feet[1]=[mix(24,0,q),mix(43,8,q),mix(-55,28,q)];}
-  else {var q=ease(post/.27),settle=ease((post-.27)/.45);feet[1]=[mix(0,24,settle),8+Math.sin(Math.PI*q/2)*55*(1-settle),mix(28,80,q)*(1-settle)];}
+  // At impact the toe touches the rear ball surface at ball-centre height.
+  // The ankle is behind it, never at the ball centre. Cubic downswing retains
+  // a nonzero toe velocity through contact, then decelerates in follow-through.
+  var hit=[0,8+.11/UNIT+1,28-44-.11/UNIT];
+  if(progress<.60){var q=ease(progress/.60);feet[1]=[mix(24,8,q),mix(8,55,q),mix(0,-112,q)];}
+  else if(progress<1){var q=Math.pow((progress-.60)/.40,3);feet[1]=[mix(8,hit[0],q),mix(55,hit[1],q),mix(-112,hit[2],q)];}
+  else {
+   var span=(shot.windup||.85)*.34*.40,speed=(hit[2]+112)*3/span;
+   var follow=Math.min(.11,2*(55-hit[2])/speed),q=clamp(post/follow,0,1),z=hit[2]+speed*follow*(q-q*q/2);
+   var settle=ease((post-follow)/.42),plantZ=z;
+   feet[1]=[mix(0,24,settle),mix(hit[1]+Math.sin(q*Math.PI/2)*28,8,settle),plantZ];
+   // Once planted the foot remains there; no ground sliding back to idle.
+  }
   nodes.el=[-65,199+20*b,-10-25*b];nodes.er=[65,199-12*b,10+25*b];nodes.hl=[-68,145+20*b,-20-30*b];nodes.hr=[68,145-12*b,20+30*b];
  }else{var swing=o.gait?Math.sin(Math.PI*o.gait.steps*o.gait.u)*Math.sin(Math.PI*o.gait.u)*18:(walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0);nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}
  [-1,1].forEach(function(side,i){var h=[side*24,nodes.hip[1],0],sol=knee(h,feet[i]),suffix=i?'r':'l';nodes['hip'+suffix]=h;nodes['k'+suffix]=sol.knee;nodes['f'+suffix]=sol.foot;});

@@ -14,6 +14,7 @@ function oku(yol,t){
  var rem=(end.z-b.z)/vz;return {x:b.x+vx*rem,y:b.y+vy*rem-.5*A.yercekimi*rem*rem,t:b.t,arrival:b.t+rem};
 }
 function planla(target,tip,practice,noise,T,options){
+ if(options&&options.takipFizigi)return takipPlan(tip,practice,noise,options);
  var K=A.kaleci,reaction=K.tepki[tip]+(practice?A.antrenman.tepkiEk:0);
  options=options||{};var decision=options.decision===undefined?1:options.decision;
  var okumaT=Math.min(reaction+K.okumaGecikme[tip],T*.85),seen=oku(options.yol,okumaT);
@@ -44,6 +45,67 @@ function planla(target,tip,practice,noise,T,options){
  function cizimKonum(t){return konum(t);}
 
  return {yanlisKose:wrong,merkezHatasi:lapse,eylem:action,tepki:reaction,okumaT:okumaT,sans:sans,konum:konum,cizimKonum:cizimKonum,hedefX:endX,hedefY:endY,okunanX:gx,okunanY:gy};
+}
+// Rules 6: observations contain only past samples. The goal plane is known
+// field geometry; the actual landing point/flight duration are never inputs.
+function gozlem(path,t,D){
+ var i=0;while(i+1<path.length&&path[i+1].t<=t+1e-10)i++;
+ if(i<12||t-path[i].t>.025)return null;
+ var b=path[i],a=path[i-6],c=path[i-12],dt=b.t-a.t,dt0=a.t-c.t;
+ if(dt<.001||dt0<.001)return null;
+ var v=['x','y','z'].map(k=>(b[k]-a[k])/dt),prev=['x','y','z'].map(k=>(a[k]-c[k])/dt0);
+ var acc=v.map((x,j)=>clamp((x-prev[j])/((dt+dt0)/2),-20,20));
+ v=v.map((x,j)=>x+acc[j]*dt/2);
+ // Ground impact is an impulse, not a sustained upward acceleration.
+ if(b.y<=.115){v[1]=0;acc[1]=0;}else if(acc[1]>0){var q=path[i-2];v[1]=(b.y-q.y)/(b.t-q.t);acc[1]=-A.yercekimi;}
+ if(v[2]<=.1||b.z>=D)return null;
+ var remain=clamp((D-b.z)/v[2],0,2),x=b.x,y=b.y,z=b.z;
+ // Short forward estimate using the acceleration visible in recent motion.
+ // Lateral curvature decays with air speed; no access to hidden ball spin.
+ for(var elapsed=0;elapsed<2&&z<D;elapsed+=.025){var h=Math.min(.025,(D-z)/Math.max(v[2],.1));
+  x+=v[0]*h+.5*acc[0]*h*h;y+=v[1]*h+.5*acc[1]*h*h;z+=v[2]*h+.5*acc[2]*h*h;
+  v=v.map((q,j)=>q+acc[j]*h);acc[0]*=.985;acc[2]*=.985;
+  if(y<.11){y=.11;v[1]=Math.max(0,-v[1]*.35);acc[1]=-A.yercekimi;}
+  remain=elapsed+h;if(v[2]<=.1)break;
+ }
+ return {x:x,y:y,t:b.t,arrival:b.t+remain};
+}
+function takipPlan(tip,practice,noise,o){
+ var K=A.kaleci,first=K.tepki[tip]+K.okumaGecikme[tip]+(practice?A.antrenman.tepkiEk:0);
+ var nx=noise()*K.hedefGurultuX,ny=noise()*K.hedefGurultuY,decision=o.decision===undefined?1:o.decision;
+ var vmax=(tip==='frikik'?K.frikikHiz:K.penaltiHiz)-(practice?A.antrenman.hizAzalt:0);
+ var segments=[],wrong=false,lapse=false,chosen=false,reads=[];
+ function idle(){return {x:0,y:1,poz:'bekle',yon:0,ilerleme:0,eylem:'bekle',eskiKol:false,low:false,high:false,block:0,landing:false,recovery:0,airborne:false};}
+ function sample(seg,t){
+  if(!seg)return idle();var u=clamp((t-seg.start)/seg.duration,0,1),e=u*u*(3-2*u),dive=seg.action==='dal'&&u>.18;
+  var ground=dive?.30:(seg.gy<.6?.72:1),y=seg.origin.y+(seg.y-seg.origin.y)*e,end=seg.start+seg.duration;
+  if(u===1)y=Math.max(ground,y-.5*A.yercekimi*Math.pow(Math.max(0,t-end-.04),2));
+  var landingT=end+.04+Math.sqrt(2*Math.max(0,seg.y-ground)/A.yercekimi),landed=u===1&&y<=ground+1e-6;
+  var recovery=landed?clamp((t-landingT-.22)/1.15,0,1):0;if(recovery)y=ground+(1-ground)*recovery;
+  return {x:seg.origin.x+(seg.x-seg.origin.x)*e,y:y,poz:dive&&recovery<1?'dal':'bekle',yon:dive?seg.dir:0,
+   ilerleme:u,eylem:seg.action,eskiKol:false,low:seg.gy<.6&&recovery<1,high:seg.gy>1.75&&t<end+.6,
+   block:tip==='frikik'&&seg.central&&!lapse?Math.min(1,u*2):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed};
+ }
+ for(var t=first;t<=8;t+=.10){
+  var old=segments[segments.length-1],current=sample(old,t);
+  // Once a dive starts its momentum is committed. No mid-air teleport/reversal.
+  if(old&&current.poz==='dal')break;
+  var seen=gozlem(o.yol||[],t,o.D);if(!seen)continue;
+  var gx=seen.x+nx,gy=clamp(seen.y+ny,.15,2.6),central=Math.abs(gx)<=K.merkezEsik;
+  if(!chosen){wrong=tip==='penalti'&&!central&&decision<K.penaltiYanlisKose;lapse=tip==='frikik'&&central&&decision<K.frikikMerkezHatasi;chosen=true;}
+  if(wrong)gx=-gx;if(lapse)gx=(decision<K.frikikMerkezHatasi/2?-1:1)*3;
+  var dir=gx<current.x?-1:1,action=Math.abs(gx-current.x)<K.merkezEsik?'bekle':'dal';
+  var x=action==='dal'?clamp(gx-dir*K.elMenzili,-2.85,2.85):clamp(gx,-2.85,2.85);
+  var y=action==='dal'?clamp(gy-.16,.30,1.7):(gy<.6?.72:(gy>1.75?1.35:1));
+  // Smoothstep peak speed is 1.5 times average. Bound body speed accordingly.
+  var duration=K.hareketSabit+1.5*Math.hypot(x-current.x,y-current.y)/vmax;
+  var seg={at:t,start:Math.max(t,seen.arrival-duration-.09),duration:duration,origin:current,x:x,y:y,gy:gy,dir:dir,central:central,action:action};
+  segments.push(seg);reads.push({t:t,x:gx,y:gy});
+ }
+ function konum(t){var seg=null;for(var i=0;i<segments.length&&segments[i].at<=t;i++)seg=segments[i];return sample(seg,t);}
+ var last=segments[segments.length-1];
+ return {yanlisKose:wrong,merkezHatasi:lapse,eylem:last?last.action:'bekle',tepki:K.tepki[tip],okumaT:first,sans:true,
+  konum:konum,cizimKonum:konum,hedefX:last?last.x:0,hedefY:last?last.y:1,okunanX:reads.length?reads[reads.length-1].x:0,okunanY:reads.length?reads[reads.length-1].y:1,gozlemler:reads};
 }
 function model(k){
  if(k.poz!=='dal')return {w:1.25,h:1.85,shapes:[[-.32,-.84,.32,.75]], hands:[[-.46,.0], [.46,.0]], pose:k.saved?2:(k.low?1:0)};
