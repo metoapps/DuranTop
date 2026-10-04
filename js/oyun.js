@@ -152,7 +152,7 @@
   function girisBagla() {
     var cv = $('sahne'), basili = false;
     cv.addEventListener('pointerdown', function (e) {
-      if (d.faz !== 'nisan' || !d.durusHazir || d.kilit) return;
+      if (d.faz !== 'nisan' || !d.durusHazir || !d.gucHazir || d.kilit) return;
       basili = true; try { cv.setPointerCapture(e.pointerId); } catch (x) { /* yok say */ }
       nisanGuncelle(e);
     });
@@ -168,8 +168,8 @@
     d.onizleme = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
-  function bantGuncelle(){var bant=DT.zamanBandi(d.aim);$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
-    $('cubukYazi').textContent=bant<A.zaman.bant*.85?'Keskin köşe · Yeşil dar: hassas zamanlama gerekiyor':'Yeşil: hızlı ve isabetli · Kaçırırsan hız ve isabet düşer';
+  function bantGuncelle(){var bant=DT.zamanBandi(d.aim,d.guc);$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
+    $('cubukYazi').textContent='%'+Math.round(d.guc*100)+' güç · '+(d.guc>=.9?'Sert vuruş: dar yeşil, hatada daha fazla sapma':d.guc<=.7?'Kontrollü vuruş: daha geniş yeşil, kaleciye daha fazla süre':'Güç arttıkça isabet zorlaşır')+(DT.koseBandi(d.aim)<A.zaman.bant*.85?' · Hassas köşe: bant daha dar':'');
   }
   function kilitle(yenilenmis) {
     bantGuncelle();
@@ -177,8 +177,8 @@
     onizlemeHesapla();
     $('ipucu').hidden = true;
     $('alt').hidden = !d.temasHazir||!d.gucHazir;
-    $('gucPanel').hidden=!d.temasHazir||d.gucHazir;
-    $('temasPanel').hidden = d.temasHazir; temasCiz();
+    $('gucPanel').hidden=d.gucHazir;
+    $('temasPanel').hidden = !d.gucHazir||d.temasHazir; temasCiz();
     $('cubukKutu').hidden = !cubukAktif();
     $('duzeltBtn').textContent = 'Nişanı değiştir (' + d.duzeltHak + ')';
     $('duzeltBtn').disabled = d.duzeltHak <= 0;
@@ -195,7 +195,7 @@
   }
   function duzelt() {
     if (!d.kilit || d.duzeltHak <= 0 || d.faz !== 'nisan') return;
-    d.duzeltHak--; d.kilit = false; d.temasHazir = false;d.gucHazir=false;$('gucPanel').hidden=true; $('temasPanel').hidden = true;
+    d.duzeltHak--; d.kilit = false; d.temasHazir = false;$('gucPanel').hidden=true; $('temasPanel').hidden = true;
     $('alt').hidden = true; $('ipucu').hidden = false;
     $('ipucu').textContent = 'Yeniden dokun, sürükle, bırak. Bu son düzeltme.';
     acikKaydet();
@@ -227,7 +227,7 @@
       DT.live.shot(d.karakter,d.idx,girdi).then(function(entry){
         if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
-        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules===2;
         vurusUygula(girdi,entry);
       }).catch(function(e){d.faz='nisan';$('vurBtn').disabled=false;$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
@@ -262,7 +262,7 @@
   var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
   function cizimDurumu(now) {
-    if(d.yurume&&now-d.yurume.t0>=1100){d.yurume=null;d.durusHazir=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç.';} 
+    if(d.yurume&&now-d.yurume.t0>=1100){d.yurume=null;d.durusHazir=true;$('gucPanel').hidden=false;$('ipucu').hidden=true;} 
     var R = A.kale.topYaricap, pos = d.pos;
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
@@ -405,14 +405,14 @@
   function kadroDoldur() {
     var k = $('kadro'); k.innerHTML = '';
     DT.KARAKTER.forEach(function (c) {
-      var im = doc.createElement('img'); im.alt = ''; im.src = 'assets/menu/' + c.id + '_bekle.webp'; k.appendChild(im);
+      var im = doc.createElement('img'); im.alt = c.ad+' · '+c.numara+' numara';im.title=im.alt; im.src = 'assets/menu/' + c.id + '_bekle.webp'; k.appendChild(im);
     });
   }
 
   var kupaKod = '';
   function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
   function kimlikGoster(){
-    var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?'🔒 '+me.player.toUpperCase()+' · senin oyuncun':'';
+    var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?'🔒 '+me.player.toUpperCase()+' · '+DT.KARAKTER.find(function(k){return k.id===me.player;}).numara+' numara · senin oyuncun':'';
     $('btnResmi').disabled=!me;$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
   }
   function kupaGoster(){
@@ -440,9 +440,9 @@
   }
   function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
     cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});
-    $('temasOnay').addEventListener('click',function(){d.temasHazir=true;$('temasPanel').hidden=true;$('gucPanel').hidden=false;onizlemeHesapla();acikKaydet();});
+    $('temasOnay').addEventListener('click',function(){if(!d.kilit||!d.gucHazir)return;d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;bantGuncelle();d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
     $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
-    $('gucOnay').addEventListener('click',function(){d.gucHazir=true;$('gucPanel').hidden=true;$('alt').hidden=false;bantGuncelle();d.cubukBasla=simdi();acikKaydet();});
+    $('gucOnay').addEventListener('click',function(){if(!d.durusHazir)return;d.gucHazir=true;$('gucPanel').hidden=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç. Sert vuruş ve hassas köşe daha zor.';if(d.kilit)kilitle(true);acikKaydet();});
     $('durusAc').addEventListener('click',function(){if(d.faz!=='nisan'||d.durusHazir)return;$('hazirlikPanel').hidden=true;$('durusPanel').hidden=false;$('ipucu').hidden=true;});
     [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }

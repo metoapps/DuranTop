@@ -41,9 +41,13 @@ function launch(pos,aim,contact,hata,quality,noise,baseOverride,airOnly){var x=c
  var endPos={bx:pos.bx,D:pos.D+R,tip:pos.tip};var flight=integrate(endPos,v,omega,{zemin:!airOnly});flight.initialVelocity=v.slice();flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=Math.hypot.apply(null,v);flight.contact={x:x,y:y};return flight;
 }
 var aimedCache=new Map();
-function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc){
- var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y,contact.x,contact.y].join(':'),base=aimedCache.get(key);
- if(!base){base=temizHiz(pos,aim).slice();
+function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc,kontrollu){
+ var chosen=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
+ // Aim at the chosen forward speed: lower speed needs more loft.
+ // Very weak shots may still fall short. Do not warp a sampled flight.
+ var adjusted=kontrollu&&chosen>=.55&&chosen<1;
+ var key=[pos.bx,pos.D,pos.tip,aim.x,aim.y,contact.x,contact.y,adjusted?chosen:'legacy'].join(':'),base=aimedCache.get(key);
+ if(!base){base=temizHiz(pos,aim).map(function(v){return adjusted?v*chosen:v;});
   // Solve the launch impulse, never bend the sampled path back towards its target.
   for(var i=0;i<8;i++){
    var f=launch(pos,aim,contact,0,1,function(){return 0;},base,true),dx=aim.x-f.son.x,dy=aim.y-f.son.y;
@@ -56,8 +60,7 @@ function hedefliLaunch(pos,aim,contact,hata,quality,noise,guc){
   }
   if(aimedCache.size>=128)aimedCache.clear();aimedCache.set(key,base.slice());
  }
- var chosen=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
- return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return v*chosen;}));
+ return launch(pos,aim,contact,hata,quality,noise,base.map(function(v){return adjusted?v:v*chosen;}));
 }
 DT.ucus={hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);

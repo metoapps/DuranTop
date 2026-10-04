@@ -8,11 +8,11 @@
   DT.SPRITE = { genislik: 900, yukseklik: 560, ankrajX: 450, ankrajY: 540, boy: 474 };
 
   DT.KARAKTER = [
-    { id: 'meto',  ad: 'METO',  renk: '#e63946' },
-    { id: 'lort',  ad: 'LORT',  renk: '#2f6fed' },
-    { id: 'fero',  ad: 'FERO',  renk: '#e8e8e8' },
-    { id: 'latte', ad: 'LATTE', renk: '#d7263d' },
-    { id: 'josh',  ad: 'JOSH',  renk: '#7b3fe4' }
+    { id: 'meto', numara: 10,  ad: 'METO',  renk: '#e63946' },
+    { id: 'lort', numara: 28,  ad: 'LORT',  renk: '#2f6fed' },
+    { id: 'fero', numara: 35,  ad: 'FERO',  renk: '#e8e8e8' },
+    { id: 'latte', numara: 60, ad: 'LATTE', renk: '#d7263d' },
+    { id: 'josh', numara: 31,  ad: 'JOSH',  renk: '#7b3fe4' }
   ];
 
   DT.POZ = ['bekle', 'sevinc', 'kacirma', 'vurus1', 'vurus2', 'vurus3'];

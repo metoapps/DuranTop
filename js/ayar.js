@@ -57,10 +57,14 @@
     zamanCubuguSuresi: 0.80   // çubuğun bir yönde gidiş süresi (s)
   };
   // Shared by the visible bar, launch quality and server-side bonus calculation.
-  DT.zamanBandi=function(aim){var base=DT.AYAR.zaman.bant;if(!aim)return base;
+  DT.koseBandi=function(aim){var base=DT.AYAR.zaman.bant;if(!aim)return base;
     function clamp(v){return Math.max(0,Math.min(1,v));}
     var side=clamp((Math.abs(aim.x)-2.45)/.85),top=clamp((aim.y-1.65)/.55),bottom=clamp((.70-aim.y)/.50);
     return base*(1-.48*side*Math.max(top,bottom));
+  };
+  // Undefined power preserves historical replay; every new shot supplies power.
+  DT.zamanBandi=function(aim,guc){var corner=DT.koseBandi(aim);if(typeof guc!=='number')return corner;
+    var t=Math.max(0,Math.min(1,(guc-.3)/.7));return corner*(1.35-.65*t*t);
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 

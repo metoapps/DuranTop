@@ -44,14 +44,14 @@ Deno.serve(async(req:Request)=>{
      const rows=await db('dt_live_players?room_id=eq.'+r.id+'&player=eq.'+b.player+'&token_hash=eq.'+h+'&select=idx,entries');if(!rows[0])fail('AUTH');
      if(b.idx<rows[0].idx)result={entry:rows[0].entries[b.idx],state:await state(r,who)};
      else{
-      if(b.idx!==rows[0].idx)fail('ORDER');const a=b.aim,c=b.contact;if(!a||!c||![a.x,a.y,c.x,c.y,b.zaman].every(Number.isFinite)||Math.abs(a.x)>4.5||a.y<.11||a.y>3.2||Math.hypot(c.x,c.y)>.851||b.zaman<0||b.zaman>1||!Number.isFinite(b.guc)||b.guc<.3||b.guc>1||![-1,0,1].includes(b.durus))fail('INPUT');
+      if(b.idx!==rows[0].idx)fail('ORDER');if(b.rules!==2)fail('CLIENT_VERSION');const a=b.aim,c=b.contact;if(!a||!c||![a.x,a.y,c.x,c.y,b.zaman].every(Number.isFinite)||Math.abs(a.x)>4.5||a.y<.11||a.y>3.2||Math.hypot(c.x,c.y)>.851||b.zaman<0||b.zaman>1||!Number.isFinite(b.guc)||b.guc<.3||b.guc>1||![-1,0,1].includes(b.durus))fail('INPUT');
       const pos=D.AYAR.pozisyonlar[b.idx],seed=await tohum((Deno.env.get('DT_SEED_SECRET')||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,r.id,b.idx),physics=D.fizik.hesapla({pos,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,antrenman:false}),p=D.puan.puanla(pos.tip,physics);
-      const entry={ad:pos.ad,sonuc:physics.sonuc,puan:p.puan,zaman:p.zaman,zor:p.zor,taban:p.taban,gol:p.gol,yesil:physics.bandaGirdi,quality:physics.quality,speed:physics.speed,input:{aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,durus:b.durus}};
+      const entry={ad:pos.ad,sonuc:physics.sonuc,puan:p.puan,zaman:p.zaman,zor:p.zor,taban:p.taban,gol:p.gol,yesil:physics.bandaGirdi,quality:physics.quality,speed:physics.speed,input:{rules:2,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,durus:b.durus}};
       const saved=await db('rpc/dt_live_save_shot','POST',{p_room:r.id,p_player:b.player,p_hash:h,p_idx:b.idx,p_entry:entry});result={entry:saved.entry,state:await state(r,who)};
      }
     }else fail('INPUT');
    }
   }
   return new Response(JSON.stringify(result),{headers});
- }catch(e){const errors:any={LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Çok fazla giriş denemesi. 15 dakika sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='DB'?503:400,headers});}
+ }catch(e){const errors:any={CLIENT_VERSION:'Oyun güncellendi. Sayfayı yenileyip devam et.',LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Çok fazla giriş denemesi. 15 dakika sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='DB'?503:400,headers});}
 });

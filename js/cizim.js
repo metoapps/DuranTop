@@ -113,7 +113,21 @@
     },function(){delete karakterIstekleri[id];karakterBekleniyor=false;yuklemeHatasi=true;yuklemeBildir();return false;});
     return karakterIstekleri[id];
   }
-  function sprite(id, poz) { return gorseller[id + '_' + poz] || null; }
+  // Render shirt numbers onto a cached canvas, then skin the complete kit during walking.
+  // Source portraits, faces and sprite assets remain intact.
+  var formalar = {};
+  function formaSprite(id, poz) {
+    var im=gorseller[id+'_'+poz]||null;if(!im||!/^vurus[123]$/.test(poz))return im;
+    var meta=DT.KARAKTER.find(function(k){return k.id===id;});if(!meta)return im;
+    var key=id+'_'+poz,cached=formalar[key];if(cached&&cached.source===im)return cached.canvas;
+    var points={meto:[[434,284],[436,280],[432,294]],lort:[[445,291],[442,289],[440,295]],fero:[[440,297],[444,294],[444,299]],latte:[[432,285],[433,289],[434,300]],josh:[[433,287],[434,285],[431,295]]};
+    var p=points[id][Number(poz.slice(-1))-1],c=yerelCanvas(S.genislik,S.yukseklik),g=c.getContext('2d');g.drawImage(im,0,0,S.genislik,S.yukseklik);
+    g.save();var frame=Number(poz.slice(-1));g.translate(p[0]+(frame===3?42:18),p[1]-(frame===3?7:0));g.rotate(frame===3?.28:frame===2?.10:-.10);g.transform(.82,.06,-.10,1,0,0);g.font='900 54px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.lineWidth=2;
+    g.strokeStyle=id==='fero'?'#f4f4f4':'#181818';g.fillStyle=id==='fero'?'#151515':id==='josh'?'#f6d278':'#f5f3eb';g.strokeText(String(meta.numara),0,0);g.fillText(String(meta.numara),0,0);g.restore();
+    formalar[key]={source:im,canvas:c};return c;
+  }
+  function sprite(id, poz) {return formaSprite(id,poz);}
+
 
   /* ---------- arka plan (her pozisyon için bir kez çizilir) ---------- */
   function rng(seed) {
@@ -334,7 +348,7 @@
     px+=(durum.durus||0)*26*(active?(1-before):1);
     if(durum.yurume&&DT.model3d.oyuncuYuru){
       var walk=durum.yurume,e=walk.u*walk.u*(3-2*walk.u);px+=(walk.from+(walk.to-walk.from)*e-(durum.durus||0))*26;
-      DT.model3d.oyuncuYuru(g,im,walk,{x:px,y:py,scale:olcek,anchorX:footX,bottom:footY,boy:S.boy,karakter:karakter});return;
+      DT.model3d.oyuncuYuru(g,im,walk,{x:px,y:py,scale:olcek,anchorX:footX,bottom:footY,boy:S.boy,karakter:karakter});g.restore();return;
     }
     g.translate(px,py);g.rotate(lean);g.scale(olcek,olcek);
     var turn=(durum.durus||0)*(active?(1-before):1);g.transform(1-.10*Math.abs(turn),0,-turn*.12,1,0,0);
@@ -513,6 +527,7 @@
     karakterHazir: karakterHazir, karakterYukle: karakterYukle,
     hazir: function () { return yuklenen >= gereken && !yuklemeHatasi; },
     gorselHazir: function (ad) { return !!gorseller[ad]; },
+    formaSprite: formaSprite,
     gorselEkle: function (ad, im) { gorseller[ad] = im; }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
