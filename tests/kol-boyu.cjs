@@ -1,0 +1,4 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),r={DT:{}};vm.createContext(r);vm.runInContext(fs.readFileSync(__dirname+'/../js/model3d.js','utf8'),r);const M=r.DT.model3d;
+let cases=0;function check(k){const n=M.rig(k,11).nodes;for(const [a,b] of [['sl','el'],['el','hl'],['sr','er'],['er','hr']])assert(Math.abs(Math.hypot(...n[a].map((x,i)=>x-n[b][i]))-.34)<1e-9,'bone length varies');for(const v of Object.values(n))assert(v.every(Number.isFinite));cases++;}
+for(let i=0;i<=100;i++){const u=i/100;for(const side of [-1,1]){check({x:side*2,y:1,poz:'dal',yon:side,ilerleme:u});check({x:side*2,y:.3+.7*u,poz:'dal',yon:side,ilerleme:1,recovery:u});}for(const flags of [{},{high:true},{low:true},{saved:true}]){check({x:0,y:1,poz:'bekle',block:u,...flags});}check({x:0,y:1,poz:'bekle',gesture:u*8.4});}
+console.log('PASS '+cases+' keeper poses: fixed 34cm upper arms/forearms in gestures, blocks, dives and recovery');

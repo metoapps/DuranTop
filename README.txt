@@ -51,3 +51,10 @@ Alttan temas, temas derinliğinin karesiyle ve hızla ölçeklenen ek çıkış 
 Yeni resmi girdiler rules=3. Eski rules=1/2 vuruşlar eski hesapla canlandırılır; kaydedilen puanlar yeniden hesaplanmaz. Yeni sunucu/istemci aynı hesabı kullanır. Eski açık sekmeler yenilenmelidir. Kimlikler ve haftalık haklar değişmez; SQL göçü yok.
 
 Kontroller: tests/temas-fizigi.cjs sağ/sol simetriyi, kenara yaklaştıkça ve mesafe arttıkça artan sapmayı, on pozisyonda tam güçlü alt temasın aut/0 puan olmasını, merkez nişan doğruluğunu ve eski girdi uyumunu doğrular. Akış, özel kimlik ve fizik regresyonları da çalıştırıldı. Gerçek iPhone/Safari bu sürümde burada denenmedi.
+
+## Yön seçimi ve sabit uzunluklu kollar (20261004m)
+Sağa dön seçimi sağa bakan şutçu pozu, sola dön seçimi sola bakan poz verir. Yön yalnız duruş seçimine bağlıdır; kale hedefi karakteri çevirmez. Yürüyüşte kök konumu iki duruş arasında taşınır ve dönüş ortasında gövde incelerek yön değiştirir; bacak hareketi korunur. Forma numarası ters yönde ön basıldığı için sağa dönünce de okunabilir.
+
+Kalecinin omuz-dirsek ve dirsek-bilek kemikleri her biri 0.34 m olarak sabittir. El hedefleri iki kemikli ters kinematikle çözülür; toplam erişim aşıldığında el hedefi sınırlanır, kemikler uzatılmaz. El kaldırma, kolları açma, jest, dalış ve toparlanma aynı sınırı kullanır. Yerden kalkışta ellerin zemine erişebilmesi için ara gövde pozu düzeltildi. Yeni kurtarış çarpışması çizilen aynı kol geometrisini kullanır.
+
+Yeni resmi girdiler rules=4; eski sonuçların hesapları, puanları ve kol çarpışması korunur. Yeni istemci ve sunucu birlikte yayınlanmalıdır. SQL değişikliği yok. Görsel kontroller beş karakterin iki yönünde, kalecinin hazır/açık/yüksek/jest pozlarında yapıldı. tests/kol-boyu.cjs 909 pozda dört kol kemiğinin sabit uzunluk ve sonlu koordinatlarını doğrular. Yerden kalkış desteği/sürekliliği, yürüyüş, oyun akışı, kimlik/haftalık sınır ve fizik testleri de çalıştırıldı. Gerçek iPhone/Safari bu sürümde burada denenmedi.

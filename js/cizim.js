@@ -116,17 +116,17 @@
   // Render shirt numbers onto a cached canvas, then skin the complete kit during walking.
   // Source portraits, faces and sprite assets remain intact.
   var formalar = {};
-  function formaSprite(id, poz) {
+  function formaSprite(id, poz,reverse) {
     var im=gorseller[id+'_'+poz]||null;if(!im||!/^vurus[123]$/.test(poz))return im;
     var meta=DT.KARAKTER.find(function(k){return k.id===id;});if(!meta)return im;
-    var key=id+'_'+poz,cached=formalar[key];if(cached&&cached.source===im)return cached.canvas;
+    var key=id+'_'+poz+(reverse?'_right':''),cached=formalar[key];if(cached&&cached.source===im)return cached.canvas;
     var points={meto:[[434,284],[436,280],[432,294]],lort:[[445,291],[442,289],[440,295]],fero:[[440,297],[444,294],[444,299]],latte:[[432,285],[433,289],[434,300]],josh:[[433,287],[434,285],[431,295]]};
     var p=points[id][Number(poz.slice(-1))-1],c=yerelCanvas(S.genislik,S.yukseklik),g=c.getContext('2d');g.drawImage(im,0,0,S.genislik,S.yukseklik);
-    g.save();var frame=Number(poz.slice(-1));g.translate(p[0]+(frame===3?42:18),p[1]-(frame===3?7:0));g.rotate(frame===3?.28:frame===2?.10:-.10);g.transform(.82,.06,-.10,1,0,0);g.font='900 54px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.lineWidth=2;
+    g.save();var frame=Number(poz.slice(-1));g.translate(p[0]+(frame===3?42:18),p[1]-(frame===3?7:0));g.rotate(frame===3?.28:frame===2?.10:-.10);g.transform(.82,.06,-.10,1,0,0);if(reverse)g.scale(-1,1);g.font='900 54px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.lineWidth=2;
     g.strokeStyle=id==='fero'?'#f4f4f4':'#181818';g.fillStyle=id==='fero'?'#151515':id==='josh'?'#f6d278':'#f5f3eb';g.strokeText(String(meta.numara),0,0);g.fillText(String(meta.numara),0,0);g.restore();
     formalar[key]={source:im,canvas:c};return c;
   }
-  function sprite(id, poz) {return formaSprite(id,poz);}
+  function sprite(id, poz,reverse) {return formaSprite(id,poz,reverse);}
 
 
   /* ---------- arka plan (her pozisyon için bir kez çizilir) ---------- */
@@ -342,7 +342,7 @@
     });
   }
 
-  /* Şutçu her zaman aynı yöne bakar. Köşe seçimi karakteri aynalamaz.
+  /* Şutçu yalnız seçilen duruş yönüne döner. Köşe nişanı yönünü değiştirmez.
    * Nişan beklerken ayaklar topun yanındadır. Top, vurus2 karesine geçince çıkar. */
   function oyuncuCiz(g, karakter, poz, topEkran, durum) {
     if (!topEkran) return;
@@ -351,7 +351,8 @@
     var r = Math.min(H*.012,Math.max(2, A.kale.topYaricap * topEkran.olcek));
     var u = durum.ilerleme || 0, temas = durum.temas || 0.533333;
     var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
-    var im = sprite(karakter, kare);
+    var walk=durum.yurume,reverse=walk?(walk.u<.5?walk.from>0:walk.to>0):durum.durus>0;
+    var im = sprite(karakter, kare,reverse);
     var nokta = DT.SPRITE_NOKTA[karakter] && DT.SPRITE_NOKTA[karakter][kare];
     if (!im || !nokta) return;
     var anchor = DT.SPRITE_NOKTA[karakter].vurus2;
@@ -361,14 +362,14 @@
     var approach=active?(1-before)*(1-before):0;
     // Rotate around the planted foot, keeping the original face and uniform pixels intact.
     var lean=active?(elapsed<windup?Math.sin(before*Math.PI)*.055:-.075*Math.sin(Math.min(1,after/.55)*Math.PI)):0;
-    var footX=S.ankrajX,footY=nokta.bottom,px=topEkran.x+r+(footX-anchor.tipX)*olcek+approach*18,
+    var footX=S.ankrajX,footY=nokta.bottom,px=topEkran.x+(reverse?-1:1)*(r+(footX-anchor.tipX)*olcek)+approach*18,
         py=topEkran.y+(footY-anchor.tipY)*olcek;
     px+=(durum.durus||0)*26*(active?(1-before):1);
     if(durum.yurume&&DT.model3d.oyuncuYuru){
-      var walk=durum.yurume,e=walk.u*walk.u*(3-2*walk.u);px+=(walk.from+(walk.to-walk.from)*e-(durum.durus||0))*26;
+      var walk=durum.yurume,e=walk.u*walk.u*(3-2*walk.u);var start=walk.from>0?-1:1,end=walk.to>0?-1:1;px=topEkran.x+(start+(end-start)*e)*(r+(footX-anchor.tipX)*olcek)+(durum.durus||0)*26;px+=(walk.from+(walk.to-walk.from)*e-(durum.durus||0))*26;
       DT.model3d.oyuncuYuru(g,im,walk,{x:px,y:py,scale:olcek,anchorX:footX,bottom:footY,boy:S.boy,karakter:karakter});g.restore();return;
     }
-    g.translate(px,py);g.rotate(lean);g.scale(olcek,olcek);
+    g.translate(px,py);g.rotate(lean);g.scale(reverse?-olcek:olcek,olcek);
     var turn=(durum.durus||0)*(active?(1-before):1);g.transform(1-.10*Math.abs(turn),0,-turn*.12,1,0,0);
     g.drawImage(im,-footX,-footY,S.genislik,S.yukseklik);
     g.restore();

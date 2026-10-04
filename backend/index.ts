@@ -44,9 +44,9 @@ Deno.serve(async(req:Request)=>{
      const rows=await db('dt_live_players?room_id=eq.'+r.id+'&player=eq.'+b.player+'&token_hash=eq.'+h+'&select=idx,entries');if(!rows[0])fail('AUTH');
      if(b.idx<rows[0].idx)result={entry:rows[0].entries[b.idx],state:await state(r,who)};
      else{
-      if(b.idx!==rows[0].idx)fail('ORDER');if(b.rules!==3)fail('CLIENT_VERSION');const a=b.aim,c=b.contact;if(!a||!c||![a.x,a.y,c.x,c.y,b.zaman].every(Number.isFinite)||Math.abs(a.x)>4.5||a.y<.11||a.y>3.2||Math.hypot(c.x,c.y)>.851||b.zaman<0||b.zaman>1||!Number.isFinite(b.guc)||b.guc<.3||b.guc>1||![-1,0,1].includes(b.durus))fail('INPUT');
-      const pos=D.AYAR.pozisyonlar[b.idx],seed=await tohum((Deno.env.get('DT_SEED_SECRET')||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,r.id,b.idx),physics=D.fizik.hesapla({pos,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,temasFizigi:true,antrenman:false}),p=D.puan.puanla(pos.tip,physics);
-      const entry={ad:pos.ad,sonuc:physics.sonuc,puan:p.puan,zaman:p.zaman,zor:p.zor,taban:p.taban,gol:p.gol,yesil:physics.bandaGirdi,quality:physics.quality,speed:physics.speed,input:{rules:3,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,durus:b.durus}};
+      if(b.idx!==rows[0].idx)fail('ORDER');if(b.rules!==4)fail('CLIENT_VERSION');const a=b.aim,c=b.contact;if(!a||!c||![a.x,a.y,c.x,c.y,b.zaman].every(Number.isFinite)||Math.abs(a.x)>4.5||a.y<.11||a.y>3.2||Math.hypot(c.x,c.y)>.851||b.zaman<0||b.zaman>1||!Number.isFinite(b.guc)||b.guc<.3||b.guc>1||![-1,0,1].includes(b.durus))fail('INPUT');
+      const pos=D.AYAR.pozisyonlar[b.idx],seed=await tohum((Deno.env.get('DT_SEED_SECRET')||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,r.id,b.idx),physics=D.fizik.hesapla({pos,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,temasFizigi:true,sabitKol:true,antrenman:false}),p=D.puan.puanla(pos.tip,physics);
+      const entry={ad:pos.ad,sonuc:physics.sonuc,puan:p.puan,zaman:p.zaman,zor:p.zor,taban:p.taban,gol:p.gol,yesil:physics.bandaGirdi,quality:physics.quality,speed:physics.speed,input:{rules:4,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,durus:b.durus}};
       const saved=await db('rpc/dt_live_save_shot','POST',{p_room:r.id,p_player:b.player,p_hash:h,p_idx:b.idx,p_entry:entry});result={entry:saved.entry,state:await state(r,who)};
      }
     }else fail('INPUT');

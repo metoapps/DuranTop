@@ -27,12 +27,24 @@ function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*Math.
    kl:point(-.18,kneeY,-.02),kr:point(.18,rightKnee,.10),fl:point(-.20,.07,-.12),fr:point(.20,.07,-.12),
    el:point(-.34,(chestY+handY)/2,-.15),er:point(.36,(chestY+handY)/2,-.15),
    hl:point(-.32,handY,-.30),hr:point(.34,handY,-.30)};}
-  var first=rig({x:x,y:.30,poz:'dal',yon:dir,ilerleme:1,recovery:0},z).nodes;
-  var poses=[first,posture(.38,.62,.88,.13,.13,.11),posture(.56,1.00,1.32,.16,.16,.11),
-   posture(.72,1.20,1.53,.45,.15,.68),rig({x:x,y:1,poz:'bekle',yon:0,ilerleme:0},z).nodes];
+  var first=rig({x:x,y:.30,poz:'dal',yon:dir,ilerleme:1,recovery:0,eskiKol:k.eskiKol},z).nodes;
+  var poses=[first,posture(.38,.62,.88,.13,.13,.11),posture(.56,k.eskiKol?1.00:.73,k.eskiKol?1.32:1.10,.16,.16,.11),
+   posture(.72,1.20,1.53,.45,.15,.68),rig({x:x,y:1,poz:'bekle',yon:0,ilerleme:0,eskiKol:k.eskiKol},z).nodes];
   var phases=[0,.22,.48,.76,1],idx=0;while(idx<3&&k.recovery>phases[idx+1])idx++;
   var u=Math.max(0,Math.min(1,(k.recovery-phases[idx])/(phases[idx+1]-phases[idx])));u=u*u*(3-2*u);
   Object.keys(nodes).forEach(function(key){nodes[key]=poses[idx][key].map(function(value,i){return value+(poses[idx+1][key][i]-value)*u;});});
+ }
+ // Two-bone IK: wrists can move, but humerus and forearm never change length.
+ if(!k.eskiKol){
+  var upper=.34,lower=.34;
+  [['sl','el','hl'],['sr','er','hr']].forEach(function(keys){
+   var shoulder=nodes[keys[0]],want=nodes[keys[2]],hint=nodes[keys[1]],delta=sub(want,shoulder),distance=Math.hypot.apply(null,delta),axis=unit(delta);
+   if(distance<1e-8)axis=[0,-1,0];
+   var d=Math.max(.025,Math.min(upper+lower-.0001,distance)),along=(upper*upper-lower*lower+d*d)/(2*d),bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+   var h=add(sub(hint,shoulder),[0,0,-.025]),dot=h.reduce(function(n,x,i){return n+x*axis[i];},0),perp=sub(h,mul(axis,dot));
+   if(Math.hypot.apply(null,perp)<1e-7)perp=cross(axis,Math.abs(axis[1])>.9?[1,0,0]:[0,1,0]);
+   nodes[keys[1]]=add(shoulder,add(mul(axis,along),mul(unit(perp),bend)));nodes[keys[2]]=add(shoulder,mul(axis,d));
+  });
  }
  var bones=[['hip','chest',.24,'shirt'],['chest','neck',.13,'shirt'],['sl','el',.09,'shirt'],['sr','er',.09,'shirt'],['el','hl',.075,'skin'],['er','hr',.075,'skin'],['hip','kl',.12,'shorts'],['hip','kr',.12,'shorts'],['kl','fl',.09,'socks'],['kr','fr',.09,'socks']];
  return {nodes:nodes,bones:bones,tilt:tilt};}
@@ -61,7 +73,7 @@ function draw(g,project,r,palette){var triangles=[];
   }else{g.fillStyle=t.color;g.fill();}});
 }
 var keeper={shirt:'#279258',shorts:'#152b22',socks:'#236f44',skin:'#d4a47c',hair:'#9b7545',gloves:'#eeeeea',boots:'#20292d'};
-function kaleciCiz(g,project,k,z){draw(g,project,rig(k,z),keeper);}
+function kaleciCiz(g,project,k,z){draw(g,project,rig(Object.assign({},k,{eskiKol:false}),z),keeper);}
 function barajCiz(g,project,p,i){var scale=p.boy/1.92,r=rig({x:p.x,y:p.y+1,poz:'bekle',low:false,high:false},p.z);Object.keys(r.nodes).forEach(function(key){var n=r.nodes[key];n[0]=p.x+(n[0]-p.x)*scale;n[1]=p.y+(n[1]-p.y)*scale;});var colors={shirt:i%2?'#434952':'#d5d7d9',shorts:'#171b21',socks:'#333b45',skin:'#cf9f7c',hair:'#302821',gloves:'#cf9f7c',boots:'#11171a'};draw(g,project,r,colors);}
 // Texture-skinned leg chains: hip, knee and ankle rotate independently while preserving the original kit.
 var WALK_JOINTS={
@@ -98,8 +110,8 @@ function oyuncuYuru(g,image,walk,placement){
  }
  for(var row=0;row<=rows;row++){vertices[row]=[];for(var col=0;col<=cols;col++){
   var sx=220+400*col/cols,sy=height*row/rows,p=skinned(sx,sy),x=(p[0]-placement.anchorX)*placement.scale,y=(placement.bottom-p[1])*placement.scale;
-  var depth=-x*Math.sin(yaw),perspective=600/(600+depth);
-  vertices[row][col]={x:placement.x+(x*Math.cos(yaw)*(1-.10*Math.abs(turn))+turn*.12*y)*perspective,y:placement.y-y*perspective,uv:[sx,sy]};
+  var depth=-x*Math.sin(yaw),perspective=600/(600+depth),flip=walk.u<.5?(walk.from>0):(walk.to>0),sign=flip?-1:1,turnScale=(walk.from>0)!==(walk.to>0)?.12+.88*Math.abs(Math.cos(Math.PI*u)):1;
+  vertices[row][col]={x:placement.x+sign*(x*Math.cos(yaw)*(1-.10*Math.abs(turn))+turn*.12*y)*perspective*turnScale,y:placement.y-y*perspective,uv:[sx,sy]};
  }}
  function triangle(a,b,c){var dx1=b.uv[0]-a.uv[0],dy1=b.uv[1]-a.uv[1],dx2=c.uv[0]-a.uv[0],dy2=c.uv[1]-a.uv[1],det=dx1*dy2-dx2*dy1;
   var aa=((b.x-a.x)*dy2-(c.x-a.x)*dy1)/det,cc=(dx1*(c.x-a.x)-dx2*(b.x-a.x))/det,bb=((b.y-a.y)*dy2-(c.y-a.y)*dy1)/det,dd=(dx1*(c.y-a.y)-dx2*(b.y-a.y))/det;

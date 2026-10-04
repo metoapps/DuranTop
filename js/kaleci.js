@@ -37,7 +37,7 @@ function planla(target,tip,practice,noise,T,options){
   var landed=u===1&&y<=ground+1e-6,landingT=endT+.04+Math.sqrt(2*Math.max(0,endY-ground)/A.yercekimi);
   var recovery=landed?clamp((t-landingT-.22)/1.15,0,1):0;
   if(recovery>0)y=ground+(1-ground)*recovery;
-  return {x:endX*e,y:y,ilerleme:u,yon:dive?direction:0,
+  return {eskiKol:!options.sabitKol,x:endX*e,y:y,ilerleme:u,yon:dive?direction:0,
    poz:dive&&recovery<1?'dal':'bekle',low:gy<.6&&recovery<1,high:gy>1.75&&t<endT+.6,eylem:action,
    landing:landed&&dive,recovery:recovery,airborne:y>ground+.01,block:tip==='frikik'&&central&&!lapse?Math.min(1,u*2)*Math.max(0,1-Math.max(0,t-endT-.2)/.25):0};}
  function cizimKonum(t){return konum(t);}
