@@ -6,8 +6,8 @@
   var A = DT.AYAR, S = DT.SPRITE;
 
   var KAMERA = {
-    penalti: { geri: 8.0, yuk: 6.0, kaleGen: 0.74, kaleY: 0.24 },
-    frikik:  { geri: 15.0, yuk: 7.0, kaleGen: 0.74, kaleY: 0.24 }
+    penalti: { geri: 8.0, yuk: 5.5, kaleGen: 0.78 },
+    frikik:  { geri: 13.0, yuk: 5.5, kaleGen: 0.78 }
   };
 
   var cv, ctx, W = 360, H = 640, dpr = 1;
@@ -27,31 +27,24 @@
   function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 
   function kameraKur(p) {
-    var ayar = KAMERA[p.tip];
-    var wide=W>H&&H>=600;
-    if(wide)ayar={geri:p.tip==='penalti'?8:18,yuk:ayar.yuk,kaleGen:.74,kaleY:.33};
-    if (H < 650) ayar = { geri: ayar.geri, yuk: 4.5, kaleGen: ayar.kaleGen, kaleY: .24 };
-    var ul = Math.hypot(-p.bx, p.D), ux = -p.bx / ul, uz = p.D / ul;
-    var C = [p.bx - ux * ayar.geri, ayar.yuk, -uz * ayar.geri];
-    var hedef = [0, 1.0, p.D];
-    var f = norm([hedef[0] - C[0], hedef[1] - C[1], hedef[2] - C[2]]);
-    var r = norm(cross([0, 1, 0], f));
-    var up = cross(f, r);
-    var k = { C: C, f: f, r: r, up: up, cx: (W>H ? W*.4 : W/2), cy: 0, F: 1, ky: 1 };
-    var merkez = [0, 1.2, p.D];
-    var d = [merkez[0] - C[0], merkez[1] - C[1], merkez[2] - C[2]];
-    var zc = dot(d, f);
-    k.F = ayar.kaleGen * Math.min(W,H*(wide?.95:1.15)) * zc / A.kale.genislik;
-    var yc = dot(d, up);
-    var kaleYpx = ayar.kaleY * H;
-    // Top, alttaki kontrol panelinin ve oyuncunun üstünde kalsın: panel yaklaşık 235 px, oyuncunun ayakları topun ~0.083H altında.
-    var topHedef = Math.max(0.43 * H, Math.min(0.52 * H, H - 300));
-    var db = [p.bx - C[0], A.kale.topYaricap - C[1], 0 - C[2]];
-    var zb = dot(db, f);
-    var terim = k.F * (dot(d, up) / zc - dot(db, up) / zb);       // ky = 1 için top, kale merkezinin bu kadar altında
-    k.ky = terim > 1 ? Math.max(W>H ? .45 : (H < 650 ? 1.1 : 0.82), Math.min(1.3, (topHedef - kaleYpx) / terim)) : 1;
-    if(wide)k.ky=1;
-    k.cy = kaleYpx + k.F * k.ky * yc / zc;
+    // One perspective camera in SI units. Fit the scene, never shrink a single actor.
+    var ul=Math.hypot(-p.bx,p.D),ux=-p.bx/ul,uz=p.D/ul;
+    var wide=W>H,ayar=KAMERA[p.tip],back=ayar.geri,height=ayar.yuk;
+    var C=[p.bx-ux*back-uz*2.0,height,-uz*back+ux*2.0];
+    var target=[0,1,p.D],f=norm(target.map(function(v,i){return v-C[i];})),r=norm(cross([0,1,0],f)),up=cross(f,r);
+    var k={C:C,f:f,r:r,up:up,cx:wide?W*.40:W/2,cy:0,F:1,ky:1};
+    function raw(x,y,z){var d=[x-C[0],y-C[1],z-C[2]],depth=dot(d,f);return {x:dot(d,r)/depth,y:-dot(d,up)/depth};}
+    var left=raw(-A.kale.genislik/2,1,p.D),right=raw(A.kale.genislik/2,1,p.D);
+    var focal=ayar.kaleGen*(wide?Math.min(W*.78,H*1.35):W)/Math.abs(right.x-left.x);
+    var points=[];[-1,1].forEach(function(side){[0,A.kale.yukseklik].forEach(function(y){points.push(raw(side*A.kale.genislik/2,y,p.D));});});
+    [-.65,.65].forEach(function(x){[0,1.90].forEach(function(y){points.push(raw(p.bx-ux+uz*x,y,-uz-ux*x));});});
+    points.push(raw(p.bx,0,0));
+    var min=Math.min.apply(null,points.map(function(v){return v.y;})),max=Math.max.apply(null,points.map(function(v){return v.y;}));
+    var top=wide?Math.max(100,H*.17):Math.max(155,H*.20),bottom=wide?H-35:H-Math.min(240,H*.30);
+    if(bottom-top<140){top=95;bottom=H-145;}
+    var minX=Math.min.apply(null,points.map(function(v){return v.x;})),maxX=Math.max.apply(null,points.map(function(v){return v.x;}));
+    var leftMargin=wide?20:16,rightLimit=wide?W*.78:W-16;
+    k.F=Math.min(focal,(bottom-top)/(max-min),(rightLimit-leftMargin)/(maxX-minX));k.cy=top-k.F*min;k.cx=(leftMargin+rightLimit-k.F*(minX+maxX))/2;
     return k;
   }
 
@@ -290,7 +283,7 @@
     var p = izdus(t.x, t.y, t.z);
     if (!p) return;
     golgeTop(g, t.x, t.z);
-    var r = Math.min(H*.012,Math.max(2, R * p.olcek));
+    var r = R * p.olcek;
     if (gorseller._top) { g.drawImage(gorseller._top, p.x - r, p.y - r, r * 2, r * 2); return; }
     g.save(); g.translate(p.x, p.y);
     g.fillStyle = '#f4f4f4'; g.beginPath(); g.arc(0, 0, r, 0, 6.3); g.fill();
@@ -353,24 +346,16 @@
     var kare = !durum.yol ? 'vurus1' : (u < temas ? 'vurus1' : (u < temas + 0.12 ? 'vurus2' : 'vurus3'));
     if(DT.futbolcu3d && gorseller[karakter+'_bekle'] && gorseller[karakter+'_vurus1']){
       var walk3=durum.yurume,dir=durum.durus||0;
-      var elapsed3=durum.sure||0,windup3=durum.on||.44;
-      var progress3=durum.yol?Math.min(1,elapsed3/windup3):0;
-      var baseYaw=Math.atan2(-pos.bx,pos.D),launchYaw=baseYaw;
-      var path=durum.guide;
-      if(path&&path.length>1){var a=path[0],b=path[1];launchYaw=Math.atan2(b.x-a.x,b.z-a.z);}
-      var yaw=baseYaw+dir*.40;
-      if(durum.yol)yaw+=(launchYaw-yaw)*progress3*progress3*(3-2*progress3);
-      // All feet, the ball and the approach now share the pitch's world coordinates.
-      var unit=olcek*.55/(topEkran.olcek*kam.ky),approach=2.3;
-      var startX=pos.bx-Math.sin(baseYaw)*approach,startZ=-Math.cos(baseYaw)*approach;
-      var endX=pos.bx-Math.sin(launchYaw)*28*unit,endZ=-Math.cos(launchYaw)*28*unit;
-      var rootX=startX+(endX-startX)*progress3,rootZ=startZ+(endZ-startZ)*progress3;
-      var anchor=izdus(rootX,0,rootZ),actorScale=unit*anchor.olcek*kam.ky;
+      var elapsed3=durum.sure||0,windup3=durum.on||1.15;
+      var shot=durum.yol?{elapsed:elapsed3,windup:windup3}:null;
+      var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide});
+      var rootX=placement.point[0],rootZ=placement.point[1],unit=placement.unit,yaw=placement.yaw;
+      var anchor=izdus(rootX,0,rootZ),actorScale=unit*anchor.olcek;
       var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
+      var shadow=izdus(rootX,0,rootZ);g.save();g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(shadow.x,shadow.y,.28*shadow.olcek,.09*shadow.olcek,0,0,Math.PI*2);g.fill();g.restore();
       DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
-        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,
-        viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),
-        shot:durum.yol?{elapsed:elapsed3,windup:windup3}:null});
+        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,
+        viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),shot:shot});
       return;
     }
     var walk=durum.yurume,reverse=walk?(walk.u<.5?walk.from>0:walk.to>0):durum.durus>0;

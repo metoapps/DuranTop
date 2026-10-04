@@ -242,7 +242,7 @@
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.faz = 'vurus';
     var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
-    d.an = { t0: now, on: 0.44, vurdu: false, olay: false, file:false, fileT:netPoint?netPoint.t:Infinity, bitti: false };
+    d.an = { t0: now, on: 1.15, vurdu: false, olay: false, file:false, fileT:netPoint?netPoint.t:Infinity, bitti: false };
     $('alt').hidden = true;
     if (d.mod === 'resmi') {          // vuruş açıldığı anda sayılır; yenileme ya da kopma sonucu değiştirmez
       var k = oku(ANAHTAR.resmi, null);

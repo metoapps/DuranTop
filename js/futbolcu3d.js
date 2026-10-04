@@ -6,6 +6,33 @@ var kits={meto:['#17191e','#e63946'],lort:['#1455c7','#eeeeee'],fero:['#ededed',
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}function ease(t){t=clamp(t,0,1);return t*t*(3-2*t);}function mix(a,b,t){return a+(b-a)*t;}
 function add(a,b){return a.map((x,i)=>x+b[i]);}function sub(a,b){return a.map((x,i)=>x-b[i]);}function mul(a,s){return a.map(x=>x*s);}function dot(a,b){return a.reduce((n,x,i)=>n+x*b[i],0);}function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}function unit(v){return mul(v,1/(Math.hypot.apply(null,v)||1));}
 function knee(hip,foot,L){L=L||72;var axis=unit(sub(foot,hip)),distance=Math.hypot.apply(null,sub(foot,hip)),d=clamp(distance,.01,2*L-.01),center=add(hip,mul(axis,d/2)),bend=Math.sqrt(Math.max(0,L*L-d*d/4)),hint=[0,0,1],perp=unit(sub(hint,mul(axis,dot(hint,axis))));return{foot:add(hip,mul(axis,d)),knee:add(center,mul(perp,bend))};}
+// Metres, shared with the goal, keeper and ball. Head top 471, sole 8.
+var HEIGHT=1.80,UNIT=HEIGHT/463;
+function placement(pos,o){
+ var w=o.walk,turn=w?mix(w.from,w.to,ease(w.u)):o.direction||0,base=Math.atan2(-pos.bx,pos.D);
+ var shot=o.shot,p=shot?clamp(shot.elapsed/shot.windup,0,1):0,run=shot?ease(Math.min(1,p/.66)):0;
+ var launch=base,path=o.path;if(path&&path.length>1)launch=Math.atan2(path[1].x-path[0].x,path[1].z-path[0].z);
+ function stance(d){return [pos.bx-Math.sin(base)*1.0+Math.cos(base)*d*.35,-Math.cos(base)*1.0-Math.sin(base)*d*.35];}
+ var start=stance(o.direction||0),end=[pos.bx-Math.sin(launch)*28*UNIT,-Math.cos(launch)*28*UNIT];
+ var point=w?stance(turn):[mix(start[0],end[0],run),mix(start[1],end[1],run)];
+ var yaw=shot?mix(base+(o.direction||0)*.40,launch,run):base+turn*.40;
+ var gait=null;
+ if(w)gait={u:w.u,start:stance(w.from),end:stance(w.to),yaw0:base+w.from*.40,yaw1:base+w.to*.40};
+ else if(shot&&p<.66)gait={u:p/.66,start:start,end:end,yaw0:base+(o.direction||0)*.40,yaw1:launch};
+ if(gait&&shot)gait.finishLeft=[-50,28];
+ if(gait){gait.steps=Math.max(2,Math.ceil(Math.hypot(gait.end[0]-gait.start[0],gait.end[1]-gait.start[1])/.22));if(gait.steps%2)gait.steps++;}
+ return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?clamp((p-.66)/.34,0,1):0};
+}
+function gaitFeet(g){
+ var u=clamp(g.u,0,1),e=ease(u),root=[mix(g.start[0],g.end[0],e),mix(g.start[1],g.end[1],e)],yaw=mix(g.yaw0,g.yaw1,e);
+ function planted(leg,f){var t=ease(f),a=mix(g.yaw0,g.yaw1,t),x=(leg?24:-24)*UNIT,z=0;
+  if(!leg&&g.finishLeft){x=mix(-24,g.finishLeft[0],t)*UNIT;z=g.finishLeft[1]*t*UNIT;}
+  return [mix(g.start[0],g.end[0],t)+Math.cos(a)*x+Math.sin(a)*z,mix(g.start[1],g.end[1],t)-Math.sin(a)*x+Math.cos(a)*z];}
+ var feet=[planted(0,0),planted(1,0)],step=Math.min(g.steps-1,Math.floor(u*g.steps)),phase=u===1?1:u*g.steps-step,swing=step%2?0:1;
+ for(var i=0;i<step;i++)feet[i%2?0:1]=planted(i%2?0:1,Math.min(1,(i+2)/g.steps));
+ var next=planted(swing,Math.min(1,(step+2)/g.steps)),t=ease(phase);feet[swing]=[mix(feet[swing][0],next[0],t),mix(feet[swing][1],next[1],t)];
+ return feet.map(function(v,i){var dx=(v[0]-root[0])/UNIT,dz=(v[1]-root[1])/UNIT;return [Math.cos(yaw)*dx-Math.sin(yaw)*dz,8+(i===swing?Math.sin(Math.PI*phase)*22:0),Math.sin(yaw)*dx+Math.cos(yaw)*dz];});
+}
 function rig(o){
  var walk=o.walk,u=walk?clamp(walk.u,0,1):0,from=walk?walk.from:o.direction,to=walk?walk.to:o.direction;
  var turn=mix(from||0,to||0,ease(u)),yaw=turn*.60,travel=walk?(to-from)*52:0;
@@ -16,16 +43,18 @@ function rig(o){
   feet[swing][0]=mix(start,end,ease(t))-rootX;feet[swing][1]+=Math.sin(Math.PI*t)*25;
   feet[1-swing][0]=(half===0?-24:24+travel)-rootX;lift=Math.sin(Math.PI*t)*2.5;
  }
+ if(o.gait){feet=gaitFeet(o.gait);lift=Math.sin(Math.PI*o.gait.u)*24;}
  var nodes={hip:[0,141-lift,0],chest:[0,249-lift,0],neck:[0,287-lift,0],head:[0,382-lift,0],sl:[-55,251-lift,0],sr:[55,251-lift,0]};
- var shot=o.shot,progress=shot?clamp(shot.elapsed/shot.windup,0,1):0,post=shot?Math.max(0,shot.elapsed-shot.windup):0;
- if(shot){
+ var shot=o.shot,progress=shot?(o.kick===undefined?clamp(shot.elapsed/shot.windup,0,1):o.kick):0,post=shot?Math.max(0,shot.elapsed-shot.windup):0;
+ if(shot&&!o.gait){
+  if(o.kick!==undefined)feet[0]=[-50,8,28];
   var b=progress<1?Math.sin(progress*Math.PI/2):Math.exp(-post*6),lean=progress<1?Math.sin(progress*Math.PI)*8:-Math.sin(Math.min(1,post/.55)*Math.PI)*10;
   nodes.chest[2]=lean;nodes.neck[2]=lean;nodes.head[2]=lean;
   if(progress<.60){var q=ease(progress/.60);feet[1]=[24,8+q*35,-q*55];}
   else if(progress<1){var q=ease((progress-.60)/.40);feet[1]=[mix(24,0,q),mix(43,8,q),mix(-55,28,q)];}
   else {var q=ease(post/.27),settle=ease((post-.27)/.45);feet[1]=[mix(0,24,settle),8+Math.sin(Math.PI*q/2)*55*(1-settle),mix(28,80,q)*(1-settle)];}
   nodes.el=[-65,199+20*b,-10-25*b];nodes.er=[65,199-12*b,10+25*b];nodes.hl=[-68,145+20*b,-20-30*b];nodes.hr=[68,145-12*b,20+30*b];
- }else{var swing=walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0;nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}
+ }else{var swing=o.gait?Math.sin(Math.PI*o.gait.steps*o.gait.u)*Math.sin(Math.PI*o.gait.u)*18:(walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0);nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}
  [-1,1].forEach(function(side,i){var h=[side*24,nodes.hip[1],0],sol=knee(h,feet[i]),suffix=i?'r':'l';nodes['hip'+suffix]=h;nodes['k'+suffix]=sol.knee;nodes['f'+suffix]=sol.foot;});
  ['l','r'].forEach(function(k){var sol=knee(nodes['s'+k],nodes['h'+k],55);nodes['e'+k]=sol.knee;nodes['h'+k]=sol.foot;});
  return{nodes:nodes,yaw:yaw,rootX:rootX,forward:[Math.sin(yaw),0,Math.cos(yaw)]};
@@ -78,4 +107,4 @@ function render(g,o){
  }
  g.drawImage(stored.cv,o.x-stored.w/2,o.y-stored.h+15*o.scale,stored.w,stored.h);return rig(o);
 }
-D.futbolcu3d={rig:rig,draw:render};})(typeof globalThis!=='undefined'?globalThis:window);
+D.futbolcu3d={rig:rig,draw:render,placement:placement,gaitFeet:gaitFeet,HEIGHT:HEIGHT,UNIT:UNIT};})(typeof globalThis!=='undefined'?globalThis:window);
