@@ -267,3 +267,44 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
   #durusPanel { padding:8px; gap:4px; }
   #durusPanel h2 { font-size:22px; }
 }
+
+/* Preparation controls sit in the empty left flank, clear of the player.
+   The timing/shoot panel retains its original bottom position. */
+#oyun .saha-secimi {
+  inset:44% auto auto max(8px, env(safe-area-inset-left, 0px));
+  width:min(280px, 44vw);
+  max-height:calc(56% - 16px - var(--guvenli-alt));
+  margin:0;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:6px;
+  border:1px solid #555;
+  border-radius:14px;
+  background:rgba(8,8,8,.9);
+  text-align:left;
+  overflow:auto;
+  pointer-events:auto;
+}
+#oyun .saha-secimi h2 {font-size:20px;line-height:1.2;margin:0;}
+#oyun .saha-secimi p {font-size:13px;line-height:1.3;margin:0;}
+#oyun .saha-secimi .btn {width:100%;min-height:48px;padding:8px 4px;font-size:20px;line-height:1.15;}
+#oyun .saha-secimi .segment {width:100%;flex:none;flex-direction:column;}
+#oyun .saha-secimi .segment button {min-height:44px;padding:6px;font-size:16px;flex:none;}
+#oyun .saha-secimi .segment button + button {border-left:0;border-top:2px solid var(--cizgi);}
+#oyun .saha-secimi #temasTop {width:100%;max-width:180px;height:auto;aspect-ratio:1;align-self:center;}
+.secim-yardim {font-size:12px;line-height:1.3;}
+.secim-yardim summary {cursor:pointer;min-height:24px;}
+#oyun .secim-yardim p {margin-top:4px;}
+@media(max-width:360px) {
+  #oyun .saha-secimi {padding:8px;gap:4px;}
+  #oyun .saha-secimi h2 {font-size:18px;}
+  #oyun .saha-secimi p {font-size:12px;}
+  #oyun .saha-secimi .btn {font-size:18px;}
+}
+@media(max-height:420px) {
+  #oyun .saha-secimi {top:90px;width:min(260px,28vw);max-height:calc(100% - 106px - var(--guvenli-alt));}
+  #oyun .saha-secimi #temasTop {max-width:120px;}
+}
