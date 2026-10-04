@@ -520,10 +520,30 @@
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
   }
 
+  /* Çözünürlük sınırı: varsayılan 2 (3 değil). Karakterler 900 px'lik görsellerden küçültüldüğü için 3x piksel fark yaratmaz ama
+   * tuval pikselini 2,25 katına çıkarır. Kare süresi uzun kalırsa sınır 1,5'a, sonra 1'e iner (kareOlc oyun döngüsünden çağrılır). */
+  var dprSiniri = 2, kareToplam = 0, kareSayi = 0, kareBekle = 0, hizliKare = 0;
+  function kareOlc(ms) {
+    if (!(ms > 0) || ms > 250) { kareToplam = 0; kareSayi = 0; hizliKare = 0; return dprSiniri; }          // sekme arka plandaydı ya da duraklama: ölçme
+    if (kareBekle > 0) { kareBekle--; return dprSiniri; } // boyut değişiminden sonra kısa süre ölçme
+    hizliKare = ms < 21 ? hizliKare + 1 : 0;
+    if (hizliKare >= 600 && dprSiniri < 2) {
+      dprSiniri = dprSiniri < 1.5 ? 1.5 : 2;
+      hizliKare = 0; kareToplam = 0; kareSayi = 0; kareBekle = 120;
+      if (cv && root.document) boyutla();
+      return dprSiniri;
+    }
+    kareToplam += ms; kareSayi++;
+    if (kareSayi >= 60) {
+      var ort = kareToplam / kareSayi; kareToplam = 0; kareSayi = 0;
+      if (ort > 30 && dprSiniri > 1) { dprSiniri = dprSiniri > 1.5 ? 1.5 : 1; hizliKare = 0; kareBekle = 20; if (cv && root.document) boyutla(); }
+    }
+    return dprSiniri;
+  }
   function boyutla() {
     var kutu = cv.getBoundingClientRect();
     W = Math.max(280, Math.round(kutu.width)); H = Math.max(280, Math.round(kutu.height));
-    dpr = Math.min(3, root.devicePixelRatio || 1);
+    dpr = Math.min(dprSiniri, root.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     if (pos) sahneKur(pos);
   }
@@ -543,6 +563,7 @@
     kameraAyar: KAMERA,
     kur: kur, sahneKur: sahneKur, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
+    kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },
     karakterHazir: karakterHazir, karakterYukle: karakterYukle,
     hazir: function () { return yuklenen >= gereken && !yuklemeHatasi; },
     gorselHazir: function (ad) { return !!gorseller[ad]; },

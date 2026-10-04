@@ -1,5 +1,7 @@
+import {createLoginGuard} from './giris-koruma.mjs';
 import '../js/ayar.js';import '../js/model3d.js';import '../js/baraj.js';import '../js/kaleci.js';import '../js/ucus.js';import '../js/fizik.js';import '../js/puan.js';
 import {tohum,oyuncular} from './guvenlik.mjs';import {normalCode,passwordHash,equalHash,requirePlayer,weekKey} from './kimlik.mjs';
+const guardedLogin=createLoginGuard();
 const D=(globalThis as any).DT,players=['meto','lort','fero','latte','josh'];
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type,x-player-token,x-player-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'600','Content-Type':'application/json','Cache-Control':'no-store'};
 async function hash(t:string){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -19,10 +21,12 @@ Deno.serve(async(req:Request)=>{
   const text=await req.text();if(text.length>4096)fail('INPUT');const b=JSON.parse(text);let result:any;
   if(b.action==='login'){
    const code=normalCode(b.password);if(!players.includes(b.player)||! /^[A-Z2-9]{20}$/.test(code))fail('LOGIN');
-   const a=await db('rpc/dt_identity_attempt','POST',{p_player:b.player});if(!a.allowed)fail('LOGIN_LIMIT');
-   if(!equalHash(await passwordHash(code,a.salt),a.credential_hash))fail('LOGIN');
+   // Read-only lookup: public player names cannot impose a persistent lock on their owner.
+   const rows=await db('dt_identity_accounts?player=eq.'+b.player+'&select=player,salt,credential_hash');
+   const a=rows[0];if(!a)fail('LOGIN');
+   const cacheKey=await hash(b.player+':'+a.credential_hash+':'+code);
+   if(!await guardedLogin(cacheKey,async()=>equalHash(await passwordHash(code,a.salt),a.credential_hash)))fail('LOGIN');
    const session=randomToken();await db('dt_identity_sessions','POST',{token_hash:await hash(session),player:a.player});
-   await db('dt_identity_accounts?player=eq.'+a.player,'PATCH',{attempts:0,attempt_window:new Date().toISOString()});
    result={session,identity:{player:a.player}};
   }else{
    const who=await identity(req);
@@ -53,5 +57,5 @@ Deno.serve(async(req:Request)=>{
    }
   }
   return new Response(JSON.stringify(result),{headers});
- }catch(e){const errors:any={CLIENT_VERSION:'Oyun güncellendi. Sayfayı yenileyip devam et.',LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Çok fazla giriş denemesi. 15 dakika sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='DB'?503:400,headers});}
+ }catch(e){const errors:any={CLIENT_VERSION:'Oyun güncellendi. Sayfayı yenileyip devam et.',LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Giriş yoğun. Kısa süre sonra tekrar dene.',LOGIN_BUSY:'Giriş yoğun. Birkaç saniye sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='LOGIN_BUSY'?429:msg==='DB'?503:400,headers});}
 });

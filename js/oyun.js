@@ -393,6 +393,8 @@
         var v = cubukDegeri(now);
         $('cubukImlec').style.left = (v * 100) + '%';
       }
+      if (!doc.hidden && d.pos && DT.cizim.kareOlc && d.sonKare) DT.cizim.kareOlc(now - d.sonKare);
+      d.sonKare = now;
       if (d.pos) {
         var cd = d.faz === 'menu' || d.ekran !== 'oyun' ? { top: { x: d.pos.bx, y: A.kale.topYaricap, z: 0 }, kaleci: { x: Math.sin(now / 900) * 0.08, y: 1, ilerleme: 0, yon: 0, poz: 'bekle' } } : cizimDurumu(now);
         DT.cizim.ciz(cd);
@@ -420,7 +422,7 @@
     rows.sort(function(a,b){return b.gol-a.gol||b.puan-a.puan||b.yesil-a.yesil;});
     var rank=1;$('kupaTablo').innerHTML=rows.map(function(r,i){if(i&&(r.gol!==rows[i-1].gol||r.puan!==rows[i-1].puan))rank=i+1;return '<div><b>'+rank+'. '+r.id.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.idx+'/10 · '+r.puan+' puan</span></div>';}).join('');
     if(rows.every(function(r){return r.idx===10;})){var best=rows[0],winners=rows.filter(function(r){return r.gol===best.gol&&r.puan===best.puan;});$('kupaTablo').innerHTML+='<p>🏆 '+winners.map(function(r){return r.id.toUpperCase();}).join(' & ')+' haftanın Juninho Kupası şampiyonu!</p>';}
-    var st=DT.live&&DT.live.getState();if(st){$('haftaBaslik').textContent=st.room.week_start?'Hafta: '+st.room.week_start+' · 10 resmi vuruş':'10 resmi vuruş';var genel=st.totals||[],grank=1;$('genelTablo').innerHTML=genel.map(function(r,i){if(i&&(r.gol!==genel[i-1].gol||r.puan!==genel[i-1].puan))grank=i+1;return '<div><b>'+grank+'. '+r.player.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.vurus+' vuruş</span></div>';}).join('');}
+    var st=DT.live&&DT.live.getState();if(st){$('haftaBaslik').textContent=st.room.week_start?'Hafta: '+st.room.week_start+' · 10 vuruş · Pazartesi 00.00 (İstanbul) kapanır; kalan haklar devretmez.':'10 resmi vuruş';var genel=st.totals||[],grank=1;$('genelTablo').innerHTML=genel.map(function(r,i){if(i&&(r.gol!==genel[i-1].gol||r.puan!==genel[i-1].puan))grank=i+1;return '<div><b>'+grank+'. '+r.player.toUpperCase()+'</b><span>'+r.gol+' gol · '+r.vurus+' vuruş</span></div>';}).join('');}
   }
   function paylas(text){if(root.navigator&&root.navigator.share)root.navigator.share({text:text}).catch(function(){});else if(root.navigator&&root.navigator.clipboard)root.navigator.clipboard.writeText(text).then(function(){root.alert('Kopyalandı. WhatsApp grubuna yapıştır.');}).catch(function(){root.prompt('Kopyala:',text);});else root.prompt('Kopyala:',text);}
   function kupaKur(){

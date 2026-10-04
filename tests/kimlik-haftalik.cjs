@@ -1,13 +1,13 @@
 (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),{stripTypeScriptTypes}=require('module');
-const K=await import('../backend/kimlik.mjs'),G=await import('../backend/guvenlik.mjs');
+const K=await import('../backend/kimlik.mjs'),G=await import('../backend/guvenlik.mjs'),L=await import('../backend/giris-koruma.mjs');
 assert.equal(K.weekKey(Date.parse('2026-10-04T20:59:59Z')),'2026-09-28');assert.equal(K.weekKey(Date.parse('2026-10-04T21:00:00Z')),'2026-10-05');
 assert.equal(K.normalCode(' abcde-fghjk-lmnpq-rstuv '),'ABCDEFGHJKLMNPQRSTUV');
 assert.throws(()=>K.requirePlayer(null,'meto'),/LOGIN/);assert.throws(()=>K.requirePlayer({player:'lort'},'meto'),/FORBIDDEN/);
 const code='ABCDEFGHJKLMNPQRSTUV',salt='fake-test-salt',accounts=['meto','lort','fero','latte','josh'].map(player=>({player,id:player,salt,attempts:0}));
 for(const a of accounts)a.credential_hash=await K.passwordHash(code,salt);
 assert(K.equalHash(accounts[0].credential_hash,await K.passwordHash(code,salt)));assert(!K.equalHash(accounts[0].credential_hash,await K.passwordHash(code+'A',salt)));
-const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':'fake-secret'},serve:f=>handler=f},console};
+const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,...L,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':'fake-secret'},serve:f=>handler=f},console};
 function selected(rows,u){return rows.filter(r=>{for(const [k,v] of u.searchParams){if(k==='select')continue;if(v.startsWith('eq.')&&String(r[k])!==v.slice(3))return false;if(v.startsWith('gt.')&&!(r[k]>v.slice(3)))return false;}return true;});}
 const sum=es=>({gol:es.filter(e=>e.gol).length,puan:es.reduce((n,e)=>n+e.puan,0)});
 root.fetch=async(url,opt)=>{const u=new URL(url),path=u.pathname.split('/rest/v1/')[1],body=opt.body?JSON.parse(opt.body):null;let out;
@@ -35,7 +35,10 @@ assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].i
 const C=(await api({action:'login',player:'meto',password:code})).data.session;const st=(await api({action:'create'},C)).data;assert.equal(st.players.find(p=>p.mine).idx,10,'second device cannot reset weekly rights');
 const publicState=(await api({action:'state',room})).data;assert.equal(publicState.weekly.find(p=>p.player==='meto').idx,10);assert(!JSON.stringify(publicState).includes('"input"'));assert(!JSON.stringify(publicState).includes('credential_hash'));
 await api({action:'logout'},A);assert.equal((await api({action:'me'},A)).data.code,'LOGIN');
-for(let i=0;i<17;i++)await api({action:'login',player:'josh',password:'Z'.repeat(20)});assert.equal((await api({action:'login',player:'josh',password:code})).data.code,'LOGIN_LIMIT');
+for(let i=0;i<17;i++)await api({action:'login',player:'josh',password:'Z'.repeat(20)});
+assert.equal((await api({action:'login',player:'josh',password:'Y'.repeat(20)})).data.code,'LOGIN','kilitliyken yanlış kod reddedilir');
+const kilitliGiris=await api({action:'login',player:'josh',password:code});assert(kilitliGiris.data.session&&kilitliGiris.data.identity.player==='josh','kilitliyken doğru kod gerçek sahibi içeri alır (hatalı denemeyle kilitleme şakası işlemez)');
+assert.equal(accounts.find(a=>a.player==='josh').attempts,0,'hatalı girişler oyuncu hesabına kalıcı kilit yazmaz');
 const p=root.DT.AYAR.pozisyonlar;assert.equal(p.length,10);assert.equal(p.filter(x=>x.tip==='penalti').length,5);assert.equal(p.filter(x=>x.tip==='frikik'&&Math.hypot(x.bx,x.D)<20).length,2);assert.equal(p.filter(x=>x.tip==='frikik'&&Math.hypot(x.bx,x.D)>25).length,3);
-console.log('PASS real Edge handler with mocked database: private identity, forged character denied, stable multi-device owner, ten-shot weekly limit, duplicate retry, shared week, goal totals, hidden inputs, logout revocation, login rate limit, Monday boundary and 5+2+3 schedule');
+console.log('PASS real Edge handler with mocked database: private identity, forged character denied, stable multi-device owner, ten-shot weekly limit, duplicate retry, shared week, goal totals, hidden inputs, logout revocation, login rate limit that no longer locks out the real owner, Monday boundary and 5+2+3 schedule');
 })().catch(e=>{console.error(e);process.exit(1)});
