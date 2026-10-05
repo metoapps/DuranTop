@@ -109,6 +109,8 @@
 
   function toplam() { return d.sonuclar.reduce(function (t, s) { return t + s.puan; }, 0); }
 
+  function panelKonumu(){var el=$('oyun');if(el&&el.classList&&el.classList.toggle)el.classList.toggle('secim-sag',d.durus===-1);}
+
   function vurusHazirla(acik) {
     d.pos = A.pozisyonlar[d.idx];
     DT.cizim.sahneKur(d.pos, 0);
@@ -117,7 +119,7 @@
     d.barajGeo = ornek.baraj;
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
-    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.yurume=null;d.durusHazir=!!acik;
+    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.yurume=null;d.durusHazir=!!acik;panelKonumu();
     $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=true;$('hazirlikPanel').hidden=!!acik; $('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
@@ -133,7 +135,7 @@
     if(!acik)$('ipucu').textContent='Pozisyona bak. Hazır olunca duruşunu seç.';
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
       d.seed = acik.seed; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
-      d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;DT.cizim.kameraDurus(d.durus);$('gucSec').value=Math.round(d.guc*100);
+      d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;DT.cizim.kameraDurus(d.durus);panelKonumu();$('gucSec').value=Math.round(d.guc*100);
       falsoSec(acik.falso || 0);
       kilitle(true);
     }
@@ -450,7 +452,7 @@
     $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
     $('gucOnay').addEventListener('click',function(){if(!d.durusHazir)return;d.gucHazir=true;$('gucPanel').hidden=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç. Sert vuruş ve hassas köşe daha zor.';if(d.kilit)kilitle(true);acikKaydet();});
     $('durusAc').addEventListener('click',function(){if(d.faz!=='nisan'||d.durusHazir)return;$('hazirlikPanel').hidden=true;$('durusPanel').hidden=false;$('ipucu').hidden=true;});
-    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];DT.cizim.kameraDurus(d.durus);if(old===d.durus){d.durusHazir=true;$('durusPanel').hidden=true;$('gucPanel').hidden=false;return;}d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
+    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){var old=d.durus;d.durus=item[1];DT.cizim.kameraDurus(d.durus);panelKonumu();if(old===d.durus){d.durusHazir=true;$('durusPanel').hidden=true;$('gucPanel').hidden=false;return;}d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }
 
   var baslatildi = false;

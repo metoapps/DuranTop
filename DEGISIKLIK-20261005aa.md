@@ -9,6 +9,7 @@ Temel yayımlı commit: 885fc8b15954ab1a961fe22cb0d8ae2597a18c66 (w). Claude'un 
 - Kaleci, yer darbesini kapsayan kısa hız/ivme penceresini atlar. Önceki planı korur, sonraki temiz gözlemde tekrar okur. Eski örnek: uzak orta frikik, hedef 3/0.8, merkez temas, güç .8, zaman .3, seed 1000+i*7919 (40 örnek): rules 6 29 gol / 11 kurtarış; rules 7 40 kurtarış.
 - Duruş değişimi dön–yürü–dön olarak 1.1 saniyede tamamlanır; başlangıç ve bitiş konumu kalıcıdır, destek ayağı kaymaz.
 - Kamera duruşa göre yan kayar. z'nin katsayıları (-.32/.37/.25) yerine (-.25/.32/.20) × kamera geri mesafesi kullanılır; kadrajın üst ve alt boşlukları azaltıldı. Top gövdenin üstüne çizilmez.
+- Sol duruşta kamera oyuncuyu solda gösterdiği için seçim panelleri sağdaki boşluğa taşınır; diğer duruşlarda soldadır.
 - 10 pozisyon × 3 duruş × 5 ekran (320x568,390x844,430x932,844x390,1366x768): en küçük kale genişliği sırasıyla 130/162/180/131/299 px, yüksekliği 46/57/63/46/105 px. Kale boyutları ve hedef izdüşümünün ters hesabı gerçekten test edilir; önceki boş kontrol tamamlandı.
 
 ## Doğrulama

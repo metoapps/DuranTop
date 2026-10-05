@@ -339,3 +339,6 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
   #menu .menu-ust {padding:0;}
   #menu .kadro img {height:clamp(120px,22vh,245px);}
 }
+
+/* Stance camera puts a left-stance player on the left: choices use the clear opposite side. */
+#oyun.secim-sag .saha-secimi {left:auto;right:max(8px,env(safe-area-inset-right,0px));}
