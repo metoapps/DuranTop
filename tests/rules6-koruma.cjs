@@ -1,0 +1,5 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),crypto=require('crypto'),r={};vm.createContext(r);for(const n of ['ayar','model3d','baraj','kaleci','ucus','fizik','puan'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),r);const D=r.DT,rows=[];
+for(let i=0;i<100;i++)rows.push(D.fizik.hesapla({pos:D.AYAR.pozisyonlar[i%10],aim:{x:(i%9-4)*.8,y:.2+(i%5)*.5},contact:{x:.4,y:0},guc:.3+(i%8)*.1,zaman:.46+(i%9)*.01,seed:i+1,enerjiFizigi:true,takipFizigi:true,sabitKol:true}));
+assert.equal(crypto.createHash('sha256').update(JSON.stringify(rows)).digest('hex'),'7ad6db2dce8152b49118e156d8ab72c1d9040996c9f1e2c40c4daeb70462b89e','100 complete rules6 results must match published w, including trajectories and keeper plans');
+const g={pos:D.AYAR.pozisyonlar[9],aim:{x:3,y:.8},contact:{x:0,y:0},guc:.8,zaman:.3,seed:8919,enerjiFizigi:true,takipFizigi:true,sabitKol:true};assert.equal(D.fizik.hesapla(g).sonuc,'gol');assert.equal(D.fizik.hesapla({...g,yerTakibi:true}).sonuc,'kurtaris');
+console.log('PASS published rules6 replay hash; corrected ground keeper only enabled by rules7');

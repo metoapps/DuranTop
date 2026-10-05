@@ -17,7 +17,23 @@ function placement(pos,o){
  var point=w?stance(turn):[mix(start[0],end[0],run),mix(start[1],end[1],run)];
  var yaw=shot?mix(base+(o.direction||0)*.40,launch,run):base+turn*.40;
  var gait=null;
- if(w)gait={u:w.u,start:stance(w.from),end:stance(w.to),yaw0:base+w.from*.40,yaw1:base+w.to*.40};
+ if(w){
+  // Duruş değiştirme: önce yürüyeceği yöne dön, sonra yürü, sonra yeni bakış yönüne dön (yan yan yürüme yok).
+  // Yer değiştirme çok kısaysa (aynı duruş) yalnızca yerinde dönüş yapılır.
+  var S0=stance(w.from),S1=stance(w.to),Y0=base+w.from*.40,Y1=base+w.to*.40,dx=S1[0]-S0[0],dz=S1[1]-S0[1],dist=Math.hypot(dx,dz);
+  var travel=dist>.02?Math.atan2(dx,dz):Y0;
+  function angle(a,b){var d=(b-a)%(2*Math.PI);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;return d;}
+  var u=clamp(w.u,0,1),a=dist>.02?.30:.50,b=dist>.02?.72:1.0;
+  if(dist<=.02){
+   yaw=Y0+angle(Y0,Y1)*ease(u);point=S0;gait={u:u,start:S0,end:S0,yaw0:Y0,yaw1:Y1};
+  }else if(u<a){
+   var k=u/a;yaw=Y0+angle(Y0,travel)*ease(k);point=S0;gait={u:k,start:S0,end:S0,yaw0:Y0,yaw1:travel};
+  }else if(u<b){
+   var m=(u-a)/(b-a);yaw=travel;point=[mix(S0[0],S1[0],ease(m)),mix(S0[1],S1[1],ease(m))];gait={u:m,start:S0,end:S1,yaw0:travel,yaw1:travel};
+  }else{
+   var q=(u-b)/(1-b);yaw=travel+angle(travel,Y1)*ease(q);point=S1;gait={u:q,start:S1,end:S1,yaw0:travel,yaw1:Y1};
+  }
+ }
  else if(shot&&p<.66)gait={u:p/.66,start:start,end:end,yaw0:base+(o.direction||0)*.40,yaw1:launch};
  if(gait&&shot)gait.finishLeft=[-50,28];
  if(gait){gait.steps=Math.max(2,Math.ceil(Math.hypot(gait.end[0]-gait.start[0],gait.end[1]-gait.start[1])/.22));if(gait.steps%2)gait.steps++;}

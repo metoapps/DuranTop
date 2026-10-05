@@ -5,7 +5,7 @@ function world(P,v){let c=Math.cos(P.yaw),s=Math.sin(P.yaw);return [P.point[0]+(
 let worst=0;
 for(const pos of positions)for(const from of [-1,0,1])for(const to of [-1,0,1]){
  let previous;for(let i=0;i<=200;i++){let u=i/200,o={direction:to,walk:{from,to,u}},P=D.placement(pos,o),R=D.rig({...o,gait:P.gait}),feet=['fl','fr'].map(k=>world(P,R.nodes[k]));
-  assert(P.point[1]<0,'preparation remains behind the ball');assert(Math.abs(P.yaw-(Math.atan2(-pos.bx,pos.D)+(from+(to-from)*(u*u*(3-2*u)))*.40))<1e-12);
+  assert(P.point[1]<0,'preparation remains behind the ball');if(u===0)assert(Math.abs(P.yaw-(Math.atan2(-pos.bx,pos.D)+from*.40))<1e-12,'walk starts at the old stance yaw');if(u===1)assert(Math.abs(P.yaw-(Math.atan2(-pos.bx,pos.D)+to*.40))<1e-12,'walk ends at the new stance yaw');   // ara yaw artık dön–yürü–dön: tests/yuruyus-donus.cjs
   if(previous)for(let j=0;j<2;j++)if(feet[j][1]<1e-8&&previous[j][1]<1e-8)worst=Math.max(worst,Math.hypot(...feet[j].map((x,k)=>x-previous[j][k])));
   previous=feet;
  }

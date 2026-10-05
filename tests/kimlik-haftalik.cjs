@@ -30,7 +30,12 @@ const room=week.room.id;assert.equal((await api({action:'join',room,player:'meto
 for(const [session,player] of [[A,'meto'],[B,'lort']])assert.equal((await api({action:'join',room,player},session)).status,200);
 const shot={rules:4,action:'shot',room,player:'meto',idx:0,aim:{x:3.15,y:1.1},contact:{x:0,y:0},zaman:.5,guc:1,durus:0};assert.equal((await api(shot,B)).data.code,'FORBIDDEN');assert.equal(members[0].idx,0);
 assert.equal((await api({...shot,rules:1},A)).data.code,'CLIENT_VERSION');
-let first;for(let idx=0;idx<10;idx++){const rules=[4,5,6][idx%3];const r=await api({...shot,rules,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.data.entry.input.rules,rules);if(!idx)first=r.data.entry;}
+let first;for(let idx=0;idx<10;idx++){
+ // Kaydedilmemiş eski sürüm (rules 4/5) isteği hak harcamadan reddedilir; sessizce farklı fizikle hesaplanmaz.
+ for(const eski of [4,5,6]){const red=await api({...shot,rules:eski,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(red.status,400);assert.equal(red.data.code,'CLIENT_VERSION');assert.equal(members[0].idx,idx,'reddedilen eski sürüm isteği hak harcamadı');assert(/harcanmadı/.test(red.data.error),'kullanıcıya hakkın harcanmadığı söylenir');}
+ const r=await api({...shot,rules:7,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.data.entry.input.rules,7);if(!idx)first=r.data.entry;}
+// Kaydedilmiş vuruşun tekrar isteği (eski sürüm olsa da) mevcut kaydı döndürür, yeniden hesaplamaz.
+for(const eski of [4,5,6]){const tekrar=await api({...shot,rules:eski,aim:{x:-3,y:2},zaman:.1},A);assert.equal(tekrar.status,200);assert.deepEqual(tekrar.data.entry,first,'kayıtlı vuruş, istenen sürümden bağımsız olarak aynı sonuçla döner');}
 assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].idx,10);assert.equal((await api({...shot,idx:10},A)).data.code,'INPUT');
 const C=(await api({action:'login',player:'meto',password:code})).data.session;const st=(await api({action:'create'},C)).data;assert.equal(st.players.find(p=>p.mine).idx,10,'second device cannot reset weekly rights');
 const publicState=(await api({action:'state',room})).data;assert.equal(publicState.weekly.find(p=>p.player==='meto').idx,10);assert(!JSON.stringify(publicState).includes('"input"'));assert(!JSON.stringify(publicState).includes('credential_hash'));

@@ -11,7 +11,7 @@
   };
 
   var cv, ctx, W = 360, H = 640, dpr = 1;
-  var kam = null, arka = null, pos = null;
+  var kam = null, arka = null, pos = null, kamDurus = 0;
   var gorseller = {};          // yüklenen sprite görselleri
   var yuklenen = 0, gereken = DT.KARAKTER.length + 1, yuklemeHatasi = false;
   function yuklemeBildir() {
@@ -30,7 +30,10 @@
     // One perspective camera in SI units. Fit the scene, never shrink a single actor.
     var ul=Math.hypot(-p.bx,p.D),ux=-p.bx/ul,uz=p.D/ul;
     var wide=W>H,ayar=KAMERA[p.tip],back=ayar.geri,height=ayar.yuk;
-    var C=[p.bx-ux*back-uz*2.0,height,-uz*back+ux*2.0];
+    // Kamera, oyuncunun duruşuna göre yana kayar: oyuncu topu gövdesiyle örtmesin (ölçüm: tests/kamera-top.cjs). Kayma, geri mesafeyle orantılı:
+    // dar bir açı yetmez, mesafe büyüdükçe (frikik) aynı örtüşmeyi çözmek için daha çok yan kayma gerekir.
+    var YANK={'-1':-0.25,'0':0.32,'1':0.20},yan=(YANK[String(kamDurus)]===undefined?YANK['0']:YANK[String(kamDurus)])*back;
+    var C=[p.bx-ux*back-uz*yan,height,-uz*back+ux*yan];
     var target=[0,1,p.D],f=norm(target.map(function(v,i){return v-C[i];})),r=norm(cross([0,1,0],f)),up=cross(f,r);
     var k={C:C,f:f,r:r,up:up,cx:wide?W*.40:W/2,cy:0,F:1,ky:1};
     function raw(x,y,z){var d=[x-C[0],y-C[1],z-C[2]],depth=dot(d,f);return {x:dot(d,r)/depth,y:-dot(d,up)/depth};}
@@ -40,8 +43,8 @@
     [-.65,.65].forEach(function(x){[0,1.90].forEach(function(y){points.push(raw(p.bx-ux+uz*x,y,-uz-ux*x));});});
     points.push(raw(p.bx,0,0));
     var min=Math.min.apply(null,points.map(function(v){return v.y;})),max=Math.max.apply(null,points.map(function(v){return v.y;}));
-    var top=wide?Math.max(100,H*.17):Math.max(155,H*.20),bottom=wide?H-35:H-Math.min(240,H*.30);
-    if(bottom-top<140){top=95;bottom=H-145;}
+    var top=wide?Math.max(80,H*.12):Math.max(150,H*.18),bottom=wide?H-25:H-Math.min(200,H*.235);
+    if(bottom-top<140){top=80;bottom=H-120;}
     var minX=Math.min.apply(null,points.map(function(v){return v.x;})),maxX=Math.max.apply(null,points.map(function(v){return v.x;}));
     var leftMargin=wide?20:16,rightLimit=wide?W*.78:W-16;
     k.F=Math.min(focal,(bottom-top)/(max-min),(rightLimit-leftMargin)/(maxX-minX));k.cy=top-k.F*min;k.cx=(leftMargin+rightLimit-k.F*(minX+maxX))/2;
@@ -562,8 +565,13 @@
     if (pos) sahneKur(pos);
   }
 
-  function sahneKur(p) {
-    pos = p; kam = kameraKur(p); kaleArkaCache=null; arka = arkaPlanCiz();
+  function sahneKur(p, durus) {
+    pos = p; if (durus !== undefined) kamDurus = durus; kam = kameraKur(p); kaleArkaCache=null; arka = arkaPlanCiz();
+  }
+  // Duruş seçilince kamera yeni duruşa göre döner (tek kesme; arka plan bir kez yeniden çizilir, her karede değil).
+  function kameraDurus(durus) {
+    if (durus === kamDurus || !pos) return;
+    kamDurus = durus; kam = kameraKur(pos); kaleArkaCache=null; arka = arkaPlanCiz();
   }
 
   function kur(canvas, genislik, yukseklik, dprZorla) {
@@ -575,7 +583,7 @@
 
   DT.cizim = {
     kameraAyar: KAMERA,
-    kur: kur, sahneKur: sahneKur, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
+    kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },
     karakterHazir: karakterHazir, karakterYukle: karakterYukle,

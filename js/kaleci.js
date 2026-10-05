@@ -48,9 +48,12 @@ function planla(target,tip,practice,noise,T,options){
 }
 // Rules 6: observations contain only past samples. The goal plane is known
 // field geometry; the actual landing point/flight duration are never inputs.
-function gozlem(path,t,D){
+function gozlem(path,t,D,yerTakibi){
  var i=0;while(i+1<path.length&&path[i+1].t<=t+1e-10)i++;
  if(i<12||t-path[i].t>.025)return null;
+ // Zemin darbesi, hız ve ivmeyi bir anda değiştirir (sekme + sürtünme darbesi). Pencere bir yer temasını kapsıyorsa bu gözlem güvenilmezdir:
+ // atla, önceki plan geçerli kalsın. Aksi halde kaleci sekmeden hemen sonra yanlış varış tahminiyle erken dalıp kalıcı olarak yanlış yere gider.
+ if(yerTakibi){var zemin=A.kale.topYaricap+.004;for(var j=i-11;j<=i;j++)if(path[j].y<=zemin&&path[j-1].y>zemin)return null;}
  var b=path[i],a=path[i-6],c=path[i-12],dt=b.t-a.t,dt0=a.t-c.t;
  if(dt<.001||dt0<.001)return null;
  var v=['x','y','z'].map(k=>(b[k]-a[k])/dt),prev=['x','y','z'].map(k=>(a[k]-c[k])/dt0);
@@ -90,7 +93,7 @@ function takipPlan(tip,practice,noise,o){
   var old=segments[segments.length-1],current=sample(old,t);
   // Once a dive starts its momentum is committed. No mid-air teleport/reversal.
   if(old&&current.poz==='dal')break;
-  var seen=gozlem(o.yol||[],t,o.D);if(!seen)continue;
+  var seen=gozlem(o.yol||[],t,o.D,o.yerTakibi===true);if(!seen)continue;
   var gx=seen.x+nx,gy=clamp(seen.y+ny,.15,2.6),central=Math.abs(gx)<=K.merkezEsik;
   if(!chosen){wrong=tip==='penalti'&&!central&&decision<K.penaltiYanlisKose;lapse=tip==='frikik'&&central&&decision<K.frikikMerkezHatasi;chosen=true;}
   if(wrong)gx=-gx;if(lapse)gx=(decision<K.frikikMerkezHatasi/2?-1:1)*3;
