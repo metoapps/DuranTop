@@ -1,10 +1,10 @@
 /* Cosmetic only: two celebrations per person. No score, seed or weekly rights. */
 (function(root){'use strict';var D=root.DT;
-var counts={},names={latte:'Bir yudum, bir gol',lort:'Gol otele yazıldı',josh:'Bu gol minik için',fero:'Lezzet tamam, rota hazır',meto:'Anons bitti, kartal uçtu'};
+var counts={},names={latte:'Bir yudum, bir gol',lort:'Gol otele yazıldı',josh:'Bu gol minik için',fero:'Lezzet tamam, rota hazır',meto:'Bu gol tribüne'};
 function smooth(a,b,t){t=Math.max(0,Math.min(1,(t-a)/(b-a)));return t*t*(3-2*t);}
 function blend(a,b,u){return a.map(function(x,i){return x+(b[i]-x)*u;});}
 function pose(id,t){
- t=Math.max(0,Number(t)||0)%5.6;var inU=smooth(0,.5,t),beat=Math.sin(t*5),p={left:[-65,155,18],right:[65,155,18],feet:[[-24,8,0],[24,8,0]],shift:0,turn:0,prop:null,propAngle:0};
+ t=Math.max(0,Number(t)||0);if(id!=='meto')t%=5.6;var inU=smooth(0,.5,t),beat=Math.sin(t*5),p={left:[-65,155,18],right:[65,155,18],feet:[[-24,8,0],[24,8,0]],shift:0,turn:0,prop:null,propAngle:0};
  if(id==='latte'){
   var sip=smooth(.7,1.5,t)*(1-smooth(2.1,2.7,t)),cheers=smooth(2.7,3.5,t)*(1-smooth(4.7,5.5,t));
   p.right=blend([67,210,35],[-38,316,45],sip);p.right=blend(p.right,[88,300,38],cheers);
@@ -24,10 +24,14 @@ function pose(id,t){
   p.right=blend(p.right,[90,274,18],travel);p.prop=t<2.5?'food':'suitcase';p.turn=.14*travel*Math.sin(t*2);
   p.feet[1][1]=8+Math.max(0,Math.sin(t*6))*8*travel;
  }else if(id==='meto'){
-  var announce=smooth(.3,.8,t)*(1-smooth(1.7,2.5,t)),eagle=smooth(2.4,3.2,t)*(1-smooth(4.8,5.6,t));
-  p.right=blend([65,190,30],[-22,316,48],announce);p.prop=t<2.5?'radio':null;
-  p.left=blend([-70,190,20],[-150,276+12*Math.sin(t*4),8],eagle);p.right=blend(p.right,[150,276+12*Math.sin(t*4),8],eagle);
-  p.shift=3*eagle*Math.sin(t*4);p.turn=.05*Math.sin(t*2);
+  // Badge touch -> grounded, open-arm salute -> turn to the stands -> relax.
+  // No prop, repetitive flapping or bobbing. Both feet stay planted.
+  var badge=smooth(.20,.65,t)*(1-smooth(.95,1.45,t)),eagle=smooth(1.15,2.35,t)*(1-smooth(4.45,5.75,t));
+  p.left=blend([-65,155,18],[-158,260,8],eagle);
+  p.right=blend([65,155,18],[-17,237,57],badge);p.right=blend(p.right,[158,260,8],eagle);
+  p.feet=[[-26,8,0],[26,8,0]];p.shift=-2*smooth(.1,.5,t)*(1-smooth(1.0,1.8,t));
+  p.turn=.32*smooth(1.5,2.65,t)-.60*smooth(3.1,4.15,t)+.28*smooth(4.5,5.7,t);
+  p.prop=null;
  }
  p.left=blend([-65,155,18],p.left,inU);p.right=blend([65,155,18],p.right,inU);return p;
 }

@@ -106,7 +106,7 @@ function draw(g,o){var r=rig(o),n=r.nodes,T=textures(o.id,o.front,o.back,o.makeC
  function headVertex(lat,lon){return [79*Math.sin(lat)*Math.cos(lon),89*Math.cos(lat),63*Math.sin(lat)*Math.sin(lon)];}
  function headFace(a,b,cc){var center=mul(add(add(a,b),cc),1/3),normal=unit(center),visible=(-normal[0]*s+normal[2]*c)<.2;if(!visible)return;
   var texture=center[2]>0?T.headFront:T.headBack,uv=[a,b,cc].map(p=>[(p[0]/79+1)/2,(1-p[1]/89)/2]);
-  face(add(n.head,a),add(n.head,b),add(n.head,cc),o.id==='fero'?'#bc9275':'#392b25');
+  if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),o.id==='fero'?'#bc9275':'#392b25');
   face(add(n.head,a),add(n.head,b),add(n.head,cc),null,uv,texture);
  }
  for(var hj=0;hj<10;hj++)for(var hi=0;hi<20;hi++){var ha=hj*Math.PI/10,hb=(hj+1)*Math.PI/10,ht=hi*Math.PI/10,htt=(hi+1)*Math.PI/10;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}

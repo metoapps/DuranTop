@@ -14,6 +14,7 @@ function oku(yol,t){
  var rem=(end.z-b.z)/vz;return {x:b.x+vx*rem,y:b.y+vy*rem-.5*A.yercekimi*rem*rem,t:b.t,arrival:b.t+rem};
 }
 function planla(target,tip,practice,noise,T,options){
+ if(options&&options.penaltiTahmin&&tip==='penalti')return penaltiPlan(practice,noise,options);
  if(options&&options.takipFizigi)return takipPlan(tip,practice,noise,options);
  var K=A.kaleci,reaction=K.tepki[tip]+(practice?A.antrenman.tepkiEk:0);
  options=options||{};var decision=options.decision===undefined?1:options.decision;
@@ -72,6 +73,40 @@ function gozlem(path,t,D,yerTakibi){
   remain=elapsed+h;if(v[2]<=.1)break;
  }
  return {x:x,y:y,t:b.t,arrival:b.t+remain};
+}
+// Rules 9: choose BEFORE the kick from an independent seeded draw. No aim,
+// final target, flight duration or future samples can affect the lateral dive.
+function penaltiPlan(practice,noise,o){
+ var K=A.kaleci,decision=o.preDecision===undefined?.5:o.preDecision;
+ var dir=decision<.14?0:decision<.57?-1:1,start=-.10,x=dir*2.20;
+ var vmax=K.penaltiHiz-(practice?A.antrenman.hizAzalt:0);
+ var duration=K.hareketSabit+1.5*Math.abs(x)/vmax,end=start+duration;
+ var readT=.13+(practice?.025:0),seen=gozlem(o.yol||[],readT,o.D,true);
+ // Only height is read after the shot. Lateral commitment cannot be corrected.
+ var heightNoise=noise()*K.hedefGurultuY,reads=[];
+ for(var rt=readT;rt<=1.3;rt+=.10){var observed=gozlem(o.yol||[],rt,o.D,true);if(observed)reads.push({t:rt,x:observed.x,y:clamp(observed.y+heightNoise,.15,2.6)});}
+ var gy=seen?clamp(seen.y+heightNoise,.15,2.6):1;
+ var targetY=dir?clamp(gy-.16,.30,1.7):(gy<.6?.72:gy>1.75?1.35:1);
+ var heightDuration=Math.max(.22,1.5*Math.abs(targetY-1)/4.0),heightEnd=readT+heightDuration;
+ var fallStart=Math.max(end,heightEnd)+.04,ground=dir?.30:(gy<.6?.72:1);
+ var landingT=fallStart+Math.sqrt(2*Math.max(0,targetY-ground)/A.yercekimi);
+ function konum(t){
+  var u=clamp((t-start)/duration,0,1),e=u*u*(3-2*u),v=clamp((t-readT)/heightDuration,0,1),ve=v*v*(3-2*v);
+  var y=1+(targetY-1)*ve;
+  if(t<readT)y=1+.035*Math.sin(Math.PI*u);
+  if(t>fallStart)y=Math.max(ground,y-.5*A.yercekimi*Math.pow(t-fallStart,2));
+  var landed=t>=landingT,recovery=landed?clamp((t-landingT-.25)/1.15,0,1):0;
+  if(recovery)y=ground+(1-ground)*recovery;
+  var dive=dir!==0&&u>.08&&recovery<1,observed=t>=readT,handY=1;
+  for(var i=0;i<reads.length&&reads[i].t<=t;i++){var hu=clamp((t-reads[i].t)/.10,0,1);handY+=(reads[i].y-handY)*hu*hu*(3-2*hu);}
+  return {x:x*e,y:y,poz:dive?'dal':'bekle',yon:dive?dir:0,ilerleme:u,eylem:dir?'dal':'bekle',eskiKol:false,
+    low:observed&&gy<.6&&recovery<1,high:observed&&gy>1.75&&t<fallStart+.4,block:0,
+    reachHeight:observed?handY:undefined,reachBlend:clamp((t-readT)/.14,0,1),
+    landing:landed&&dir!==0,recovery:recovery,airborne:dive&&!landed};
+ }
+ return {onKarar:true,kararYon:dir,baslamaT:start,yanlisKose:!!(seen&&dir&&Math.abs(seen.x)>.75&&dir*seen.x<0),merkezHatasi:false,
+  eylem:dir?'dal':'bekle',tepki:start,okumaT:readT,sans:true,hedefX:x,hedefY:targetY,okunanX:seen?seen.x:0,okunanY:gy,
+  gozlemler:reads,konum:konum,cizimKonum:konum};
 }
 function takipPlan(tip,practice,noise,o){
  var K=A.kaleci,first=K.tepki[tip]+K.okumaGecikme[tip]+(practice?A.antrenman.tepkiEk:0);

@@ -8,6 +8,7 @@ for(const id of ['meto','lort','latte','josh','fero']){
   if(previous)for(const k of ['hl','hr','head'])assert(Math.hypot(...r.nodes[k].map((v,i)=>v-previous[k][i]))<15,'continuous '+id+' '+k);previous=r.nodes;
  }
 }
+for(let t=0;t<8;t+=.01){const p=D.sevinc.pose('meto',t);assert.equal(p.prop,null);assert.deepEqual(p.feet,[[-26,8,0],[26,8,0]],'Meto keeps both feet planted');}assert.equal(JSON.stringify(D.sevinc.pose('meto',8)),JSON.stringify(D.sevinc.pose('meto',9)),'Meto relaxes instead of resetting abruptly');
 assert.equal(world(storage).sevinc.next('meto'),1,'alternation survives reload');
 const blocked=world({getItem(){throw Error()},setItem(){throw Error()}});assert.deepEqual([blocked.sevinc.next('meto'),blocked.sevinc.next('meto')],[1,0],'private/storage disabled still alternates');
 const T=D.tribun,base=[-1.0,1.6,31],m=T.newMesh(12,8,T.pole(0,base));let maxStretch=0,maxLag=0;

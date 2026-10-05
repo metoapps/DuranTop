@@ -64,3 +64,7 @@ Güncel bakım sürümü: 20261004o. Kalite toparlanması, giriş işlem korumas
 
 
 20261004q: Futbolcu yön, yürüyüş ve şut için eklemli prosedürel 3D model. Sınırlamalar ve kontroller: DEGISIKLIK-20261004q.md.
+
+
+## Güncelleme 20261005ae
+Yeni vuruşlar rules 9: penaltıda kaleci vuruştan 100 ms önce sağ/sol/ortada kalma kararını verir. Köşe tercihi nişandan bağımsız ortak tohumla belirlenir; şut çıktıktan sonra yalnız yüksekliği okuyup sabit kol boyuyla uzanır. Frikik davranışı ve kayıtlı rules 4–8 sonuçları korunur. METO ikinci sevincinde göğsüne dokunur, ayakları yerdeyken kollarını açar, tribüne döner ve kollarını indirir. Direkten geri dönen topun sonucu için durması beklenmez. `tests/penalti-tahmin.cjs` nedensellik, hız, erişim, gerçek temas ve eski kayıtları; `tests/direk-sonuc.cjs` vuruş öncesi çizim ve sonuç kartı geçişini kontrol eder.

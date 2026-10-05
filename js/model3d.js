@@ -34,6 +34,11 @@ function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*Math.
   var u=Math.max(0,Math.min(1,(k.recovery-phases[idx])/(phases[idx+1]-phases[idx])));u=u*u*(3-2*u);
   Object.keys(nodes).forEach(function(key){nodes[key]=poses[idx][key].map(function(value,i){return value+(poses[idx+1][key][i]-value)*u;});});
  }
+ // A committed penalty dive can adjust hand HEIGHT after observing the ball.
+ // The body keeps its chosen side; the following IK bounds both arm lengths.
+ if(dive&&Number.isFinite(k.reachHeight)&&!k.recovery){
+  ['hl','hr'].forEach(function(key){nodes[key][1]+=(k.reachHeight-nodes[key][1])*Math.max(0,Math.min(1,k.reachBlend||0));});
+ }
  // Two-bone IK: wrists can move, but humerus and forearm never change length.
  if(!k.eskiKol){
   var upper=.34,lower=.34;
