@@ -242,10 +242,6 @@
     var c=yerelCanvas(Math.ceil(width*dpr),Math.ceil(height*dpr)),b=c.getContext('2d');b.scale(dpr,dpr);b.translate(-left,-top);
     // Grounded cage shadow and different brightness per surface expose the depth.
     kaleYuz(b,[[-w-.12,.01,D],[w+.12,.01,D],[w+.4,.01,z+.55],[-w+.15,.01,z+.55]],'rgba(0,0,0,.25)');
-    kaleYuz(b,[[-w,0,z],[w,0,z],[w,h,z],[-w,h,z]],'rgba(155,180,177,.035)');
-    kaleYuz(b,[[-w,0,D],[-w,0,z],[-w,h,z],[-w,h,D]],'rgba(191,215,214,.055)');
-    kaleYuz(b,[[w,0,D],[w,0,z],[w,h,z],[w,h,D]],'rgba(103,134,139,.06)');
-    kaleYuz(b,[[-w,h,D],[w,h,D],[w,h,z],[-w,h,z]],'rgba(213,226,223,.06)');
     // Rear supports, feet and side stays are thinner than the front goal frame.
     [-w,w].forEach(function(x){
       kaleBoru(b,[x,0,z],[x,h,z],.045,true);kaleBoru(b,[x,h,D],[x,h,z],.045,true);kaleBoru(b,[x,.025,D],[x,.025,z],.045,true);
@@ -253,19 +249,28 @@
       var foot=izdus(x,0,D);b.fillStyle='rgba(0,0,0,.4)';b.beginPath();b.ellipse(foot.x,foot.y,.12*foot.olcek,.035*foot.olcek,0,0,Math.PI*2);b.fill();
     });
     kaleBoru(b,[-w,h,z],[w,h,z],.045,true);kaleBoru(b,[-w,.025,z],[w,.025,z],.035,true);
+    var faces=[],ag;
+    function faceCanvas(kind,value,corners){
+      var fc=yerelCanvas(c.width,c.height),fg=fc.getContext('2d');fg.scale(dpr,dpr);fg.translate(-left,-top);
+      kaleYuz(fg,corners,'rgba(200,225,219,.035)');
+      var middle=corners.reduce(function(m,p){return m.map(function(v,i){return v+p[i]/corners.length;});},[0,0,0]);
+      faces.push({canvas:fc,kind:kind,value:value,depth:izdus.apply(null,middle).d});ag=fg;
+    }
+    faceCanvas('z',z,[[-w,0,z],[w,0,z],[w,h,z],[-w,h,z]]);
     var cols=32,rows=11,layers=7,line=Math.max(.55,Math.min(1.1,W/650)),i,j,pts;
     function rear(x,y){return [x,y,z+.06*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*y/h)];}
     // Fine cords curve slightly between their attachment points.
-    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=rows;j++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(b,pts,'rgba(225,236,233,.25)',line);}
-    for(j=0;j<=rows;j++){pts=[];for(i=0;i<=cols;i++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(b,pts,'rgba(230,240,237,.3)',line);}
-    [-1,1].forEach(function(side){function sidePoint(y,t){return [side*(w+.04*Math.sin(Math.PI*y/h)*Math.sin(Math.PI*t)),y,D+depth*t];}
-      for(i=0;i<=layers;i++){pts=[];for(j=0;j<=rows;j++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(b,pts,'rgba(231,242,238,.42)',line);}
-      for(j=0;j<=rows;j++){pts=[];for(i=0;i<=layers;i++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(b,pts,'rgba(233,243,240,.4)',line);}
+    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=rows;j++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(225,236,233,.25)',line);}
+    for(j=0;j<=rows;j++){pts=[];for(i=0;i<=cols;i++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(230,240,237,.3)',line);}
+    [-1,1].forEach(function(side){faceCanvas('x',side*w,[[side*w,0,D],[side*w,0,z],[side*w,h,z],[side*w,h,D]]);function sidePoint(y,t){return [side*(w+.04*Math.sin(Math.PI*y/h)*Math.sin(Math.PI*t)),y,D+depth*t];}
+      for(i=0;i<=layers;i++){pts=[];for(j=0;j<=rows;j++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(231,242,238,.42)',line);}
+      for(j=0;j<=rows;j++){pts=[];for(i=0;i<=layers;i++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(233,243,240,.4)',line);}
     });
+    faceCanvas('y',h,[[-w,h,D],[w,h,D],[w,h,z],[-w,h,z]]);
     function roof(x,t){return [x,h-.045*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*t),D+depth*t];}
-    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=layers;j++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(b,pts,'rgba(237,245,242,.36)',line);}
-    for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(b,pts,'rgba(226,241,235,.3)',line);}
-    kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
+    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=layers;j++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(237,245,242,.36)',line);}
+    for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(226,241,235,.3)',line);}
+    kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr,faces:faces};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
   }
   function kaleOn(g) {
     var D=pos.D,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2;
@@ -515,6 +520,19 @@
       var bd = izdus(d.baraj.merkezX, 1, d.baraj.merkezZ);
       liste.push({ z: bd ? bd.d : 0, ciz: function () { barajCiz(g, d); } });
     }
+    // Four independently cached net surfaces. A ball behind the net is
+    // drawn behind its cords, never on top of the entire cage.
+    var farBall=d.top&&Math.hypot(d.top.x-pos.bx,d.top.z)>=2?d.top:null;
+    kaleArkaCache.faces.forEach(function(face){
+      var depth=face.depth;
+      if(farBall){
+        var coordinate=face.kind==='x'?0:face.kind==='y'?1:2;
+        var hidden=(kam.C[coordinate]-face.value)*(farBall[face.kind]-face.value)<0;
+        var ballDepth=izdus(farBall.x,farBall.y,farBall.z);
+        if(ballDepth)depth=ballDepth.d+(hidden?-.002:.002);
+      }
+      liste.push({z:depth,ciz:function(){var cache=kaleArkaCache;g.drawImage(face.canvas,cache.x,cache.y,cache.w,cache.h);}});
+    });
     var actorBall=!!(d.top&&d.oyuncu&&Math.hypot(d.top.x-pos.bx,d.top.z)<2);
     if (d.top && !actorBall) {
       var td = izdus(d.top.x, d.top.y, d.top.z);

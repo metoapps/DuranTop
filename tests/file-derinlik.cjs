@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),C=require('/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/@napi-rs/canvas');
+const made=[],r={__yapCanvas:(w,h)=>{const c=C.createCanvas(w,h);made.push(c);return c;},setTimeout:()=>0,clearTimeout(){},Image:C.Image};vm.createContext(r);for(const n of ['ayar','veri','cizim'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),r);const D=r.DT,cv=C.createCanvas(390,844),g=cv.getContext('2d'),ball=C.createCanvas(12,12);ball.getContext('2d').fillStyle='#ff00ff';ball.getContext('2d').fillRect(0,0,12,12);D.cizim.kur(cv,390,844,1);D.cizim.gorselEkle('_top',ball);D.cizim.sahneKur(D.AYAR.pozisyonlar[0],0);
+let draws=[];const draw=g.drawImage.bind(g);g.drawImage=(image,...args)=>{draws.push(image);return draw(image,...args);};
+D.cizim.ciz({top:{x:0,y:1,z:12}});const [rear,left,right,roof]=made.slice(-4),first=draws;
+assert(first.indexOf(rear)<first.indexOf(ball),'interior ball is in front of the rear net');assert(first.indexOf(roof)>first.indexOf(ball),'interior ball is behind roof seen from above');
+draws=[];D.cizim.ciz({top:{x:0,y:1,z:14}});assert(draws.indexOf(rear)>draws.indexOf(ball),'miss behind cage is behind rear cords');
+draws=[];D.cizim.ciz({top:{x:0,y:3,z:12}});assert(draws.indexOf(roof)<draws.indexOf(ball),'ball over bar is above, not inside, roof');
+const sheet=C.createCanvas(1170,844),sg=sheet.getContext('2d');for(const [i,p] of [{x:0,y:1,z:12},{x:0,y:1,z:14},{x:0,y:3,z:12}].entries()){D.cizim.ciz({top:p});sg.drawImage(cv,0,0,390,844,i*390,0,390,844);sg.fillStyle='white';sg.font='18px sans-serif';sg.fillText(['Inside net','Behind net (OUT)','Above net (OUT)'][i],i*390+10,90);}fs.writeFileSync('/tmp/ab-net-depth.png',sheet.toBuffer('image/png'));
+console.log('PASS actual Canvas net layer ordering: interior, rear miss, roof miss; four face caches reused');

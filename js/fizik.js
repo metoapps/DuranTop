@@ -20,6 +20,50 @@
     };
   }
 
+  // The sphere's intersection with the goal plane is a shrinking disk,
+  // not a full-radius disk at the instant its trailing point crosses the line.
+  // Sample the swept disk at 1 mm depth intervals. Post contacts are handled first.
+  function golGecisi(path,D) {
+    var R=A.kale.topYaricap,w=A.kale.genislik/2,H=A.kale.yukseklik;
+    if(!path.length||path[0].z>D-R||path[path.length-1].z<D+R-1e-8)return false;
+    var crossed=false;
+    for(var i=1;i<path.length;i++){
+      var a=path[i-1],b=path[i],dz=b.z-a.z;
+      if(Math.max(a.z,b.z)<D-R||Math.min(a.z,b.z)>D+R)continue;
+      if(Math.abs(dz)<1e-12)continue;
+      var lo=Math.max(0,Math.min((D-R-a.z)/dz,(D+R-a.z)/dz)),hi=Math.min(1,Math.max((D-R-a.z)/dz,(D+R-a.z)/dz));
+      var steps=Math.max(1,Math.ceil(Math.abs(dz)*(hi-lo)/.001));
+      for(var j=0;j<=steps;j++){
+        var u=lo+(hi-lo)*j/steps,z=a.z+dz*u,x=a.x+(b.x-a.x)*u,y=a.y+(b.y-a.y)*u;
+        var radius=Math.sqrt(Math.max(0,R*R-(z-D)*(z-D)));
+        if(Math.abs(x)+radius>w+1e-7||y+radius>H+1e-7||y-radius < -1e-7)return false;
+        if(dz>0&&z>=D+R-1e-8)crossed=true;
+      }
+    }
+    return crossed;
+  }
+
+  // Net sides/roof/rear have two faces. A miss can hit the OUTSIDE of the
+  // net without becoming a goal. Front mouth is open; ground handled separately.
+  function fileTemasi(prev,p,v,D,inside) {
+    var R=A.kale.topYaricap,w=A.kale.genislik/2+A.kale.direk/2,H=A.kale.yukseklik+A.kale.direk/2,Z=D+1.5,hit=false;
+    function reflect(k){v[k]=-v[k]*.12;['x','y','z'].forEach(function(n){if(n!==k)v[n]*=.65;});hit=true;}
+    if(inside){
+      if(p.z>=D){if(p.x>w-R){p.x=w-R;if(v.x>0)reflect('x');}else if(p.x<-w+R){p.x=-w+R;if(v.x<0)reflect('x');}
+        if(p.y>H-R){p.y=H-R;if(v.y>0)reflect('y');}
+        if(p.z>Z-R){p.z=Z-R;if(v.z>0)reflect('z');}}
+    }else{
+      var best=null;
+      function plane(k,value,sign){var a=prev[k]-value,b=p[k]-value;if(a*sign<0||b*sign>=0||a===b)return;
+        var u=a/(a-b),q={x:prev.x+(p.x-prev.x)*u,y:prev.y+(p.y-prev.y)*u,z:prev.z+(p.z-prev.z)*u};
+        if(q.z<D-R||q.z>Z+R||Math.abs(q.x)>w+R+1e-7||q.y<0||q.y>H+R+1e-7)return;
+        if(!best||u<best.u)best={k:k,value:value,u:u,q:q};}
+      plane('x',w+R,1);plane('x',-w-R,-1);plane('y',H+R,1);plane('z',Z+R,1);
+      if(best){p.x=best.q.x;p.y=best.q.y;p.z=best.q.z;p[best.k]=best.value;reflect(best.k);}
+    }
+    return hit;
+  }
+
   /* girdi: { pos:{tip,bx,D}, aim:{x,y}, falso:-1|0|1, zaman:0..1|null, seed:int, antrenman:bool } */
   function hesapla(girdi) {
     var pos = girdi.pos, aim = girdi.aim;
@@ -111,7 +155,7 @@
         ornekler=ornekler.slice(0,pole.index).concat(reb.yol);olayIndex=ornekler.length-1;flight.reached=reb.reached;T=reb.T;
         var afterSave=kaleciDegdi();
         if(afterSave>=0){sonuc='kurtaris';olayIndex=afterSave;}
-        else {gecis={x:reb.son.x,y:reb.son.y};sonuc=reb.reached&&Math.abs(gecis.x)<yari-R&&gecis.y<H-R?'direk_gol':'direk_disari';}
+        else {gecis={x:reb.son.x,y:reb.son.y};sonuc=(girdi.golGeometrisi?golGecisi(ornekler,D):reb.reached&&Math.abs(gecis.x)<yari-R&&gecis.y<H-R)?'direk_gol':'direk_disari';}
       } else if(!flight.reached){sonuc='kisa';} else {
         var disDirek = Math.abs(Math.abs(gecis.x) - yari);
         var direkte = false, iceride = false;
@@ -121,7 +165,7 @@
           direkte = true; direkYeri = 'ust'; iceride = gecis.y < H;
         }
         if (direkte) sonuc = iceride ? 'direk_gol' : 'direk_disari';
-        else if (Math.abs(gecis.x) < yari - (girdi.enerjiFizigi?R:bolge) && gecis.y < H - (girdi.enerjiFizigi?R:bolge)) sonuc = 'gol';
+        else if (girdi.golGeometrisi ? golGecisi(ornekler,D) : Math.abs(gecis.x) < yari - (girdi.enerjiFizigi?R:bolge) && gecis.y < H - (girdi.enerjiFizigi?R:bolge)) sonuc = 'gol';
         else sonuc = 'aut';
       }
     }
@@ -136,9 +180,9 @@
     var v = { x: (e.x - e0.x) / gap, y: (e.y - e0.y) / gap, z: (e.z - e0.z) / gap };
     var sag = gecis.x >= 0 ? 1 : -1;
     var damp = 0;
-    if (sonuc === 'gol') { v = { x: v.x * 0.3, y: v.y * 0.3, z: v.z * 0.3 }; damp = 3.5; }
-    else if (sonuc === 'direk_gol' && physicalRebound) {v={x:v.x*.3,y:v.y*.3,z:v.z*.3};damp=3.5;}
-    else if (sonuc === 'direk_gol') {
+    if (sonuc === 'gol' && !girdi.golGeometrisi) { v = { x: v.x * 0.3, y: v.y * 0.3, z: v.z * 0.3 }; damp = 3.5; }
+    else if (sonuc === 'direk_gol' && physicalRebound && !girdi.golGeometrisi) {v={x:v.x*.3,y:v.y*.3,z:v.z*.3};damp=3.5;}
+    else if (sonuc === 'direk_gol' && !girdi.golGeometrisi) {
       // Direkten dönüp içeri düşer: değdiği yüzeyden gerçekten sekip file'ye gider.
       if (direkYeri === 'ust') v = { x: v.x * 0.4, y: -(Math.abs(v.y) * 0.5 + 0.8), z: v.z * 0.45 };
       else v = { x: -sag * Math.max(1.5, Math.abs(v.x) * 0.5), y: v.y * 0.5, z: v.z * 0.45 };
@@ -159,7 +203,7 @@
     var capture = tuttu ? plan.konum(tt) : null;
     var kalan = (sonuc === 'aut') ? 0.9 : 1.1;
     var netZ = D + 1.5;
-    var sonrasi = [];
+    var sonrasi = [],fileT=null;
     for (var j = 1; j <= Math.round(kalan / dt); j++) {
       if (tuttu) {
         var kk = plan.cizimKonum(tt + j * dt), blend = Math.min(1, j * dt / .24);
@@ -170,15 +214,17 @@
       var aero = DT.ucus.acceleration([v.x,v.y,v.z],flight.spin,tt+j*dt);
       v.x += aero[0]*dt;v.y += aero[1]*dt;v.z += aero[2]*dt;
       if (damp) { var f = Math.exp(-damp * dt); v.x *= f; v.z *= f; }
+      var prev={x:p.x,y:p.y,z:p.z};
       p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
-      if ((sonuc === 'gol' || sonuc === 'direk_gol') && p.z > netZ) { p.z = netZ; v.z = 0; }
+      if(girdi.golGeometrisi && (sonuc==='gol'||sonuc==='direk_gol'||sonuc==='aut'||sonuc==='direk_disari')){if(fileTemasi(prev,p,v,D,sonuc==='gol'||sonuc==='direk_gol')){damp=5;if(fileT===null)fileT=tt+j*dt;}}
+      if (!girdi.golGeometrisi && (sonuc === 'gol' || sonuc === 'direk_gol') && p.z > netZ) { p.z = netZ; v.z = 0; }
       if (p.y < R) { p.y = R; v.y = Math.abs(v.y) > 0.8 ? -v.y * 0.4 : 0; v.x *= 0.85; v.z *= 0.85; }
       sonrasi.push({ t: tt + j * dt, x: p.x, y: p.y, z: p.z });
     }
     var yol = ornekler.slice(0, olayIndex + 1).concat(sonrasi);
 
     return {
-      energy:flight.energy,quality: quality, speed: flight.speed, spin: flight.spin, spinRps: flight.spinRps,
+      ...(girdi.golGeometrisi?{fileT:fileT}:{}),energy:flight.energy,quality: quality, speed: flight.speed, spin: flight.spin, spinRps: flight.spinRps,
       cizgiyiGecti:flight.reached,ucusYol: ornekler, contact: {x:cx,y:cy}, tuttu: tuttu,
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
@@ -187,6 +233,6 @@
     };
   }
 
-  DT.fizik = { hesapla: hesapla };
+  DT.fizik = { hesapla: hesapla, golGecisi:golGecisi, fileTemasi:fileTemasi };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 
