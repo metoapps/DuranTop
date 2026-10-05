@@ -455,7 +455,7 @@
 
   // Player supporters' cloth banner. Cached separately from the stadium: no new downloads.
   var pankartMetinleri = {
-    meto: '• GÖKLERDE GÖREV, KALPTE BEŞİKTAŞ.',
+    meto: 'Meto Forever',
     fero: 'ÇIKAR MASAYA KOY FERO BABA ♥️',
     lort: 'Gökhanlort 28 GİRESUNLUMM',
     josh: 'Yozgatlım ♥️',

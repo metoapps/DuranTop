@@ -248,7 +248,12 @@
     d.sevincVaryant=p.gol&&DT.sevinc?DT.sevinc.next(d.karakter):0;
     d.faz = 'vurus';
     var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
-    d.an = { t0: now, on: .85, vurdu: false, olay: false, file:false, fileT:r.fileT===undefined?(netPoint?netPoint.t:Infinity):(r.fileT===null?Infinity:r.fileT), bitti: false };
+    // A resolved post miss must not wait for the rolling ball's entire path.
+    // Keep the authoritative trajectory/result; this is only presentation timing.
+    var lastT=r.yol[r.yol.length-1].t,postMiss=r.sonuc==='direk_disari'&&r.direkTemas;
+    d.an = { t0: now, on: .85, vurdu: false, olay: false, olayT:postMiss?r.direkTemas.t:r.olayT,
+      sonucT:postMiss?Math.min(lastT+.3,r.direkTemas.t+1.4):lastT+.3,
+      file:false, fileT:r.fileT===undefined?(netPoint?netPoint.t:Infinity):(r.fileT===null?Infinity:r.fileT), bitti: false };
     $('alt').hidden = true;
     if (d.mod === 'resmi') {          // vuruş açıldığı anda sayılır; yenileme ya da kopma sonucu değiştirmez
       var k = oku(ANAHTAR.resmi, null);
@@ -290,7 +295,7 @@
         out.zaman=simT;var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
         out.kaleci = (r.sonuc === 'baraj'||r.sonuc === 'kisa') ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
-        var se = simT - r.olayT;
+        var se = simT - an.olayT;
         if(r.direkTemas&&!an.direk&&simT>=r.direkTemas.t){an.direk=true;DT.ses.cal('direk',{hiz:r.speed});}
         if(!an.file&&(r.sonuc==='gol'||r.sonuc==='direk_gol')&&simT>=an.fileT){an.file=true;DT.ses.cal('file',{hiz:r.speed});}
         if(se >= 0){out.kaleci.saved = r.tuttu;}
@@ -304,10 +309,10 @@
           if (se < 0.3 && r.sonuc !== 'aut') out.sarsinti = 7 * (1 - se / 0.3);
           if ((r.sonuc === 'gol' || r.sonuc === 'direk_gol') && se < 0.4) out.flas = 0.3 * (1 - se / 0.4);
         }
-        if (simT >= sonT + 0.3 && !an.bitti) { an.bitti = true; d.son = { top: out.top, kaleci: out.kaleci, zaman:simT }; sonucGoster(); }
+        if (simT >= an.sonucT && !an.bitti) { an.bitti = true; d.son = { top: out.top, kaleci: out.kaleci, zaman:simT }; sonucGoster(); }
       }
     } else if (d.faz === 'sonuc' && d.son) {
-      out.top = d.son.top; out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.kaleci=(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa')?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
+      out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.top=gecerliSonuc.r.sonuc==='direk_disari'?yolOrnek(gecerliSonuc.r.yol,out.zaman):d.son.top;out.kaleci=(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa')?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
       var gol = gecerliSonuc.r.sonuc === 'gol' || gecerliSonuc.r.sonuc === 'direk_gol';
       out.oyuncu = null;
       out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
@@ -316,7 +321,7 @@
   }
 
   /* ---------- sonuç ---------- */
-  var BASLIK = { kisa: 'KISA KALDI', gol: 'GOL', direk_gol: 'DİREKTEN GOL', direk_disari: 'DİREK', kurtaris: 'KURTARDI', baraj: 'BARAJ', aut: 'AUT' };
+  var BASLIK = { kisa: 'KISA KALDI', gol: 'GOL', direk_gol: 'DİREKTEN GOL', direk_disari: 'DİREKTEN DÖNDÜ', kurtaris: 'KURTARDI', baraj: 'BARAJ', aut: 'AUT' };
 
   function neden(r, girdi) {
     var h = r.hata, zamanli = typeof girdi.zaman === 'number';
@@ -324,7 +329,7 @@
       case 'kisa': return 'Top kale çizgisine ulaşmadı. Daha temiz temas ve zamanlama gerekiyor.';
       case 'baraj': return 'Top barajda kaldı. Daha yükseğe nişan al ya da falsoyla duvarın yanından dolandır.';
       case 'kurtaris': return r.quality < .8 ? 'Zamanlama şutu yavaşlattı; kaleci yetişti.' : 'Kaleci topun yoluna yetişti. Daha uzak köşeyi dene.';
-      case 'direk_disari': return 'Direk! Birkaç santim içeride olsaydı gol olurdu.';
+      case 'direk_disari': return 'Top direğe çarptı; gol olmadı.';
       case 'direk_gol': return 'Direkten içeri girdi.';
       case 'aut':
         if (zamanli && h > 0.08) return 'Geç temas vuruş açısını bozdu. Yeşile daha yakın bas.';
