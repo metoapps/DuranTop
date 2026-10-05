@@ -406,6 +406,9 @@
   }
 
   function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
+    if(durum&&durum.gol&&durum.sevinc===1&&DT.sevinc){
+      if(DT.sevinc.draw(g,{id:karakter,time:durum.sure||0,x:cx,y:taban,height:boy,front:sprite(karakter,'bekle'),back:sprite(karakter,'vurus1'),makeCanvas:yerelCanvas}))return;
+    }
     var kare = poz;
     if (durum && durum.gol) {
       var s = sevincKaresi(karakter, durum.sure || 0);
@@ -452,7 +455,7 @@
 
   // Player supporters' cloth banner. Cached separately from the stadium: no new downloads.
   var pankartMetinleri = {
-    meto: '20 CM DAMARLIM',
+    meto: '• GÖKLERDE GÖREV, KALPTE BEŞİKTAŞ.',
     fero: 'ÇIKAR MASAYA KOY FERO BABA ♥️',
     lort: 'Gökhanlort 28 GİRESUNLUMM',
     josh: 'Yozgatlım ♥️',
@@ -505,7 +508,9 @@
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
-    if(d.oyuncu)pankartCiz(g,d.oyuncu.karakter);
+    var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
+    if(supporter&&DT.tribun){DT.tribun.draw(g,{id:supporter,D:pos.D,time:(root.performance?root.performance.now():Date.now())/1000,project:izdus,makeCanvas:yerelCanvas,image:gorseller['_menu_'+supporter+'_bekle']||sprite(supporter,'bekle')});}
+    else if(supporter)pankartCiz(g,supporter);
 
     kaleArka(g);
 
@@ -611,4 +616,3 @@
     gorselEkle: function (ad, im) { gorseller[ad] = im; }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
-

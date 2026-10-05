@@ -245,6 +245,7 @@
     var giris = { yesil:r.bandaGirdi, quality: r.quality, speed: r.speed, ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
     if(serverEntry)giris=serverEntry;
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
+    d.sevincVaryant=p.gol&&DT.sevinc?DT.sevinc.next(d.karakter):0;
     d.faz = 'vurus';
     var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
     d.an = { t0: now, on: .85, vurdu: false, olay: false, file:false, fileT:r.fileT===undefined?(netPoint?netPoint.t:Infinity):(r.fileT===null?Infinity:r.fileT), bitti: false };
@@ -309,7 +310,7 @@
       out.top = d.son.top; out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.kaleci=(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa')?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
       var gol = gecerliSonuc.r.sonuc === 'gol' || gecerliSonuc.r.sonuc === 'direk_gol';
       out.oyuncu = null;
-      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol };
+      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
     }
     return out;
   }
@@ -501,4 +502,3 @@
   DT.oyun = { baslat: baslat, _durum: d, _vur: vur, _devam: devam, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', baslat); else baslat();
 })(typeof globalThis !== 'undefined' ? globalThis : window);
-
