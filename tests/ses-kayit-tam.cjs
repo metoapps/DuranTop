@@ -56,7 +56,9 @@ const bekle=ms=>new Promise(r=>setTimeout(r,ms));
 
   // 3) oyun.js bağlantısı: düdük vuruş fazı başında, susturma her yeni pozisyonda
   const oyun=fs.readFileSync(path.join(KOK,'js/oyun.js'),'utf8');
-  assert(/d\.faz = 'vurus';\s*\n\s*DT\.ses\.cal\('islik'\);/.test(oyun),'düdük vuruş fazı başlarken çalmalı');
+  assert(/if\(!acik\)\{[^}]*DT\.ses\.cal\('islik'\);\}/.test(oyun),'düdük pozisyon hazır olunca çalmalı (devam eden vuruşta değil)');
+  assert(!/d\.faz = 'vurus';\s*\n\s*DT\.ses\.cal\('islik'\)/.test(oyun),'düdük vuruş başında çalmamalı');
+  assert.equal((oyun.match(/DT\.ses\.cal\('islik'\)/g)||[]).length,2,'düdük yalnız pozisyon hazırlığında ve ses açma önizlemesinde');
   assert(/function vurusHazirla\(acik\) \{\s*\n\s*if \(DT\.ses\.sustur\) DT\.ses\.sustur\(\);/.test(oyun),'yeni pozisyonda uğultu susturulmalı');
   const html=fs.readFileSync(path.join(KOK,'index.html'),'utf8');
   assert(/js\/ses\.js\?v=20261006a/.test(html)&&/js\/oyun\.js\?v=20261006a/.test(html),'index.html önbellek etiketleri');

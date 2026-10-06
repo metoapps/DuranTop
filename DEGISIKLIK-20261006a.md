@@ -11,7 +11,7 @@ Fizik, kurallar, sunucu ve veritabanı değişmez. Yeni vuruşlar yine `rules: 9
   - Gol uğultusu (9 sn) takip edilir: yeni gol, ses kapatma ve yeni pozisyon onu 0,3 sn'de kısarak keser (`DT.ses.sustur`).
   - Sesi ilk açışta düdük kaydı henüz inmemişse en çok 0,7 sn beklenir, sonra sentez çalar; iki kez çalmaz.
   - Kayıt önbellek etiketi `20261006a` (eski `20261004c`).
-- `js/oyun.js`: hakem düdüğü artık her vuruşta koşu başlarken çalar (`d.faz='vurus'`); temas 0,85 sn sonradır. Resmi turda sunucu kaydı onayladıktan sonra çalar. Yeni pozisyon kurulurken önceki golün uğultusu susturulur.
+- `js/oyun.js`: hakem düdüğü her pozisyon hazır olunca çalar (`vurusHazirla`, yeni pozisyon kurulurken); VUR'a basınca çalmaz. Sayfa yenilenip devam edilen vuruşta çalmaz. Yeni pozisyon kurulurken önceki golün uğultusu susturulur.
 - `index.html`: yalnız `ses.js` ve `oyun.js` etiketi `20261006a`. Diğer dosyaların etiketleri (`ab`/`ae`) değişmedi.
 
 ## Kontroller
@@ -20,7 +20,7 @@ Fizik, kurallar, sunucu ve veritabanı değişmez. Yeni vuruşlar yine `rules: 9
 - 41/41 `tests/*.cjs` geçti (değişiklikten önce 40/40). `tests/e2e/uctan-uca.cjs` önce ve sonra geçti. Canvas testleri Linux'ta `@napi-rs/canvas` ile çalıştırıldı.
 - Başsız Chromium'da gerçek `decodeAudioData`: beş dosya çözüldü ve yüklendi. Süreler 0,40 / 0,45 / 0,33 / 0,75 / 9,0 sn; tepe −2,7…−3,5 dB; ilk ses 5–15 ms içinde.
 
-Sesler insan kulağıyla dinlenmedi; spektrum ve seviye ölçümüyle seçildi. Gerçek iPhone/Safari ve gerçek telefon hoparlöründe denenmedi. Safari'nin MP3 başındaki boşluğu Chromium gibi kırpıp kırpmadığı ölçülmedi. Düdüğün koşu başında çalması bir tasarım tercihidir; istenirse pozisyon hazır olduğunda çalacak şekilde taşınabilir.
+Sesler insan kulağıyla dinlenmedi; spektrum ve seviye ölçümüyle seçildi. Gerçek iPhone/Safari ve gerçek telefon hoparlöründe denenmedi. Safari'nin MP3 başındaki boşluğu Chromium gibi kırpıp kırpmadığı ölçülmedi. Düdük pozisyon hazır olunca çalar (kullanıcı kararı, 6 Ekim); ilk pozisyonda ses kilidi açılmadıysa tarayıcı sesi engelleyebilir, telefonda denenmedi.
 
 ## Yayın
 

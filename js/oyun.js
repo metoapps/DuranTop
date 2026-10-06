@@ -133,7 +133,7 @@
     $('ipucu').textContent = d.pos.tip === 'frikik'
       ? 'Barajın üstünden ya da yanından geçecek yere dokun, sürükle, bırak.'
       : 'Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.';
-    if(!acik)$('ipucu').textContent='Pozisyona bak. Hazır olunca duruşunu seç.';
+    if(!acik){$('ipucu').textContent='Pozisyona bak. Hazır olunca duruşunu seç.';DT.ses.cal('islik');}   // hakem düdüğü: pozisyon hazır; sayfa yenilenip devam eden vuruşta çalmaz
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
       d.seed = acik.seed; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
       d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;DT.cizim.kameraDurus(d.durus);panelKonumu();$('gucSec').value=Math.round(d.guc*100);
@@ -252,7 +252,6 @@
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.sevincVaryant=p.gol&&DT.sevinc?DT.sevinc.next(d.karakter):0;
     d.faz = 'vurus';
-    DT.ses.cal('islik');   // hakem düdüğü: koşu başlar, temas 0,85 sn sonra (an.on)
     var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
     // A resolved post miss must not wait for the rolling ball's entire path.
     // Keep the authoritative trajectory/result; this is only presentation timing.
