@@ -1,0 +1,32 @@
+Duran Top ses paketi - kaynaklar ve lisans (6 Ekim 2026)
+=========================================================
+Tüm dosyalar: mono, 44,1 kHz, 128 kbps MP3, tepe ~-3 dB. Kesildi, başı/sonu temizlendi, sona kısa sönüm eklendi.
+
+BU KLASÖRDEKİ DOSYALAR
+vurus.mp3  0,44 sn  Tek gerçek kayıt. Mixkit "Soccer ball quick kick" (#2108)
+direk.mp3  0,50 sn  İKİ gerçek kaydın katmanı: Mixkit #2108 top darbesi + Pixabay "Metal Pole Hit" (freesound_community, 83057)
+file.mp3   0,37 sn  İKİ gerçek kaydın katmanı: Mixkit #2108 (yumuşatılmış) + Pixabay "Basketball net swish sound" (freesound_community, 40170)
+islik.mp3  0,78 sn  Tek gerçek kayıt. Mixkit "Police short whistle" (#615): bilyeli düdük, hakem düdüğüyle aynı tip, tek kısa üfleme
+gol.mp3    9,0 sn   Tek gerçek kayıt. Mixkit "Huge crowd cheering victory" (#462): ani patlayan kalabalık uğultusu, sonda sönüm
+
+ALTERNATİFLER (depoda yok; DuranTop-sesler.zip içindeki alternatif/ klasöründe)
+vurus-2.mp3  Mixkit "Soccer ball kick" (#2099), biraz daha dolgun
+direk-2.mp3  Mixkit #2108 + Pixabay "Metal Hit" (universfield, 153323), daha tiz ve uzun "çınnn"
+islik-2.mp3  Pixabay "Referee whistle blow, gymnasium" (freesound_community, 6320), kapalı salon yankılı
+gol-2.mp3    Mixkit "Stadium joy shouting crowd" (#3022), 15,8 sn, bağırışlı stadyum
+
+Not: Gerçek "top direğe çarpıyor" ve "top futbol ağına giriyor" kaydı ücretsiz kütüphanelerde bulunamadı
+(Pixabay'deki "A football hits the net, goal" yapay zekâ üretimi olduğu için alınmadı). Bu yüzden direk ve file
+gerçek kayıtların üst üste bindirilmesiyle yapıldı.
+
+Lisans
+- Mixkit Sound Effects Free License: oyun dahil ticari/kişisel projelerde ücretsiz, atıf zorunlu değil;
+  sesleri tek başına (ses paketi olarak) yeniden dağıtmak yasak.
+- Pixabay Content License: aynı mantık; oyunun içinde kullanmak serbest, ham dosyayı bağımsız olarak dağıtmak yasak.
+Oyun deposunda (assets/ses/) durmaları oyunun parçası olarak kullanım sayılır.
+Bağlantılar:
+  https://mixkit.co/free-sound-effects/soccer/
+  https://pixabay.com/sound-effects/film-special-effects-metal-pole-hit-83057/
+  https://pixabay.com/sound-effects/film-special-effects-basketball-net-swish-sound-40170/
+  https://pixabay.com/sound-effects/film-special-effects-metal-hit-153323/
+  https://pixabay.com/sound-effects/film-special-effects-referee-whistle-blow-gymnasium-6320/

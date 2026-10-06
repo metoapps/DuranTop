@@ -58,33 +58,71 @@
     if(peak>.70)for(i=0;i<n;i++)data[i]*=.70/peak;
     return data;
   }
-  /* Gerçek kayıt (isteğe bağlı): assets/ses/direk.mp3 ve assets/ses/file.mp3 varsa onlar çalınır, yoksa yukarıdaki sentez.
+  /* Gerçek kayıt (isteğe bağlı): assets/ses/<ad>.mp3 varsa o çalınır, yoksa sentez. Kaynaklar: assets/ses/KAYNAKLAR.txt
    * Karşılaştırma için adrese ?ses=sentez eklemek kayıtları devre dışı bırakır (telefonda A/B dinleme). */
-  var kayit = {}, kayitDenendi = false, zorlaSentez = !!(root.location && /[?&]ses=sentez/.test(root.location.search || ''));
+  var KAYITLAR = ['direk', 'file', 'vurus', 'islik', 'gol'];
+  var kayit = {}, yukleniyor = {}, kayitDenendi = false, zorlaSentez = !!(root.location && /[?&]ses=sentez/.test(root.location.search || ''));
   function kayitlariYukle() {
     if (kayitDenendi || zorlaSentez || !ctx || !root.fetch) return; kayitDenendi = true;
-    ['direk', 'file'].forEach(function (ad) {
-      root.fetch('assets/ses/' + ad + '.mp3?v=20261004c').then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+    KAYITLAR.forEach(function (ad) {
+      yukleniyor[ad] = root.fetch('assets/ses/' + ad + '.mp3?v=20261006a').then(function (r) { return r.ok ? r.arrayBuffer() : null; })
         .then(function (b) { return b ? ctx.decodeAudioData(b) : null; })
-        .then(function (buf) { if (buf) kayit[ad] = buf; }).catch(function () { /* dosya yok ya da çözülemedi: sentez kullanılır */ });
+        .then(function (buf) { if (buf) kayit[ad] = buf; }).catch(function () { /* dosya yok ya da çözülemedi: sentez kullanılır */ })
+        .then(function () { delete yukleniyor[ad]; });
     });
   }
-  function darbe(ad,options){var t=ctx.currentTime,hiz=Math.max(.45,Math.min(1.05,((options&&options.hiz)||24)/24)),buffer;
+  // Uzun kayıtlar (gol uğultusu) bir sonraki vuruşa taşmasın diye takip edilir; sustur() yumuşakça keser.
+  var calanUzun = [];
+  function kayitCal(ad, kazanc, perde, uzun) {
+    var t = ctx.currentTime, source = ctx.createBufferSource(), gain = ctx.createGain();
+    source.buffer = kayit[ad]; if (perde) source.playbackRate.value = .97 + .06 * Math.random();
+    gain.gain.value = kazanc; source.connect(gain); gain.connect(ana); source.start(t);
+    var kayitli = { source: source, gain: gain };
+    if (uzun) calanUzun.push(kayitli);
+    source.onended = function () { source.disconnect(); gain.disconnect(); calanUzun = calanUzun.filter(function (x) { return x !== kayitli; }); };
+  }
+  function sustur() {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    calanUzun.forEach(function (x) {
+      try {
+        if (x.gain.gain.setValueAtTime && x.gain.gain.linearRampToValueAtTime) { x.gain.gain.setValueAtTime(x.gain.gain.value, t); x.gain.gain.linearRampToValueAtTime(0.0001, t + 0.3); }
+        x.source.stop(t + 0.32);
+      } catch (e) { /* zaten durmuş */ }
+    });
+    calanUzun = [];
+  }
+  function darbe(ad,options){var t=ctx.currentTime,hiz=Math.max(.45,Math.min(1.05,((options&&options.hiz)||24)/24));
+    if(kayit[ad]){kayitCal(ad,hiz,true,false);return;}   // gerçek kayıt: hıza göre ses şiddeti, küçük perde farkı
     var source=ctx.createBufferSource(),gain=ctx.createGain();
-    if(kayit[ad]){buffer=kayit[ad];source.playbackRate.value=.97+.06*Math.random();}   // gerçek kayıt: hıza göre ses şiddeti, küçük perde farkı
-    else{var values=ornekUret(ad,ctx.sampleRate,1+Math.floor(Math.random()*100000));buffer=ctx.createBuffer(1,values.length,ctx.sampleRate);buffer.getChannelData(0).set(values);}
+    var values=ornekUret(ad,ctx.sampleRate,1+Math.floor(Math.random()*100000)),buffer=ctx.createBuffer(1,values.length,ctx.sampleRate);buffer.getChannelData(0).set(values);
     source.buffer=buffer;gain.gain.value=hiz;source.connect(gain);gain.connect(ana);source.start(t);
     source.onended=function(){source.disconnect();gain.disconnect();};
   }
-  var sesler = {
+  var sentez = {
     vurus: function () { gurultuSes(0.09, 'lowpass', 900, 0.7, 0.9, 0.004); ton('sine', 140, 0.12, 0.8, 60); },
+    gol: function () { gurultuSes(1.7, 'bandpass', 780, 0.5, 0.28, 0.45); },
+    islik: function () { ton('sine', 2800, 0.45, 0.15, 3000); }
+  };
+  // Kayıt seviyeleri: dosyalar -3 dB tepeye ayarlı; gol uğultusu uzun ve geniş bantlı olduğu için daha kısık çalınır.
+  var KAZANC = { vurus: 0.9, islik: 0.6, gol: 0.55 };
+  function kayitliYaDaSentez(ad, uzun) {
+    if (kayit[ad]) { kayitCal(ad, KAZANC[ad], ad === 'vurus', uzun); return; }
+    if (ad === 'islik' && yukleniyor.islik) {   // sesi ilk açışta kayıt henüz inmemiş olabilir: kısa süre bekle
+      var bitti = false, calis = function () { if (bitti) return; bitti = true; if (!acik) return; try { if (kayit.islik) kayitCal('islik', KAZANC.islik, false, false); else sentez.islik(); } catch (e) { /* ses hatası oyunu durdurmasın */ } };
+      yukleniyor.islik.then(calis); root.setTimeout(calis, 700); return;
+    }
+    sentez[ad]();
+  }
+  var sesler = {
+    vurus: function () { kayitliYaDaSentez('vurus', false); },
     file: function (options) { darbe('file',options); },
     direk: function (options) { darbe('direk',options); },
     kurtaris: function () { gurultuSes(0.14, 'lowpass', 400, 0.7, 0.9, 0.004); ton('sine', 110, 0.14, 0.6, 70); },
     baraj: function () { gurultuSes(0.16, 'lowpass', 300, 0.7, 0.9, 0.004); ton('sine', 90, 0.16, 0.6, 55); },
-    gol: function () { gurultuSes(1.7, 'bandpass', 780, 0.5, 0.28, 0.45); },
+    gol: function () { sustur(); kayitliYaDaSentez('gol', true); },
     ah: function () { gurultuSes(1.0, 'bandpass', 420, 0.6, 0.4, 0.3); },
-    islik: function () { ton('sine', 2800, 0.45, 0.15, 3000); }
+    islik: function () { kayitliYaDaSentez('islik', false); }
   };
 
   DT.ses = {
@@ -92,8 +130,9 @@
     ayarla: function (v) {                       // kullanıcı dokunuşuyla çağrılmalı
       acik = !!v;
       if (acik && baslat() && ctx.state === 'suspended') ctx.resume();
-      if (acik) kayitlariYukle();
+      if (acik) kayitlariYukle(); else sustur();
     },
+    sustur: sustur,                              // bir sonraki vuruşa geçerken uzun sesleri (gol uğultusu) keser
     cal: function (ad,options) {
       if (!acik || !ctx || !sesler[ad]) return;
       try { sesler[ad](options); } catch (e) { /* ses hatası oyunu durdurmasın */ }

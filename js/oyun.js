@@ -112,6 +112,7 @@
   function panelKonumu(){var el=$('oyun');if(el&&el.classList&&el.classList.toggle)el.classList.toggle('secim-sag',d.durus<=-.5);}
 
   function vurusHazirla(acik) {
+    if (DT.ses.sustur) DT.ses.sustur();   // önceki golün tribün uğultusu yeni pozisyona taşmasın
     d.pos = A.pozisyonlar[d.idx];
     DT.cizim.sahneKur(d.pos, 0);
     // baraj konumu nişandan bağımsız; önizleme hesabından alınır
@@ -251,6 +252,7 @@
     gecerliSonuc = { girdi: girdi, r: r, p: p, giris: giris };
     d.sevincVaryant=p.gol&&DT.sevinc?DT.sevinc.next(d.karakter):0;
     d.faz = 'vurus';
+    DT.ses.cal('islik');   // hakem düdüğü: koşu başlar, temas 0,85 sn sonra (an.on)
     var netPoint=r.yol.find(function(p){return p.z>=d.pos.D+1.45||(p.z>d.pos.D+.11&&Math.abs(p.x)>A.kale.genislik/2-.12);});
     // A resolved post miss must not wait for the rolling ball's entire path.
     // Keep the authoritative trajectory/result; this is only presentation timing.

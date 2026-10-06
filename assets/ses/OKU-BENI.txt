@@ -1,9 +1,13 @@
-Gerçek direk ve file sesi (isteğe bağlı)
-=========================================
-Buraya iki kısa dosya koyarsan oyun sentez yerine onları çalar:
+Gerçek ses kayıtları
+====================
+Bu klasördeki dosyalar varsa oyun sentez yerine onları çalar (js/ses.js):
+  vurus.mp3   topa vuruş anı, 0,3-0,6 sn
   direk.mp3   metal direk/üst direk darbesi, 0,4-1,2 sn, ağ ve kalabalık sesi olmadan
   file.mp3    topun ağa girişi, 0,3-0,6 sn, kalabalık olmadan
-Kurallar: kullanım hakkı sende olan kayıtlar; mono ya da stereo; tepe ses seviyesi -3 dB civarı; başta ve sonda sessizlik yok.
+  islik.mp3   hakem düdüğü, tek kısa üfleme, 1 sn'den kısa (koşu başlarken çalar; temas 0,85 sn sonra)
+  gol.mp3     tribün gol uğultusu, 5-10 sn, sonu sönümlü (sonraki vuruşa geçerken 0,3 sn'de kısılır)
+Kurallar: kullanım hakkı sende olan kayıtlar; mono ya da stereo; tepe ses seviyesi -3 dB civarı; başta sessizlik yok.
+Kaynak ve lisanslar: KAYNAKLAR.txt
 Dosya yoksa ya da çözülemezse oyun sessizce sentez sese döner.
 A/B dinleme: oyun adresine ?ses=sentez eklersen kayıtlar devre dışı kalır; eklemezsen kayıtlar çalınır.
-Ses olayı topun temas anında çalınır (oyun.js); kayıt eklemek zamanlamayı değiştirmez.
+Dosyayı değiştirirsen js/ses.js içindeki ?v= etiketini de değiştir (tarayıcı önbelleği).
