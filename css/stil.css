@@ -342,3 +342,11 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 
 /* Stance camera puts a left-stance player on the left: choices use the clear opposite side. */
 #oyun.secim-sag .saha-secimi {left:auto;right:max(8px,env(safe-area-inset-right,0px));}
+
+/* Ok tuşlarıyla anlık yön (20261006b) */
+.yon-satir { display:flex; align-items:center; gap:8px; margin:6px 0 8px; }
+.yon-ok { flex:0 0 56px; height:52px; border-radius:14px; border:1px solid #666; background:#1d1d1d; color:#fff; font-size:24px; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.yon-ok.basili { background:#3a5a3a; border-color:#7c7; }
+.yon-aci { flex:1 1 auto; text-align:center; font-size:15px; color:#eee; min-width:70px; }
+.yon-tamam { flex:0 0 auto; width:auto !important; padding:0 16px; height:52px; }
+@media (max-height:700px){ .yon-ok,.yon-tamam{height:44px;} .yon-satir{margin:4px 0;} }

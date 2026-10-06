@@ -35,6 +35,8 @@ function placement(pos,o){
   }
  }
  else if(shot&&p<.66)gait={u:p/.66,start:start,end:end,yaw0:base+(o.direction||0)*.40,yaw1:launch};
+ // Ok tuşuyla dönerken: yerinde küçük adımlar (gövde neredeyse hiç çökmez).
+ if(!gait&&!w&&!shot&&o.turning!=null)gait={u:clamp(o.turning,0,1),start:point,end:point,yaw0:yaw,yaw1:yaw,cokme:.15};
  if(gait&&shot)gait.finishLeft=[-50,28];
  if(gait){gait.steps=Math.max(2,Math.ceil(Math.hypot(gait.end[0]-gait.start[0],gait.end[1]-gait.start[1])/.22));if(gait.steps%2)gait.steps++;}
  return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?(p>=1?1:clamp((p-.66)/.34,0,1)):0};
@@ -59,7 +61,7 @@ function rig(o){
   feet[swing][0]=mix(start,end,ease(t))-rootX;feet[swing][1]+=Math.sin(Math.PI*t)*25;
   feet[1-swing][0]=(half===0?-24:24+travel)-rootX;lift=Math.sin(Math.PI*t)*2.5;
  }
- if(o.gait){feet=gaitFeet(o.gait);lift=Math.sin(Math.PI*o.gait.u)*24;}
+ if(o.gait){feet=gaitFeet(o.gait);lift=Math.sin(Math.PI*o.gait.u)*24*(o.gait.cokme==null?1:o.gait.cokme);}
  var nodes={hip:[0,141-lift,0],chest:[0,249-lift,0],neck:[0,287-lift,0],head:[0,382-lift,0],sl:[-55,251-lift,0],sr:[55,251-lift,0]};
  var shot=o.shot,progress=shot?(o.kick===undefined?clamp(shot.elapsed/shot.windup,0,1):o.kick):0,post=shot?Math.max(0,shot.elapsed-shot.windup):0;
  if(shot&&!o.gait){

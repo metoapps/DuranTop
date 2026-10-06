@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261005ab">
+  <link rel="stylesheet" href="css/stil.css?v=20261006b">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -81,7 +81,8 @@
 
     <div id="hazirlikPanel" class="hazirlik-panel saha-secimi" hidden><button id="durusAc" class="btn ana" type="button">Duruşunu seç</button></div>
     <div id="durusPanel" class="temas-panel saha-secimi" hidden>
-      <h2>Duruşunu seç</h2><p>Oyuncu yürüyerek hazırlanır.</p>
+      <h2>Duruşunu seç</h2><p id="durusNot">Okları basılı tut, oyuncu anında döner. Hazırsan Tamam.</p>
+      <div class="yon-satir"><button id="yonSol" class="yon-ok" type="button" aria-label="Sola dön (basılı tut)">◀</button><span id="yonAci" class="yon-aci" aria-live="polite">Düz · 0°</span><button id="yonSag" class="yon-ok" type="button" aria-label="Sağa dön (basılı tut)">▶</button><button id="yonTamam" class="btn ana yon-tamam" type="button">Tamam</button></div>
       <div class="segment"><button id="durusSol" type="button">Sola dön</button><button id="durusDuz" type="button">Düz</button><button id="durusSag" type="button">Sağa dön</button></div>
     </div>
     <div id="gucPanel" class="temas-panel guc-panel saha-secimi" hidden>
@@ -147,11 +148,11 @@
   <script src="js/fizik.js?v=20261005ae"></script>
   <script src="js/puan.js?v=20261005ab"></script>
   <script src="js/ses.js?v=20261005ab"></script>
-  <script src="js/futbolcu3d.js?v=20261005ae"></script>
-  <script src="js/sevinc.js?v=20261005ae"></script>
-  <script src="js/tribun.js?v=20261005ae"></script>
-  <script src="js/cizim.js?v=20261005ae"></script>
-  <script src="js/canli.js?v=20261005ae"></script>
-  <script src="js/oyun.js?v=20261005ae"></script>
+  <script src="js/futbolcu3d.js?v=20261006b"></script>
+  <script src="js/sevinc.js?v=20261006b"></script>
+  <script src="js/tribun.js?v=20261006b"></script>
+  <script src="js/cizim.js?v=20261006b"></script>
+  <script src="js/canli.js?v=20261006b"></script>
+  <script src="js/oyun.js?v=20261006b"></script>
 </body>
 </html>

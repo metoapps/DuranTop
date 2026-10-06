@@ -26,13 +26,17 @@
   function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
   function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 
+  /* Duruş artık -1..1 arası sürekli (ok tuşları). Uç ve orta değerler eski üç kamerayla aynıdır;
+   aradaki değerler, top gövdenin arkasında kalmasın diye ölçülerek seçildi; -0,2..0 aralığında kamera biraz daha sağa açılır (tests/kamera-top.cjs). */
+  function yanKayma(d){d=Number(d)||0;d=Math.max(-1,Math.min(1,d));if(d<=-YAN_ESIK)return -0.25;if(d<0)return 0.32-0.8*d;return 0.32+(0.20-0.32)*d;}
+  var YAN_ESIK=0.2;
   function kameraKur(p) {
     // One perspective camera in SI units. Fit the scene, never shrink a single actor.
     var ul=Math.hypot(-p.bx,p.D),ux=-p.bx/ul,uz=p.D/ul;
     var wide=W>H,ayar=KAMERA[p.tip],back=ayar.geri,height=ayar.yuk;
     // Kamera, oyuncunun duruşuna göre yana kayar: oyuncu topu gövdesiyle örtmesin (ölçüm: tests/kamera-top.cjs). Kayma, geri mesafeyle orantılı:
     // dar bir açı yetmez, mesafe büyüdükçe (frikik) aynı örtüşmeyi çözmek için daha çok yan kayma gerekir.
-    var YANK={'-1':-0.25,'0':0.32,'1':0.20},yan=(YANK[String(kamDurus)]===undefined?YANK['0']:YANK[String(kamDurus)])*back;
+    var yan=yanKayma(kamDurus)*back;
     var C=[p.bx-ux*back-uz*yan,height,-uz*back+ux*yan];
     var target=[0,1,p.D],f=norm(target.map(function(v,i){return v-C[i];})),r=norm(cross([0,1,0],f)),up=cross(f,r);
     var k={C:C,f:f,r:r,up:up,cx:wide?W*.40:W/2,cy:0,F:1,ky:1};
@@ -185,7 +189,7 @@
         var px=sx+(crowd()-.5)*3,py=sy+(crowd()-.5)*3;
         g.fillStyle=['#cdc6b2','#af8d75','#d6ad8a','#adada8'][Math.floor(crowd()*4)];
         g.beginPath();g.arc(px,py,1.7*scale,0,Math.PI*2);g.fill();
-        g.strokeStyle=crowd()<.5?'#e1e0d8':'#08090b';g.lineWidth=2.8*scale;
+        g.strokeStyle=['#e1e0d8','#08090b','#b3262f','#d7b33a','#1d3f86','#e1e0d8','#08090b','#7d1d24'][Math.floor(crowd()*8)];g.lineWidth=2.8*scale;
         g.beginPath();g.moveTo(px,py+2);g.lineTo(px,py+6*scale);g.stroke();
         g.lineWidth=1.2*scale;g.beginPath();g.moveTo(px-3*scale,py+(crowd()<.4?-2:4)*scale);g.lineTo(px,py+3*scale);g.lineTo(px+3*scale,py-1*scale);g.stroke();
       }
@@ -356,7 +360,7 @@
       var walk3=durum.yurume,dir=durum.durus||0;
       var elapsed3=durum.sure||0,windup3=durum.on||1.15;
       var shot=durum.yol?{elapsed:elapsed3,windup:windup3}:null;
-      var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide});
+      var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide,turning:durum.donus});
       var ball=durum.renderTop,ballScreen=ball&&izdus(ball.x,ball.y,ball.z);
       var ballLayer=ballScreen?{depth:ballScreen.d,draw:function(target){topCiz(target,ball,durum.topAci,true);}}:null;
       var rootX=placement.point[0],rootZ=placement.point[1],unit=placement.unit,yaw=placement.yaw;
@@ -407,7 +411,7 @@
 
   function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
     if(durum&&durum.gol&&durum.sevinc===1&&DT.sevinc){
-      if(DT.sevinc.draw(g,{id:karakter,time:durum.sure||0,x:cx,y:taban,height:boy,front:sprite(karakter,'bekle'),back:sprite(karakter,'vurus1'),makeCanvas:yerelCanvas}))return;
+      if(DT.sevinc.draw(g,{id:karakter,time:durum.sure||0,x:cx,y:taban,height:boy,sprite:function(k){return sprite(karakter,k);},makeCanvas:yerelCanvas}))return;
     }
     var kare = poz;
     if (durum && durum.gol) {
@@ -509,6 +513,7 @@
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
+    if(DT.tribun&&DT.tribun.atmosfer)DT.tribun.atmosfer(g,{W:W,ust:35,alt:izdus(0,A.kale.yukseklik,pos.D).y+14,time:(root.performance?root.performance.now():Date.now())/1000,makeCanvas:yerelCanvas});
     if(supporter&&DT.tribun){DT.tribun.draw(g,{id:supporter,D:pos.D,time:(root.performance?root.performance.now():Date.now())/1000,project:izdus,makeCanvas:yerelCanvas,image:gorseller['_menu_'+supporter+'_bekle']||sprite(supporter,'bekle')});}
     else if(supporter)pankartCiz(g,supporter);
 

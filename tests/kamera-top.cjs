@@ -34,3 +34,6 @@ for(const [w,h] of [[320,568],[390,844],[430,932],[844,390],[1366,768]]){
  }
 }
 console.log('PASS 150 scene layouts: goal dimensions and target roundtrip');
+
+// Ok tuşlarıyla sürekli duruş: -1..1 arası 0,05 adımlarla her pozisyonda top gövde silindirinin arkasında kalmamalı, kale yeterince geniş kalmalı.
+{DT.cizim.kur(C.createCanvas(390,844),390,844,1);let n=0;for(const p of P)for(let k=-20;k<=20;k++){const d=k/20;DT.cizim.sahneKur(p,d);assert(!gizliMi(DT.cizim.kameraKonum(),p,d),'ara duruş '+d+' '+p.ad+': top örtülü');const a=DT.cizim.izdus(-3.66,0,p.D),b=DT.cizim.izdus(3.66,0,p.D);assert(Math.abs(b.x-a.x)>=130);n++;}console.log('PASS continuous stance camera: '+n+' position×angle cases, ball visible');}
