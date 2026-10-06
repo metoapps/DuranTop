@@ -10,7 +10,24 @@ for(let i=0;i<10;i++){
  assert.equal(d.idx,i);assert.equal(d.faz,'nisan');assert(el('durusPanel').hidden);assert(!el('hazirlikPanel').hidden);
  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});assert.equal(d.aim,null);
  fire('durusAc','click');assert(!el('durusPanel').hidden);fire(['durusSol','durusDuz','durusSag'][i%3],'click');assert.equal(d.durusHazir,i%3===1,'unchanged stance skips artificial walking');
- time+=1200;root.frame();assert(d.durusHazir);assert(!el('gucPanel').hidden);
+ time+=1200;root.frame();assert(d.durusHazir);
+ if(d.pos.tip==='frikik'){
+  // FIFA 2003 tarzı frikik: güç paneli yok; okla nişan → kilitle → falso → basılı tut-bırak güç → yeşilde bas.
+  assert(el('gucPanel').hidden,'frikikte güç paneli yok');assert(!el('fifaNisan').hidden);assert(d.gucHazir);assert(d.aim&&d.aim.x===0&&d.aim.y===1.6);
+  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');assert(!d.kilit,'kaleye dokunmak FIFA modunda kilitlemez');const x0=d.aim.x;
+  fire('nisanSag','pointerdown',{pointerId:4,preventDefault(){}});for(let k=0;k<31;k++){time+=16;root.frame();}fire('nisanSag','pointerup');assert(Math.abs(d.aim.x-x0-1.0)<.1,'0,5 sn sağ ok ≈1 m: '+(d.aim.x-x0));
+  fire('nisanYukari','pointerdown',{pointerId:5,preventDefault(){}});for(let k=0;k<400;k++){time+=16;root.frame();}fire('nisanYukari','pointerup');assert.equal(d.aim.y,3.1,'üst sınır');
+  fire('nisanAsagi','pointerdown',{pointerId:6,preventDefault(){}});for(let k=0;k<60;k++){time+=16;root.frame();}fire('nisanAsagi','pointerup');assert(d.aim.y<2.2&&d.aim.y>1.9);
+  fire('nisanKilit','click');assert(d.kilit);assert(el('fifaNisan').hidden);assert(!el('temasPanel').hidden);
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i);assert(!d.fifa.faz,'falso seçilmeden sayaç başlamaz');
+  fire('temasTop','pointerdown',{clientX:170,clientY:120,pointerId:2});fire('temasTop','pointerup');fire('temasOnay','click');assert(!el('alt').hidden);assert(!el('fifaKutu').hidden);assert(el('cubukKutu').hidden);
+  if(i===5){fire('duzeltBtn','click');assert(!el('fifaNisan').hidden);assert(!d.kilit);fire('nisanKilit','click');fire('temasOnay','click');}
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'isabet');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
+  if(i===6){time+=900;root.frame();assert.equal(d.faz,'gonderiliyor','ibre sona varınca en kötü zamanlamayla vurulur');}
+  else{time+=400;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');}
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i+1);
+ }else{
+ assert(!el('gucPanel').hidden);
  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});assert.equal(d.aim,null,'target remains disabled before power');
  el('gucSec').value=[100,80,30,100,80][i%5];fire('gucSec','input');fire('gucOnay','click');assert.equal(d.guc,[1,.8,.3,1,.8][i%5]);assert(el('gucPanel').hidden);
  fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');assert(!el('temasPanel').hidden);
@@ -19,7 +36,9 @@ for(let i=0;i<10;i++){
  fire('temasOnay','click');assert(el('gucPanel').hidden,'no second power question');assert(!el('alt').hidden);
  if(i===0){const power=d.guc;fire('duzeltBtn','click');assert(d.gucHazir);assert.equal(d.guc,power);fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');fire('temasOnay','click');}
  time=d.cubukBasla+400;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i+1);
+ }
  await flush();assert.equal(d.faz,'vurus');time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
 
+assert.deepEqual(state.players[0].entries.slice(5).map(e=>e.input.zaman),[.5,1,.5,.5,.5],'FIFA sayacı zamanlamayı ibreden alır');assert(state.players[0].entries.slice(5).every(e=>Math.abs(e.input.guc-.65)<.02&&e.input.aim.y<2.2));
 assert.equal(state.players[0].idx,10);assert.equal(state.players[0].entries.length,10);assert.equal(shots,10);assert.equal(d.ekran,'tursonu');assert(el('turNot').textContent.includes('otomatik'));console.log('PASS live cup flow; approach→3D walk→power→target→contact→timing; server wait; duplicate-press guard; ten automatic saves; result screen');
 })().catch(e=>{console.error(e);process.exit(1)});

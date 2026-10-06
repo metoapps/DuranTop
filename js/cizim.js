@@ -427,9 +427,32 @@
     g.restore();
   }
 
-  function nisanCiz(g, aim, kilit, falso, onizleme) {
+  /* FIFA 2003 tarzı frikik: topun önünden kaleye doğru yerde yarı saydam beyaz ok. Yalnız görüntü. */
+  function fifaOkCiz(g, aim, kilit) {
+    if (!aim || !pos) return;
+    var bx = pos.bx, dx = aim.x - bx, dz = pos.D, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, px = uz, pz = -ux;
+    var bas = 0.55, boy = Math.min(6.5, pos.D * 0.32), govde = 0.20, ucGen = 0.62, ucBoy = 1.15;
+    function nokta(t, s) { return izdus(bx + ux * t + px * s, 0.01, uz * t + pz * s); }
+    var parca = [[bas, -govde], [bas + boy - ucBoy, -govde], [bas + boy - ucBoy, -ucGen], [bas + boy, 0], [bas + boy - ucBoy, ucGen], [bas + boy - ucBoy, govde], [bas, govde]].map(function (v) { return nokta(v[0], v[1]); });
+    if (parca.some(function (q) { return !q; })) return;
+    var a = nokta(bas, 0), b = nokta(bas + boy, 0), zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
+    var parla = kilit ? 0.62 : 0.48 + 0.12 * Math.sin(zaman * 4);
+    g.save(); var grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
+    grad.addColorStop(0, 'rgba(255,255,255,0.10)'); grad.addColorStop(0.55, 'rgba(255,255,255,' + (parla * 0.8).toFixed(3) + ')'); grad.addColorStop(1, 'rgba(255,255,255,' + parla.toFixed(3) + ')');
+    g.fillStyle = grad; g.beginPath(); parca.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,' + (parla * 0.9).toFixed(3) + ')'; g.lineWidth = 1; g.stroke(); g.restore();
+  }
+  function fifaHedefCiz(g, c, r, kilit) {
+    // Kırmızı-beyaz parçalı halka (FIFA 2003 hedef imleci).
+    g.save(); g.translate(c.x, c.y); var zaman = (root.performance ? root.performance.now() : Date.now()) / 1000, don = kilit ? 0 : zaman * 1.6;
+    g.lineWidth = Math.max(3, r * 0.26);
+    for (var i = 0; i < 8; i++) { g.strokeStyle = i % 2 ? '#ffffff' : '#d8253a'; g.beginPath(); g.arc(0, 0, r, don + i * Math.PI / 4 + 0.06, don + (i + 1) * Math.PI / 4 - 0.06); g.stroke(); }
+    g.fillStyle = kilit ? '#d8253a' : '#ffffff'; g.beginPath(); g.arc(0, 0, Math.max(2, r * 0.16), 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  function nisanCiz(g, aim, kilit, falso, onizleme, fifa) {
     if (!aim) return;
     var D = pos.D;
+    if (fifa) { var fc = izdus(aim.x, aim.y, D); if (fc) fifaHedefCiz(g, fc, Math.max(11, 0.24 * fc.olcek), kilit); return; }
     if (onizleme) {
       g.save(); g.setLineDash([3, 6]); g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 2; g.lineCap = 'round';
       g.beginPath();
@@ -518,6 +541,7 @@
     else if(supporter)pankartCiz(g,supporter);
 
     kaleArka(g);
+    if (d.nisan && d.nisan.fifa) fifaOkCiz(g, d.nisan.aim, d.nisan.kilit);
 
     // derinliğe göre sıralanan nesneler (uzaktan yakına)
     var liste = [];
@@ -561,7 +585,7 @@
       if (taban < boy + 64) taban = boy + 64;
       onSpriteCiz(g, d.onKarakter.karakter, d.onKarakter.poz, W * 0.5, taban, boy, d.onKarakter);
     }
-    if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme);
+    if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme, d.nisan.fifa);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
   }
 

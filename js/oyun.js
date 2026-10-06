@@ -120,7 +120,7 @@
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
     d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=!!acik;panelKonumu();
-    $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=true;$('hazirlikPanel').hidden=!!acik; $('temasPanel').hidden = true;
+    $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('durusPanel').hidden=true;$('fifaNisan').hidden=true;$('fifaKutu').hidden=true;d.fifa={faz:null};d.nisanHiz=null;$('hazirlikPanel').hidden=!!acik; $('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
     $('hudVurus').textContent = 'Vuruş ' + (d.idx + 1) + '/' + VURUS_SAYISI;
@@ -160,7 +160,7 @@
       nisanGuncelle(e);
     });
     cv.addEventListener('pointermove', function (e) { if (basili && d.faz === 'nisan' && !d.kilit) nisanGuncelle(e); });
-    function birak() { if (!basili) return; basili = false; if (d.faz === 'nisan' && !d.kilit && d.aim) kilitle(false); }
+    function birak() { if (!basili) return; basili = false; if (d.faz === 'nisan' && !d.kilit && d.aim && !fifaMod()) kilitle(false); }
     cv.addEventListener('pointerup', birak);
     cv.addEventListener('pointercancel', function () { basili = false; });
   }
@@ -182,7 +182,8 @@
     $('alt').hidden = !d.temasHazir||!d.gucHazir;
     $('gucPanel').hidden=d.gucHazir;
     $('temasPanel').hidden = !d.gucHazir||d.temasHazir; temasCiz();
-    $('cubukKutu').hidden = !cubukAktif();
+    $('cubukKutu').hidden = !cubukAktif()||fifaMod();
+    $('fifaNisan').hidden = true; $('fifaKutu').hidden = !fifaMod(); d.fifa = { faz: null }; $('vurBtn').classList.toggle('fifa', fifaMod()); fifaYaz();
     $('duzeltBtn').textContent = 'Nişanı değiştir (' + d.duzeltHak + ')';
     $('duzeltBtn').disabled = d.duzeltHak <= 0;
     d.cubukBasla = simdi();
@@ -201,6 +202,7 @@
     d.duzeltHak--; d.kilit = false; d.temasHazir = false;$('gucPanel').hidden=true; $('temasPanel').hidden = true;
     $('alt').hidden = true; $('ipucu').hidden = false;
     $('ipucu').textContent = 'Yeniden dokun, sürükle, bırak. Bu son düzeltme.';
+    if (fifaMod()) { $('ipucu').hidden = true; $('fifaNisan').hidden = false; d.fifa = { faz: null }; }
     acikKaydet();
   }
   function falsoSec(v) {
@@ -219,11 +221,13 @@
 
   /* ---------- vuruş ---------- */
   var gecerliSonuc = null;
-  function vur() {
+  function vur(zamanVerilen) {
     if (d.guncelle) { root.location.reload(); return; }   // sunucu bu istemci sürümünü reddetti (CLIENT_VERSION): yenile
     if (d.faz !== 'nisan' || !d.kilit || !d.temasHazir || !d.gucHazir || !d.durusHazir || !DT.cizim.hazir()) return;
     var now = simdi();
-    var zaman = cubukAktif() ? cubukDegeri(now) : null;
+    var zaman = typeof zamanVerilen === 'number' ? zamanVerilen : (zamanVerilen === null ? null : (cubukAktif() ? cubukDegeri(now) : null));
+    if (fifaMod() && !(d.fifa && d.fifa.atis)) return;   // FIFA frikikte yalnız sayaç vurdurur
+    d.fifa = { faz: null };
     var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman' };
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
@@ -273,8 +277,8 @@
   var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
   function cizimDurumu(now) {
-    if(d.yurume&&now-d.yurume.t0>=1100){d.yurume=null;d.durusHazir=true;$('gucPanel').hidden=false;$('ipucu').hidden=true;} 
-    yonIlerle(now);
+    if(d.yurume&&now-d.yurume.t0>=1100){d.yurume=null;d.durusHazir=true;gucVeyaNisan();$('ipucu').hidden=true;} 
+    yonIlerle(now);nisanIlerle(now);
     var R = A.kale.topYaricap, pos = d.pos;
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
@@ -283,7 +287,7 @@
       oyuncu: { durus:d.durus,donus:d.donus?d.donusFaz:null,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', guide:d.onizleme, aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
-      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: d.temasHazir?d.onizleme:null };
+      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: (d.temasHazir&&!fifaMod())?d.onizleme:null, fifa: fifaMod() };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
       out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
@@ -407,6 +411,7 @@
         var v = cubukDegeri(now);
         $('cubukImlec').style.left = (v * 100) + '%';
       }
+      if (fifaMod() && d.faz === 'nisan' && d.kilit && !$('fifaKutu').hidden) fifaKare(now);
       if (!doc.hidden && d.pos && DT.cizim.kareOlc && d.sonKare) DT.cizim.kareOlc(now - d.sonKare);
       d.sonKare = now;
       if (d.pos) {
@@ -466,7 +471,7 @@
     var v=Math.max(-1,Math.min(1,(d.durus||0)+d.donus*YON_HIZ*dt));d.durus=v;d.donusFaz=((d.donusFaz||0)+dt/0.55)%1;yonYaz();panelKonumu();
   }
   function yonBirak(){if(!d.donus)return;d.donus=0;d.donusSon=null;['yonSol','yonSag'].forEach(function(id){var b=$(id);if(b&&b.classList)b.classList.toggle('basili',false);});DT.cizim.kameraDurus(d.durus);acikKaydet();}
-  function yonOnay(){if(d.faz!=='nisan'||d.durusHazir||d.yurume)return;yonBirak();DT.cizim.kameraDurus(d.durus);d.durusHazir=true;$('durusPanel').hidden=true;$('gucPanel').hidden=false;acikKaydet();}
+  function yonOnay(){if(d.faz!=='nisan'||d.durusHazir||d.yurume)return;yonBirak();DT.cizim.kameraDurus(d.durus);d.durusHazir=true;$('durusPanel').hidden=true;gucVeyaNisan();acikKaydet();}
   function yonKur(){
     [['yonSol',-1],['yonSag',1]].forEach(function(item){var b=$(item[0]);if(!b)return;
       b.addEventListener('pointerdown',function(e){if(d.faz!=='nisan'||d.durusHazir||d.yurume)return;if(e&&e.preventDefault)e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(x){}d.donus=item[1];if(b.classList)b.classList.toggle('basili',true);});
@@ -483,14 +488,94 @@
     }
     yonYaz();
   }
+  /* ---------- FIFA 2003 tarzı frikik ----------
+   * Sıra: duruş → okla nişan (◀ ▶ yön, ▲ ▼ yükseklik; ya da kaleye dokun) → falso (topun neresine) →
+   * VUR'u basılı tut: güç dolar, fazla tutarsan geri düşer; bırak → ibre geri döner, yeşilde tekrar bas.
+   * Sunucuya giden girdiler aynı (nişan, temas, güç, zamanlama, duruş): kural sürümü değişmez (rules 9). */
+  var FIFA = { gucSure: 1100, nisanX: 2.0, nisanY: 1.0 };
+  function fifaMod() { return !!(d.pos && d.pos.tip === 'frikik'); }
+  function gucVeyaNisan() {
+    if (!fifaMod()) { $('gucPanel').hidden = false; return; }
+    d.gucHazir = true; d.guc = 1; if (!d.aim) d.aim = { x: 0, y: 1.6 };
+    $('fifaNisan').hidden = false; $('ipucu').hidden = true;
+  }
+  function nisanIlerle(now) {
+    if (!d.nisanHiz || !fifaMod() || d.kilit || d.faz !== 'nisan' || !d.aim) { d.nisanSon = null; return; }
+    if (d.nisanSon == null) { d.nisanSon = now; return; }
+    var dt = Math.max(0, Math.min(.1, (now - d.nisanSon) / 1000)); d.nisanSon = now;
+    d.aim = { x: Math.max(-4.5, Math.min(4.5, d.aim.x + d.nisanHiz.x * FIFA.nisanX * dt)), y: Math.max(0.11, Math.min(3.1, d.aim.y + d.nisanHiz.y * FIFA.nisanY * dt)) };
+  }
+  function nisanBirak() { d.nisanHiz = null; d.nisanSon = null; ['nisanSol','nisanSag','nisanYukari','nisanAsagi'].forEach(function (id) { var b = $(id); if (b && b.classList) b.classList.toggle('basili', false); }); }
+  function nisanKilitle() { if (!fifaMod() || d.faz !== 'nisan' || d.kilit || !d.aim || !d.gucHazir) return; nisanBirak(); kilitle(false); }
+  function fifaGuc(now) { var x = ((now - d.fifa.t0) / FIFA.gucSure) % 2, tri = x < 1 ? x : 2 - x; return Math.round((0.3 + 0.7 * tri) * 100) / 100; }
+  function fifaIsabet(now) { return Math.max(0, Math.min(1, (now - d.fifa.t0) / (A.zamanCubuguSuresi * 1000))); }
+  function fifaHazir() { return d.faz === 'nisan' && d.kilit && d.temasHazir && d.durusHazir && DT.cizim.hazir(); }
+  function fifaAt(zaman) { d.fifa.atis = true; vur(zaman); }
+  function fifaBas() {
+    if (d.guncelle) { root.location.reload(); return; }
+    if (!fifaMod() || !fifaHazir()) return;
+    var now = simdi();
+    if (!d.fifa || !d.fifa.faz) { d.fifa = { faz: 'guc', t0: now }; fifaYaz(); return; }
+    if (d.fifa.faz === 'isabet') fifaAt(fifaIsabet(now));
+  }
+  function fifaBirak() {
+    if (!d.fifa || d.fifa.faz !== 'guc') return;
+    var now = simdi(); d.guc = fifaGuc(now); bantGuncelle(); acikKaydet();
+    if (!cubukAktif()) { fifaAt(null); return; }
+    d.fifa = { faz: 'isabet', t0: now, guc: d.guc }; fifaYaz();
+  }
+  function fifaYaz() {
+    var el = $('fifaYazi'); if (!el) return; var f = d.fifa || {};
+    el.textContent = f.faz === 'guc' ? 'Güç doluyor… bırak!' : f.faz === 'isabet' ? '%' + Math.round(f.guc * 100) + ' güç · İbre yeşildeyken bas!' : "VUR'u basılı tut: güç dolar. Fazla tutarsan geri düşer.";
+    $('vurBtn').textContent = f.faz === 'isabet' ? 'BAS!' : 'VUR';
+  }
+  function fifaKare(now) {
+    var f = d.fifa || {}, guc = f.faz === 'guc' ? fifaGuc(now) : f.faz === 'isabet' ? f.guc : null, v = f.faz === 'isabet' ? fifaIsabet(now) : null;
+    if (f.faz === 'isabet' && v >= 1) { fifaAt(1); return; }   // ibre sona vardı: en kötü zamanlamayla vurulur
+    var cv = $('fifaSayac'); if (!cv || !cv.getContext) return; var g = cv.getContext('2d'); if (!g || !g.arc) return;
+    var W = 240, c = 120, R = 92, a0 = Math.PI * 0.75, tam = Math.PI * 1.5, oran = function (x) { return (x - 0.3) / 0.7; };
+    g.clearRect(0, 0, W, W); g.lineCap = 'butt';
+    g.lineWidth = 18; g.strokeStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(c, c, R, a0, a0 + tam); g.stroke();
+    if (guc != null) {
+      var P = oran(guc), grad = g.createLinearGradient(0, W, W, 0); grad.addColorStop(0, '#f2d04b'); grad.addColorStop(.6, '#f08a2c'); grad.addColorStop(1, '#d8253a');
+      g.strokeStyle = grad; g.beginPath(); g.arc(c, c, R, a0, a0 + tam * P); g.stroke();
+      if (v != null) {
+        var bant = DT.zamanBandi(d.aim, d.guc), y0 = 1 - (0.5 + bant), y1 = 1 - (0.5 - bant);
+        g.strokeStyle = '#3ad16b'; g.lineWidth = 24; g.beginPath(); g.arc(c, c, R, a0 + tam * P * y0, a0 + tam * P * y1); g.stroke();
+        var ai = a0 + tam * P * (1 - v); g.strokeStyle = '#ffffff'; g.lineWidth = 5; g.beginPath(); g.moveTo(c + Math.cos(ai) * (R - 26), c + Math.sin(ai) * (R - 26)); g.lineTo(c + Math.cos(ai) * (R + 16), c + Math.sin(ai) * (R + 16)); g.stroke();
+      }
+    }
+    // ortada top ve falso noktası (FIFA'daki top simgesi)
+    g.fillStyle = '#f4f4f4'; g.beginPath(); g.arc(c, c, 46, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#222'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#222'; g.beginPath(); for (var k = 0; k < 5; k++) { var a = -Math.PI / 2 + k * Math.PI * 2 / 5; g.lineTo(c + Math.cos(a) * 14, c + Math.sin(a) * 14); } g.closePath(); g.fill();
+    var ct = d.contact || { x: 0, y: 0 }; g.fillStyle = '#d8253a'; g.beginPath(); g.arc(c + ct.x * 40, c - ct.y * 40, 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.font = 'bold 26px Arial'; g.textAlign = 'center'; if (guc != null) g.fillText('%' + Math.round(guc * 100), c, W - 14);
+  }
+  function fifaKur() {
+    [['nisanSol', -1, 0], ['nisanSag', 1, 0], ['nisanYukari', 0, 1], ['nisanAsagi', 0, -1]].forEach(function (item) {
+      var b = $(item[0]); if (!b) return;
+      b.addEventListener('pointerdown', function (e) { if (!fifaMod() || d.kilit || d.faz !== 'nisan') return; if (e && e.preventDefault) e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} d.nisanHiz = { x: item[1], y: item[2] }; if (b.classList) b.classList.toggle('basili', true); });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, nisanBirak); });
+      b.addEventListener('contextmenu', function (e) { if (e && e.preventDefault) e.preventDefault(); });
+    });
+    var k = $('nisanKilit'); if (k) k.addEventListener('click', nisanKilitle);
+    if (root.addEventListener) {
+      var tus = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+      root.addEventListener('keydown', function (e) {
+        if (fifaMod() && $('fifaNisan') && !$('fifaNisan').hidden) { if (tus[e.key]) { if (e.preventDefault) e.preventDefault(); d.nisanHiz = { x: tus[e.key][0], y: tus[e.key][1] }; } else if (e.key === 'Enter') { if (e.preventDefault) e.preventDefault(); nisanKilitle(); } return; }
+        if (fifaMod() && e.key === ' ' && !e.repeat && !$('fifaKutu').hidden) { if (e.preventDefault) e.preventDefault(); fifaBas(); }
+      });
+      root.addEventListener('keyup', function (e) { if (tus[e.key]) nisanBirak(); if (e.key === ' ' && fifaMod()) fifaBirak(); });
+    }
+  }
   function temasKur(){var cv=$('temasTop'),down=false;function update(e){var r=cv.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*220-110)/90,y=(110-(e.clientY-r.top)/r.height*220)/90,l=Math.hypot(x,y);if(l>.85){x*=.85/l;y*=.85/l;}d.contact={x:x,y:y};temasCiz();}
     cv.addEventListener('pointerdown',function(e){down=true;cv.setPointerCapture(e.pointerId);update(e);});cv.addEventListener('pointermove',function(e){if(down)update(e);});cv.addEventListener('pointerup',function(){down=false;});cv.addEventListener('pointercancel',function(){down=false;});
     $('temasOnay').addEventListener('click',function(){if(!d.kilit||!d.gucHazir)return;d.temasHazir=true;$('temasPanel').hidden=true;$('alt').hidden=false;bantGuncelle();d.cubukBasla=simdi();onizlemeHesapla();acikKaydet();});
     $('gucSec').addEventListener('input',function(){d.guc=Math.max(.3,Math.min(1,Number(this.value)/100));$('gucNot').textContent='%'+Math.round(d.guc*100)+' · '+(d.guc<.5?'Yumuşak':d.guc<.8?'Kontrollü':'Sert');onizlemeHesapla();acikKaydet();});
     $('gucOnay').addEventListener('click',function(){if(!d.durusHazir)return;d.gucHazir=true;$('gucPanel').hidden=true;$('ipucu').hidden=false;$('ipucu').textContent='Şimdi kalede hedefini seç. Sert vuruş ve hassas köşe daha zor.';if(d.kilit)kilitle(true);acikKaydet();});
     $('durusAc').addEventListener('click',function(){if(d.faz!=='nisan'||d.durusHazir)return;yonYaz();$('hazirlikPanel').hidden=true;$('durusPanel').hidden=false;$('ipucu').hidden=true;});
-    yonKur();
-    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){d.donus=0;yonYaz();var old=d.durus;d.durus=item[1];DT.cizim.kameraDurus(d.durus);panelKonumu();if(old===d.durus){d.durusHazir=true;$('durusPanel').hidden=true;$('gucPanel').hidden=false;return;}d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
+    yonKur();fifaKur();
+    [['durusSol',-1],['durusDuz',0],['durusSag',1]].forEach(function(item){$(item[0]).addEventListener('click',function(){d.donus=0;yonYaz();var old=d.durus;d.durus=item[1];DT.cizim.kameraDurus(d.durus);panelKonumu();if(old===d.durus){d.durusHazir=true;$('durusPanel').hidden=true;gucVeyaNisan();return;}d.durusHazir=false;d.yurume={from:old,t0:simdi()};$('durusPanel').hidden=true;$('ipucu').hidden=true;});});
   }
 
   var baslatildi = false;
@@ -521,8 +606,9 @@
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
     $('turTekrar').addEventListener('click', function () { secimGoster(d.mod); });
-    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary !== false) vur(); });
-    $('vurBtn').addEventListener('click', function (e) { if (e.detail === 0) vur(); });
+    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); try { this.setPointerCapture(e.pointerId); } catch (x) {} fifaBas(); return; } vur(); });
+    ['pointerup','pointercancel'].forEach(function(t){$('vurBtn').addEventListener(t,function(){ if (fifaMod()) fifaBirak(); });});
+    $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas(); return; } vur(); });
     $('cubukYol').addEventListener('pointerdown', vur);
     $('duzeltBtn').addEventListener('click', duzelt);
     $('devamBtn').addEventListener('click', devam);

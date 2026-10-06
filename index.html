@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261006b">
+  <link rel="stylesheet" href="css/stil.css?v=20261006c">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -85,6 +85,10 @@
       <div class="yon-satir"><button id="yonSol" class="yon-ok" type="button" aria-label="Sola dön (basılı tut)">◀</button><span id="yonAci" class="yon-aci" aria-live="polite">Düz · 0°</span><button id="yonSag" class="yon-ok" type="button" aria-label="Sağa dön (basılı tut)">▶</button><button id="yonTamam" class="btn ana yon-tamam" type="button">Tamam</button></div>
       <div class="segment"><button id="durusSol" type="button">Sola dön</button><button id="durusDuz" type="button">Düz</button><button id="durusSag" type="button">Sağa dön</button></div>
     </div>
+    <div id="fifaNisan" class="temas-panel saha-secimi" hidden>
+      <h2>Nişan al</h2><p>Okları basılı tut: ◀ ▶ yön, ▲ ▼ yükseklik. Kaleye dokunarak da seçebilirsin.</p>
+      <div class="yon-satir"><button id="nisanSol" class="yon-ok" type="button" aria-label="Nişan sola">◀</button><button id="nisanYukari" class="yon-ok" type="button" aria-label="Nişan yukarı">▲</button><button id="nisanAsagi" class="yon-ok" type="button" aria-label="Nişan aşağı">▼</button><button id="nisanSag" class="yon-ok" type="button" aria-label="Nişan sağa">▶</button><button id="nisanKilit" class="btn ana yon-tamam" type="button">Kilitle</button></div>
+    </div>
     <div id="gucPanel" class="temas-panel guc-panel saha-secimi" hidden>
       <h2>1 · Şut gücü</h2><p id="gucNot">%100 · Tam güç</p>
       <input id="gucSec" type="range" min="30" max="100" value="100" step="1" aria-label="Vuruş gücü">
@@ -111,6 +115,7 @@
         <div class="cubuk-yol" id="cubukYol"><div class="cubuk-bant" id="cubukBant"></div><div class="cubuk-imlec" id="cubukImlec"></div></div>
         <span class="cubuk-yazi" id="cubukYazi">Yeşil: hızlı ve isabetli · Kaçırırsan hız ve isabet düşer</span>
       </div>
+      <div class="fifa-sayac" id="fifaKutu" hidden><canvas id="fifaSayac" width="240" height="240" aria-hidden="true"></canvas><span id="fifaYazi" role="status">VUR'u basılı tut: güç dolar. Bırak.</span></div>
       <div class="alt-dugmeler">
         <button class="btn ikinci kucuk" id="duzeltBtn" type="button">Nişanı değiştir (1)</button>
         <button class="btn ana vur" id="vurBtn" type="button">VUR</button>
@@ -151,8 +156,8 @@
   <script src="js/futbolcu3d.js?v=20261006b"></script>
   <script src="js/sevinc.js?v=20261006b"></script>
   <script src="js/tribun.js?v=20261006b"></script>
-  <script src="js/cizim.js?v=20261006b"></script>
+  <script src="js/cizim.js?v=20261006c"></script>
   <script src="js/canli.js?v=20261006b"></script>
-  <script src="js/oyun.js?v=20261006b"></script>
+  <script src="js/oyun.js?v=20261006c"></script>
 </body>
 </html>

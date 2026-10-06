@@ -350,3 +350,12 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 .yon-aci { flex:1 1 auto; text-align:center; font-size:15px; color:#eee; min-width:70px; }
 .yon-tamam { flex:0 0 auto; width:auto !important; padding:0 16px; height:52px; }
 @media (max-height:700px){ .yon-ok,.yon-tamam{height:44px;} .yon-satir{margin:4px 0;} }
+
+/* FIFA 2003 tarzı frikik sayacı (20261006c) */
+#fifaNisan .yon-satir { justify-content:center; }
+#fifaNisan .yon-ok { flex:0 0 48px; }
+.fifa-sayac { display:flex; align-items:center; gap:10px; margin:4px 0 6px; }
+.fifa-sayac canvas { width:96px; height:96px; flex:0 0 96px; }
+.fifa-sayac span { font-size:14px; color:#eee; }
+#vurBtn.fifa { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+@media (max-height:700px){ .fifa-sayac canvas{width:72px;height:72px;flex-basis:72px;} }
