@@ -60,7 +60,11 @@ const bekle=ms=>new Promise(r=>setTimeout(r,ms));
   assert(!/d\.faz = 'vurus';\s*\n\s*DT\.ses\.cal\('islik'\)/.test(oyun),'düdük vuruş başında çalmamalı');
   assert.equal((oyun.match(/DT\.ses\.cal\('islik'\)/g)||[]).length,2,'düdük yalnız pozisyon hazırlığında ve ses açma önizlemesinde');
   assert(/function vurusHazirla\(acik\) \{\s*\n\s*if \(DT\.ses\.sustur\) DT\.ses\.sustur\(\);/.test(oyun),'yeni pozisyonda uğultu susturulmalı');
+  // frikik (FIFA tarzı basılı tutma): düdük VUR'a basınca, güç dolarken ya da ibreye basınca çalmaz; yalnız pozisyon hazırlığında çalar
+  const govde=(ad)=>{const i=oyun.indexOf('function '+ad+'(');assert(i>=0,ad+' bulunamadı');let j=oyun.indexOf('\n  function ',i+10);if(j<0)j=oyun.length;return oyun.slice(i,j);};
+  for(const ad of ['vur','vurusUygula','fifaBas','fifaBirak','fifaKare','nisanIlerle']) assert(!/ses\.cal\('islik'\)/.test(govde(ad)),ad+' içinde düdük çalmamalı');
+  assert(/function vurusHazirla[\s\S]*?DT\.ses\.cal\('islik'\)/.test(govde('vurusHazirla')),'düdük vurusHazirla içinde çalmalı');
   const html=fs.readFileSync(path.join(KOK,'index.html'),'utf8');
-  assert(/js\/ses\.js\?v=20261006a/.test(html)&&/js\/oyun\.js\?v=20261006a/.test(html),'index.html önbellek etiketleri');
+  assert(/js\/ses\.js\?v=20261006a/.test(html)&&/js\/oyun\.js\?v=20261006d/.test(html),'index.html önbellek etiketleri');
   console.log('PASS five real recordings present; all loaded and played; crowd roar cut on next shot/mute; whistle waits for first load; synth fallback; oyun.js wiring');
 })().catch(e=>{console.error(e);process.exit(1);});
