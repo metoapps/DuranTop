@@ -7,7 +7,7 @@ assert.throws(()=>K.requirePlayer(null,'meto'),/LOGIN/);assert.throws(()=>K.requ
 const code='ABCDEFGHJKLMNPQRSTUV',salt='fake-test-salt',accounts=['meto','lort','fero','latte','josh'].map(player=>({player,id:player,salt,attempts:0}));
 for(const a of accounts)a.credential_hash=await K.passwordHash(code,salt);
 assert(K.equalHash(accounts[0].credential_hash,await K.passwordHash(code,salt)));assert(!K.equalHash(accounts[0].credential_hash,await K.passwordHash(code+'A',salt)));
-const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,...L,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':'fake-secret'},serve:f=>handler=f},console};
+let kupa='1';const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,...L,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':k==='DT_CUP_OPEN'?kupa:'fake-secret'},serve:f=>handler=f},console};
 function selected(rows,u){return rows.filter(r=>{for(const [k,v] of u.searchParams){if(k==='select')continue;if(v.startsWith('eq.')&&String(r[k])!==v.slice(3))return false;if(v.startsWith('gt.')&&!(r[k]>v.slice(3)))return false;}return true;});}
 const sum=es=>({gol:es.filter(e=>e.gol).length,puan:es.reduce((n,e)=>n+e.puan,0)});
 root.fetch=async(url,opt)=>{const u=new URL(url),path=u.pathname.split('/rest/v1/')[1],body=opt.body?JSON.parse(opt.body):null;let out;
@@ -45,5 +45,11 @@ assert.equal((await api({action:'login',player:'josh',password:'Y'.repeat(20)}))
 const kilitliGiris=await api({action:'login',player:'josh',password:code});assert(kilitliGiris.data.session&&kilitliGiris.data.identity.player==='josh','kilitliyken doğru kod gerçek sahibi içeri alır (hatalı denemeyle kilitleme şakası işlemez)');
 assert.equal(accounts.find(a=>a.player==='josh').attempts,0,'hatalı girişler oyuncu hesabına kalıcı kilit yazmaz');
 const p=root.DT.AYAR.pozisyonlar;assert.equal(p.length,10);assert.equal(p.filter(x=>x.tip==='penalti').length,5);assert.equal(p.filter(x=>x.tip==='frikik'&&Math.hypot(x.bx,x.D)<20).length,2);assert.equal(p.filter(x=>x.tip==='frikik'&&Math.hypot(x.bx,x.D)>25).length,3);
-console.log('PASS real Edge handler with mocked database: private identity, forged character denied, stable multi-device owner, ten-shot weekly limit, duplicate retry, shared week, goal totals, hidden inputs, logout revocation, login rate limit that no longer locks out the real owner, Monday boundary and 5+2+3 schedule');
+// Kupa kapalı (DT_CUP_OPEN yok/≠1): katılım ve vuruş hak harcamadan CLOSED; giriş, durum ve puan tablosu çalışır.
+{const S=(await api({action:'login',player:'lort',password:code})).data.session;const once=JSON.stringify(members);kupa=undefined;
+ const st=(await api({action:'create'},S)).data;assert.equal(st.kupaAcik,false,'durum kupanın kapalı olduğunu söyler');assert(st.players.length>=2,'puan tablosu duruyor');
+ const j=await api({action:'join',room,player:'fero'},(await api({action:'login',player:'fero',password:code})).data.session);assert.equal(j.data.code,'CLOSED');assert(/kapalı/.test(j.data.error||j.data.message||JSON.stringify(j.data)));
+ const lortIdx=members.find(m=>m.player==='lort').idx,sh=await api({rules:9,action:'shot',room,player:'lort',idx:lortIdx,aim:{x:3,y:1},contact:{x:0,y:0},zaman:.5,guc:1,durus:0},S);assert.equal(sh.data.code,'CLOSED');
+ assert.equal(JSON.stringify(members),once,'kapalıyken hiçbir kayıt değişmez');kupa='1';assert.equal((await api({action:'create'},S)).data.kupaAcik,true);}
+console.log('PASS real Edge handler with mocked database: private identity, forged character denied, stable multi-device owner, ten-shot weekly limit, duplicate retry, shared week, goal totals, hidden inputs, logout revocation, closed cup (no join/shot, state and table intact), login rate limit that no longer locks out the real owner, Monday boundary and 5+2+3 schedule');
 })().catch(e=>{console.error(e);process.exit(1)});

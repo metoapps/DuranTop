@@ -28,6 +28,8 @@
     EKRANLAR.forEach(function (e) { $(e).hidden = e !== ad; });
   }
 
+  // Kupa sunucu tarafında kapatılabilir (DT_CUP_OPEN). Eski sunucu bu alanı göndermez: o zaman açık sayılır.
+  function kupaKapali(){var st=DT.live&&DT.live.getState&&DT.live.getState();return !!(st&&st.kupaAcik===false);}
   function menuGoster() {
     $("temasPanel").hidden = true; kimlikGoster(); kupaGoster();
     d.faz = 'bos';
@@ -35,9 +37,10 @@
     var kayit = oku(ANAHTAR.resmi, null);
     var mine=DT.live&&DT.live.current&&DT.live.current();
     $('btnResmi').textContent = mine&&mine.idx>=VURUS_SAYISI?'Bu haftayı tamamladın':kayit||mine&&mine.idx>0?'Yarışmaya devam':'Kupaya katıl';
+    if(kupaKapali()){$('btnResmi').textContent='Kupa kapalı';$('btnResmi').disabled=true;}
     $('btnSifirla').hidden = true;
     var en = oku(ANAHTAR.enIyi, null);
-    $('menuNot').textContent = en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Kupa sonuçları otomatik güncellenir.' : 'Canlı kupa: arkadaşlarının puanları otomatik güncellenir.';
+    $('menuNot').textContent = kupaKapali() ? 'Juninho Kupası şu an kapalı. Antrenmanda oynayabilirsin; puan tablosu duruyor.' : en ? 'Bu telefonda en iyi tur: ' + en + ' puan. Kupa sonuçları otomatik güncellenir.' : 'Canlı kupa: arkadaşlarının puanları otomatik güncellenir.';
     menuSahne();
   }
 
@@ -238,7 +241,7 @@
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
         var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;
         vurusUygula(girdi,entry);
-      }).catch(function(e){d.faz='nisan';$('vurBtn').disabled=false;if(e&&e.code==='CLIENT_VERSION'){d.guncelle=true;$('vurBtn').textContent='Oyunu güncelle';$('ucusDurum').textContent=e.message;return;}$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
+      }).catch(function(e){if(e&&e.code==='CLOSED'){root.alert(e.message);menuGoster();return;}d.faz='nisan';$('vurBtn').disabled=false;if(e&&e.code==='CLIENT_VERSION'){d.guncelle=true;$('vurBtn').textContent='Oyunu güncelle';$('ucusDurum').textContent=e.message;return;}$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
     vurusUygula(girdi,null);
   }
@@ -438,7 +441,7 @@
   function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
   function kimlikGoster(){
     var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?me.player.toUpperCase()+' ile giriş yaptın':'';
-    var mine=DT.live&&DT.live.current&&DT.live.current();$('btnResmi').disabled=!me||!!(mine&&mine.idx>=VURUS_SAYISI);$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
+    var mine=DT.live&&DT.live.current&&DT.live.current();$('btnResmi').disabled=!me||!!(mine&&mine.idx>=VURUS_SAYISI)||kupaKapali();$('btnAntrenman').disabled=!me;if(me)d.karakter=me.player;
   }
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,idx:0,puan:0,gol:0,yesil:0};});
@@ -598,6 +601,7 @@
     $('yukleme').addEventListener('click', function () { root.location.reload(); });
     $('btnAntrenman').addEventListener('click', function () { var me=DT.live.identity();if(me)turBaslat(me.player,'antrenman',null); });
     $('btnResmi').addEventListener('click', function () {
+      if (kupaKapali()) return;
       var k = oku(ANAHTAR.resmi, null);
       if (DT.live){DT.live.ensure().then(function(){var me=DT.live.identity();if(me)turBaslat(me.player,'resmi',null);}).catch(function(e){root.alert(e.message);});return;}
       if (k) turBaslat(k.karakter, 'resmi', k); else secimGoster('resmi');
