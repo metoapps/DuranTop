@@ -320,7 +320,8 @@
     g.fillStyle = renk;        g.beginPath(); g.arc(ayak.x, ayak.y - (boy - 0.14) * s, 0.14 * s, 0, 6.3); g.fill(); // kafa
   }
 
-  function kaleciCiz(g, k) {
+  function kaleciCiz(g, k, baraj) {
+    if(DT.kaleci3d){DT.kaleci3d.ciz(g,izdus,k,pos.D,{tip:pos.tip,barajYan:baraj&&baraj.merkezX<0?-1:1});return;}
     if(DT.model3d){DT.model3d.kaleciCiz(g,izdus,k,pos.D);return;}
     var keeper = gorseller['_kaleci-v3'];
     if (!keeper) return;
@@ -547,7 +548,7 @@
     var liste = [];
     var D = pos.D;
     var kd = izdus(0, 1, D + 0.25);
-    if (d.kaleci) liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci); } });
+    if (d.kaleci) liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci, d.baraj); } });
     var fd = izdus(0, 1, D);
     liste.push({ z: fd ? fd.d + 0.01 : 1e9, ciz: function () { kaleOn(g); } });
     if (d.baraj) {

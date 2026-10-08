@@ -284,7 +284,7 @@
     var B = { x: pos.bx, y: R, z: 0 };
     var out = {
       zaman:0,top: B, topAci: 0, baraj: d.barajGeo,
-      kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle',gesture:pos.tip==='penalti'?now/1000:undefined },
+      kaleci: { x: Math.sin(now / 700) * 0.08, y: A.kaleci.baslangicY, ilerleme: 0, yon: 0, poz: 'bekle',gesture:now/1000 },
       oyuncu: { durus:d.durus,donus:d.donus?d.donusFaz:null,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', guide:d.onizleme, aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
@@ -324,6 +324,9 @@
       out.oyuncu = null;
       out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
     }
+    // Görsel kaleci (kaleci3d): vuruşa göre zaman ve penaltı öncesi hareketin sönümü. Sonuç hesabına girmez.
+    if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?gk-d.an.on:99;
+      out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:gk<.55?now/1000:undefined,gestureW:Math.max(0,1-gk/.55)});}
     return out;
   }
 
