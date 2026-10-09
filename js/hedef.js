@@ -21,7 +21,7 @@ function hesapla(girdi){
  function gauss(){var u=Math.max(rng(),1e-9),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
  var zamanVar=typeof girdi.zaman==='number',hata=zamanVar?girdi.zaman-.5:0,bant=D.zamanBandi(aim,girdi.guc),bandaGirdi=zamanVar&&Math.abs(hata)<=bant;
  var quality=Math.exp(-Math.pow(hata/(.18*bant/A.zaman.bant),2));
- var flight=D.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},hata*D.koseBandi(aim)/bant,quality,gauss,girdi.guc,true);
+ var flight=D.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},hata*D.koseBandi(aim)/bant,quality,gauss,girdi.guc,true,girdi.kural10===true?{hata:hata,bant:bant}:null);
  var orn=flight.yol,son=orn[orn.length-1],gecis={x:son.x,y:son.y},sonuc,delik=null;
  // Top ağa, merkezi ağdan bir yarıçap öndeyken değer: o anı bul (deliğe göre ölçüm de orada).
  var ic=-1;for(var q=1;q<orn.length;q++)if(orn[q].z>=Dz-R){ic=q;break;}
@@ -69,5 +69,7 @@ function ciz(g,izdus,Dz,vurulan){
  g.save();halkalar.forEach(function(h,i){var vur=vurulan===i;g.strokeStyle=vur?'#ffffff':'#c8f43c';g.lineWidth=Math.max(1.5,h.rx*(vur?.20:.12));g.shadowColor=vur?'#c8f43c':'rgba(200,244,60,.6)';g.shadowBlur=vur?10:3;
   g.beginPath();g.ellipse(h.x,h.y,h.rx,h.ry,0,0,Math.PI*2);g.stroke();});g.restore();
 }
-D.hedef={pozisyonlar:POZ,delikler:DELIKLER,delikBul:delikBul,hesapla:hesapla,puanla:puanla,ciz:ciz};
+// Antrenman turu (10 atış): 5 penaltı, 3 frikik, 2 hedef ağı. Kupa (sunucu) sırası değişmez: 5+2+3.
+var P=A.pozisyonlar,TUR=[P[0],P[1],P[2],P[3],P[4],P[5],P[8],P[9],POZ[1],POZ[4]];
+D.hedef={antrenmanTuru:TUR,pozisyonlar:POZ,delikler:DELIKLER,delikBul:delikBul,hesapla:hesapla,puanla:puanla,ciz:ciz};
 })(typeof globalThis!=='undefined'?globalThis:window);

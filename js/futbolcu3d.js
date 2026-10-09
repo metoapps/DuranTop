@@ -71,7 +71,9 @@ function rig(o){
   // At impact the toe touches the rear ball surface at ball-centre height.
   // The ankle is behind it, never at the ball centre. Cubic downswing retains
   // a nonzero toe velocity through contact, then decelerates in follow-through.
-  var hit=[0,8+.11/UNIT+1,28-44-.11/UNIT];
+  // Krampon, seçilen temas noktasına gelir: alt temas topun altına girer, üst temas topun üstüne biner (yan temas yana kayar).
+  var tc=shot.contact||{x:0,y:0},cy=Math.max(-.85,Math.min(.85,tc.y||0)),cx=Math.max(-.85,Math.min(.85,tc.x||0)),rb=.11/UNIT;
+  var hit=[-cx*rb*.8,8+rb*(1+cy*.95)+1,28-44-rb*Math.sqrt(Math.max(.1,1-cy*cy))];
   if(progress<.60){var q=ease(progress/.60);feet[1]=[mix(24,8,q),mix(8,55,q),mix(0,-112,q)];}
   else if(progress<1){var q=Math.pow((progress-.60)/.40,3);feet[1]=[mix(8,hit[0],q),mix(55,hit[1],q),mix(-112,hit[2],q)];}
   else {

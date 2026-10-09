@@ -6,6 +6,18 @@ let callback,state={room:{id:'test',code:'ABC123'},players:[]};function records(
 D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Promise.resolve(state)},ensure:()=>Promise.resolve(state),current:()=>state.players[0],allowed:()=>true,getState:()=>state,records,async join(player){if(!state.players[0])state.players=[{player,idx:0,entries:[],mine:true}];return state.players[0]},async shot(player,idx,input){shots++;const p=D.puan.puanla(input.pos,D.fizik.hesapla(input));const physics=D.fizik.hesapla(input);const entry={ad:input.pos.ad,sonuc:physics.sonuc,puan:D.puan.puanla(input.pos.tip,physics).puan,gol:['gol','direk_gol'].includes(physics.sonuc),yesil:physics.bandaGirdi,input:{...input,rules:9}};state.players[0].entries.push(entry);state.players[0].idx++;callback(state);return entry},create:()=>Promise.resolve(state),link:()=>''};
 vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
 
+// --- Antrenman turu: 10 atış = 5 penaltı + 3 frikik + 2 hedef ağı, kural 10 açık, sunucuya istek yok ---
+await flush();fire('btnAntrenman','click');await flush();assert.equal(d.mod,'antrenman');assert.equal(el('hudVurus').textContent,'Vuruş 1/10');
+const tipler=D.hedef.antrenmanTuru.map(p=>p.tip);assert.deepEqual(tipler,['penalti','penalti','penalti','penalti','penalti','frikik','frikik','frikik','hedef','hedef']);
+let k10=0;const eskiH=D.fizik.hesapla,eskiHH=D.hedef.hesapla;D.fizik.hesapla=g=>{if(g.kural10)k10++;return eskiH(g);};D.hedef.hesapla=g=>{if(g.kural10)k10++;return eskiHH(g);};
+for(let i=0;i<10;i++){assert.equal(d.pos.tip,tipler[i]);
+ fire('durusAc','click');fire('durusDuz','click');time+=1200;root.frame();
+ if(d.pos.tip==='frikik'){fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});}
+ else{el('gucSec').value=80;fire('gucOnay','click');fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');fire('temasOnay','click');time=d.cubukBasla+400;fire('vurBtn','pointerdown',{isPrimary:true});}
+ await flush();assert.equal(d.faz,'vurus','vuruş '+i);time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
+D.fizik.hesapla=eskiH;D.hedef.hesapla=eskiHH;assert.equal(d.ekran,'tursonu');assert(/10 vuruş/.test(el('turBaslik').textContent));assert(k10>=10,'antrenmanda kural 10');assert.equal(shots,0);
+fire('turMenu','click');await flush();
+console.log('PASS antrenman turu: 5 penaltı + 3 frikik + 2 hedef ağı, kural 10, sunucuya istek yok');
 // --- Akış: menüden Hedef ağı → 5 vuruş, kaleci/baraj yok, sonuç ve tur sonu ---
 await flush();assert(el('btnHedef'),'menüde Hedef ağı düğmesi');fire('btnHedef','click');await flush();
 assert.equal(d.mod,'hedef');assert.equal(d.pos.tip,'hedef');assert.equal(el('hudVurus').textContent,'Vuruş 1/5');assert(el('fifaKutu').hidden,'hedefte FIFA sayacı yok');

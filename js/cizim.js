@@ -361,7 +361,7 @@
     if(DT.futbolcu3d && gorseller[karakter+'_bekle'] && gorseller[karakter+'_vurus1']){
       var walk3=durum.yurume,dir=durum.durus||0;
       var elapsed3=durum.sure||0,windup3=durum.on||1.15;
-      var shot=durum.yol?{elapsed:elapsed3,windup:windup3}:null;
+      var shot=durum.yol?{elapsed:elapsed3,windup:windup3,contact:durum.contact||null}:null;
       var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide,turning:durum.donus});
       var ball=durum.renderTop,ballScreen=ball&&izdus(ball.x,ball.y,ball.z);
       var ballLayer=ballScreen?{depth:ballScreen.d,draw:function(target){topCiz(target,ball,durum.topAci,true);}}:null;

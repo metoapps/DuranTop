@@ -81,7 +81,7 @@
     var kontrolSapmasi=hata*DT.koseBandi(aim)/bant;
     var bandaGirdi = zamanVar && Math.abs(hata) <= bant;
     var quality = Math.exp(-Math.pow(hata / (0.18*bant/A.zaman.bant), 2));
-    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.takipFizigi===true) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
+    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.takipFizigi===true,girdi.kural10===true?{hata:hata,bant:bant}:null) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
     var cx=flight.contact.x,cy=flight.contact.y,bx=pos.bx,D=pos.D,T=flight.T,dt=1/120,ornekler=flight.yol;
     var ax=flight.son.x,ay=flight.son.y;
 
@@ -102,7 +102,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,D:D});
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,kural10:girdi.kural10===true,D:D});
     plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;

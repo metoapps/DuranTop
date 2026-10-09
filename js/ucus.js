@@ -108,16 +108,21 @@ function fixedDirection(pos,aim,speed,tracked){
  }
  var answer=vector(best.p);if(energyAimCache.size>=128)energyAimCache.clear();energyAimCache.set(key,answer);return answer.slice();
 }
-function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked){
+function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked,k10){
  var power=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
+ /* Kural 10 (k10, şimdilik yalnız antrenman/hedef): sert vuruş gerçekten hızlı (penaltı 31, frikik 30 m/sn tavan, %30'da 9 m/sn);
+  * temas yüksekliği atış açısını belirler (alt: yükselir, orta: nişan yüksekliği, üst: yerden); yeşilden çok uzak + sert vuruş: top savrulur. */
  var x=contact.x||0,y=contact.y||0,r=Math.hypot(x,y);if(r>.85){x*=.85/r;y*=.85/r;r=.85;}
  var R=A.kale.topYaricap,m=A.aerodinamik.kutle,inertia=(2/3)*m*R*R;
- var nominal=A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal,tracked);
+ var nominal=k10?9+((pos.tip==='penalti'?31:30)-9)*(power-.3)/.7:A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal,tracked);
  var yaw=Math.atan2(clean[0],clean[2])+hata*.14+(1-quality)*.010*noise();
  var pitch=Math.atan2(clean[1],Math.hypot(clean[0],clean[2]));
  // Under-ball shoe path is an explicit game technique assumption. Contact
 // coordinates alone cannot identify a real foot's impulse direction.
- pitch+=y<0?.50*Math.pow(-y,1.4):-.18*y;
+ if(k10){pitch+=-.32*y+(y<0?.14*y*y:0);   // alt (y=-0,85): +21°, orta: nişan, üst (y=+0,85): -16° → yerden
+  var asim=Math.max(0,Math.abs(k10.hata)-k10.bant)/Math.max(.05,.5-k10.bant),savrul=asim*power*power,yon=k10.hata>=0?1:-1;
+  yaw+=yon*.32*savrul;pitch+=k10.hata>=0?.30*savrul:-.12*savrul;}   // geç bas: yükselir ve açılır; erken bas: alçalır
+ else pitch+=y<0?.50*Math.pow(-y,1.4):-.18*y;
  pitch+=hata*.18+(1-quality)*.008*noise();pitch=Math.max(-.45,Math.min(1.35,pitch));
  var direction=[Math.cos(pitch)*Math.sin(yaw),Math.sin(pitch),Math.cos(pitch)*Math.cos(yaw)];
  var right=unit(cross([0,1,0],direction)),up=cross(direction,right);
