@@ -63,8 +63,8 @@
     return base*(1-.48*side*Math.max(top,bottom));
   };
   // Undefined power preserves historical replay; every new shot supplies power.
-  DT.zamanBandi=function(aim,guc){var corner=DT.koseBandi(aim);if(typeof guc!=='number')return corner;
-    var t=Math.max(0,Math.min(1,(guc-.3)/.7));return corner*(1.35-.65*t*t);
+  DT.zamanBandi=function(aim,guc,k10){var corner=DT.koseBandi(aim);if(typeof guc!=='number')return corner;
+    var t=Math.max(0,Math.min(1,(guc-.3)/.7));return corner*(k10?1.35-.80*t*t:1.35-.65*t*t);   // kural 10: %100 güçte yeşil bant 0,55 kat (eskiden 0,70)
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 

@@ -15,14 +15,16 @@ const K=girdi=>D.fizik.hesapla(G(Object.assign({kural10:true},girdi)));const max
 for(const pi of [0,5,9]){const al=K({pos:P[pi],aim:{x:1.5,y:1.4},contact:{x:0,y:-.8}}),or=K({pos:P[pi],aim:{x:1.5,y:1.4},contact:{x:0,y:0}}),us=K({pos:P[pi],aim:{x:1.5,y:1.4},contact:{x:0,y:.8}});
  assert(maxY(al)>maxY(or)+.3&&maxY(or)>maxY(us)+.3,P[pi].ad+' alt>orta>üst '+[maxY(al),maxY(or),maxY(us)].map(v=>v.toFixed(2)));assert(maxY(us)<.7,P[pi].ad+' üst temas yerden: '+maxY(us).toFixed(2));
  const or9=D.fizik.hesapla(G({pos:P[pi],aim:{x:1.5,y:1.4}}));if(pi===9)assert(maxY(or)<maxY(or9),'orta temas eskisi kadar havalanmaz');}
-// 3) Hız: %100 penaltı ≥105, frikik ≥100 km/sa; güçle artar.
-const hp=K({pos:P[0],aim:{x:2,y:1},guc:1}).speed*3.6,hf=K({pos:P[9],aim:{x:2,y:1.6},guc:1}).speed*3.6;assert(hp>=105&&hf>=100,'hız '+hp.toFixed(0)+' / '+hf.toFixed(0));
+// 3) Hız: %100 penaltı ≥125, frikik ≥120 km/sa; güçle artar.
+const hp=K({pos:P[0],aim:{x:2,y:1},guc:1}).speed*3.6,hf=K({pos:P[9],aim:{x:2,y:1.6},guc:1}).speed*3.6;assert(hp>=125&&hf>=120,'hız '+hp.toFixed(0)+' / '+hf.toFixed(0));
 let once=0;for(const guc of [.3,.5,.7,.9,1]){const v=K({pos:P[0],aim:{x:2,y:1},guc}).speed;assert(v>once);once=v;}
 // 4) Savrulma: %100 güçte yeşilden çok uzak → kale dışına çok farkla; %40 güçte aynı hata çok daha az sapar.
 for(const z of [.98,.02]){const sert=K({pos:P[9],aim:{x:0,y:1.5},guc:1,zaman:z}),yumu=K({pos:P[9],aim:{x:0,y:1.5},guc:.4,zaman:z});
  const sapS=Math.hypot(sert.gecis.x,Math.max(0,sert.gecis.y-1.5)),sapY=Math.hypot(yumu.gecis.x,Math.max(0,yumu.gecis.y-1.5));
  assert(sert.sonuc==='aut'||sert.sonuc==='kisa'||sert.sonuc==='baraj',z+': '+sert.sonuc);assert(Math.abs(sert.gecis.x)>5||sert.gecis.y>4||sert.sonuc==='baraj','dağa taşa: '+JSON.stringify(sert.gecis));assert(sapS>2*sapY,'sert vuruş daha çok savrulur');}
+// Yeşil bant %100 güçte daha dar; ibre aynı hatada daha çok sapar.
+const zb=(g,k)=>D.zamanBandi({x:0,y:1.5},g,k);assert.equal(zb(.3,true),zb(.3,false),'düşük güçte bant aynı');assert(Math.abs(D.zamanBandi({x:0,y:1.5},1,true)/D.zamanBandi({x:0,y:1.5},1,false)-.55/.70)<1e-9,'bant oranı');
 const yesil=K({pos:P[9],aim:{x:0,y:1.5},guc:1,zaman:.5});assert(Math.abs(yesil.gecis.x)<.5,'yeşilde sapma yok');
-// 5) Kaleci: frikikte ilk okuma 0,18 sn erken; penaltı aynı.
-const f9=D.fizik.hesapla(G({pos:P[9],aim:{x:2,y:1.5}})),f10=K({pos:P[9],aim:{x:2,y:1.5}});assert(Math.abs((f9.kaleci.okumaT-f10.kaleci.okumaT)-.18)<1e-9,'frikik okuma '+f9.kaleci.okumaT+'→'+f10.kaleci.okumaT);
-console.log('PASS kural 10: temas alt>orta>üst (üst yerden), %100 hız '+hp.toFixed(0)+'/'+hf.toFixed(0)+' km/sa, uzak zamanlamada savrulma, frikik kalecisi 0,18 sn erken');
+// 5) Kaleci: frikikte ilk okuma 0,25 sn erken (0,54 → 0,29); penaltı aynı.
+const f9=D.fizik.hesapla(G({pos:P[9],aim:{x:2,y:1.5}})),f10=K({pos:P[9],aim:{x:2,y:1.5}});assert(Math.abs((f9.kaleci.okumaT-f10.kaleci.okumaT)-.25)<1e-9,'frikik okuma '+f9.kaleci.okumaT+'→'+f10.kaleci.okumaT);
+console.log('PASS kural 10: temas alt>orta>üst (üst yerden), %100 hız '+hp.toFixed(0)+'/'+hf.toFixed(0)+' km/sa, uzak zamanlamada savrulma, frikik kalecisi 0,25 sn erken');

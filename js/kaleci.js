@@ -109,7 +109,7 @@ function penaltiPlan(practice,noise,o){
   gozlemler:reads,konum:konum,cizimKonum:konum};
 }
 function takipPlan(tip,practice,noise,o){
- var K=A.kaleci,first=K.tepki[tip]+(o.kural10&&tip==='frikik'?.12:K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk:0);   // kural 10: frikikte okuma 0,30→0,12 sn
+ var K=A.kaleci,first=K.tepki[tip]+(o.kural10&&tip==='frikik'?.05:K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk:0);   // kural 10: frikikte okuma 0,30→0,05 sn
  var nx=noise()*K.hedefGurultuX,ny=noise()*K.hedefGurultuY,decision=o.decision===undefined?1:o.decision;
  var vmax=(tip==='frikik'?K.frikikHiz:K.penaltiHiz)-(practice?A.antrenman.hizAzalt:0);
  var segments=[],wrong=false,lapse=false,chosen=false,reads=[];

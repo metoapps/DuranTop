@@ -180,7 +180,8 @@
     d.onizleme = (!r.kaleci.onKarar&&(r.sonuc === 'baraj'||r.sonuc === 'kisa')) ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
-  function bantGuncelle(){var bant=DT.zamanBandi(d.aim,d.guc);$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
+  function k10(){return d.mod!=='resmi';}
+  function bantGuncelle(){var bant=DT.zamanBandi(d.aim,d.guc,k10());$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
     $('cubukYazi').textContent='%'+Math.round(d.guc*100)+' güç · '+(d.guc>=.9?'Sert vuruş: dar yeşil, hatada daha fazla sapma':d.guc<=.7?'Kontrollü vuruş: daha geniş yeşil, kaleciye daha fazla süre':'Güç arttıkça isabet zorlaşır')+(DT.koseBandi(d.aim)<A.zaman.bant*.85?' · Hassas köşe: bant daha dar':'');
   }
   function kilitle(yenilenmis) {
@@ -296,7 +297,7 @@
       oyuncu: { durus:d.durus,donus:d.donus?d.donusFaz:null,yurume:d.yurume?{from:d.yurume.from,to:d.durus,u:Math.max(0,Math.min(1,(now-d.yurume.t0)/1100))}:null,karakter: d.karakter, poz: 'vurus1', guide:d.onizleme, aim: d.aim, falso: d.falso, ilerleme: 0 }
     };
     if (d.faz === 'nisan') {
-      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: (d.temasHazir&&!fifaMod())?d.onizleme:null, fifa: fifaMod() };
+      if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: (d.temasHazir&&!fifaMod())?d.onizleme:null, fifa: fifaMod(), fifaYol: fifaMod()?fifaOnizleme(now):null };
     } else if (d.faz === 'vurus' && d.an) {
       var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
       out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
@@ -509,6 +510,17 @@
    * VUR'u basılı tut: güç dolar, fazla tutarsan geri düşer; bırak → ibre geri döner, yeşilde tekrar bas.
    * Sunucuya giden girdiler aynı (nişan, temas, güç, zamanlama, duruş): kural sürümü değişmez (rules 9). */
   var FIFA = { gucSure: 1100, nisanX: 2.0, nisanY: 1.0 };
+  /* Yer oku = topun GERÇEK uçuş yolu (tam güç, kusursuz zamanlama): falso verince ok eğilir, alt temasta ok havaya kalkar.
+   * 33 ms'lik hesap önbelleğe alınır; ok tuşu basılıyken en çok 8 kez/sn yenilenir. */
+  var onizBel = { key: '', yol: null, t: -1e9 };
+  function fifaOnizleme(now) {
+    if (!d.aim || !d.pos) return null;
+    var c = d.contact || { x: 0, y: 0 }, key = [d.pos.ad, d.aim.x.toFixed(2), d.aim.y.toFixed(2), (+c.x).toFixed(2), (+c.y).toFixed(2), k10() ? 1 : 0].join('|');
+    if (onizBel.key === key) return onizBel.yol;
+    if (d.nisanHiz && onizBel.yol && now - onizBel.t < 120) return onizBel.yol;
+    var f = DT.ucus.energyLaunch(d.pos, d.aim, c, 0, 1, function () { return 0; }, 1, true, k10() ? { hata: 0, bant: DT.zamanBandi(d.aim, 1, true) } : null);
+    onizBel = { key: key, yol: f.yol, t: now }; return onizBel.yol;
+  }
   function fifaMod() { return !!(d.pos && d.pos.tip === 'frikik'); }
   function gucVeyaNisan() {
     if (!fifaMod()) { $('gucPanel').hidden = false; return; }
@@ -524,7 +536,9 @@
   function nisanBirak() { d.nisanHiz = null; d.nisanSon = null; ['nisanSol','nisanSag','nisanYukari','nisanAsagi'].forEach(function (id) { var b = $(id); if (b && b.classList) b.classList.toggle('basili', false); }); }
   function nisanKilitle() { if (!fifaMod() || d.faz !== 'nisan' || d.kilit || !d.aim || !d.gucHazir) return; nisanBirak(); kilitle(false); }
   function fifaGuc(now) { var x = ((now - d.fifa.t0) / FIFA.gucSure) % 2, tri = x < 1 ? x : 2 - x; return Math.round((0.3 + 0.7 * tri) * 100) / 100; }
-  function fifaIsabet(now) { return Math.max(0, Math.min(1, (now - d.fifa.t0) / (A.zamanCubuguSuresi * 1000))); }
+  // Kural 10: ibre güçle hızlanır (%30 güçte 0,80 sn, %100 güçte 0,62 sn); kupada eski hız.
+  function ibreSure(){var t=Math.max(0,Math.min(1,((d.fifa&&d.fifa.guc||d.guc||1)-.3)/.7));return A.zamanCubuguSuresi*(k10()?1-.225*t:1)*1000;}
+  function fifaIsabet(now) { return Math.max(0, Math.min(1, (now - d.fifa.t0) / ibreSure())); }
   function fifaHazir() { return d.faz === 'nisan' && d.kilit && d.temasHazir && d.durusHazir && DT.cizim.hazir(); }
   function fifaAt(zaman) { d.fifa.atis = true; vur(zaman); }
   function fifaBas() {
@@ -556,7 +570,7 @@
       var P = oran(guc), grad = g.createLinearGradient(0, W, W, 0); grad.addColorStop(0, '#f2d04b'); grad.addColorStop(.6, '#f08a2c'); grad.addColorStop(1, '#d8253a');
       g.strokeStyle = grad; g.beginPath(); g.arc(c, c, R, a0, a0 + tam * P); g.stroke();
       if (v != null) {
-        var bant = DT.zamanBandi(d.aim, d.guc), y0 = 1 - (0.5 + bant), y1 = 1 - (0.5 - bant);
+        var bant = DT.zamanBandi(d.aim, d.guc, k10()), y0 = 1 - (0.5 + bant), y1 = 1 - (0.5 - bant);
         g.strokeStyle = '#3ad16b'; g.lineWidth = 24; g.beginPath(); g.arc(c, c, R, a0 + tam * P * y0, a0 + tam * P * y1); g.stroke();
         var ai = a0 + tam * P * (1 - v); g.strokeStyle = '#ffffff'; g.lineWidth = 5; g.beginPath(); g.moveTo(c + Math.cos(ai) * (R - 26), c + Math.sin(ai) * (R - 26)); g.lineTo(c + Math.cos(ai) * (R + 16), c + Math.sin(ai) * (R + 16)); g.stroke();
       }

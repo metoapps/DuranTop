@@ -344,8 +344,8 @@
   function barajCiz(g, ogeler) {
     if (!pos || pos.tip !== 'frikik') return;
     var b=ogeler.baraj, players=b.oyuncular||DT.baraj.kur(pos);
-    players.forEach(function(player,i){var state=DT.baraj.durum(player,ogeler.zaman||0),x=b.merkezX+b.px*player.off,z=b.merkezZ+b.pz*player.off;
-      DT.model3d.barajCiz(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i);
+    players.map(function(player,i){var q=izdus(b.merkezX+b.px*player.off,0,b.merkezZ+b.pz*player.off);return{player:player,i:i,d:q?q.d:0};}).sort(function(a,c){return c.d-a.d;}).forEach(function(e){var player=e.player,i=e.i,state=DT.baraj.durum(player,ogeler.zaman||0),x=b.merkezX+b.px*player.off,z=b.merkezZ+b.pz*player.off;
+      if(!(DT.baraj3d&&DT.baraj3d.oyuncu(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i,{t:(root.performance?root.performance.now():0)/1000,makeCanvas:yerelCanvas})))DT.model3d.barajCiz(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i);
     });
   }
 
@@ -429,32 +429,39 @@
     g.restore();
   }
 
-  /* FIFA 2003 tarzı frikik: topun önünden kaleye doğru yerde yarı saydam beyaz ok. Yalnız görüntü. */
-  function fifaOkCiz(g, aim, kilit) {
-    if (!aim || !pos) return;
-    var bx = pos.bx, dx = aim.x - bx, dz = pos.D, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, px = uz, pz = -ux;
-    var bas = 0.55, boy = Math.min(6.5, pos.D * 0.32), govde = 0.20, ucGen = 0.62, ucBoy = 1.15;
-    function nokta(t, s) { return izdus(bx + ux * t + px * s, 0.01, uz * t + pz * s); }
-    var parca = [[bas, -govde], [bas + boy - ucBoy, -govde], [bas + boy - ucBoy, -ucGen], [bas + boy, 0], [bas + boy - ucBoy, ucGen], [bas + boy - ucBoy, govde], [bas, govde]].map(function (v) { return nokta(v[0], v[1]); });
-    if (parca.some(function (q) { return !q; })) return;
-    var a = nokta(bas, 0), b = nokta(bas + boy, 0), zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
-    var parla = kilit ? 0.62 : 0.48 + 0.12 * Math.sin(zaman * 4);
-    g.save(); var grad = g.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, 'rgba(255,255,255,0.10)'); grad.addColorStop(0.55, 'rgba(255,255,255,' + (parla * 0.8).toFixed(3) + ')'); grad.addColorStop(1, 'rgba(255,255,255,' + parla.toFixed(3) + ')');
-    g.fillStyle = grad; g.beginPath(); parca.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(255,255,255,' + (parla * 0.9).toFixed(3) + ')'; g.lineWidth = 1; g.stroke(); g.restore();
-  }
-  function fifaHedefCiz(g, c, r, kilit) {
-    // Kırmızı-beyaz parçalı halka (FIFA 2003 hedef imleci).
-    g.save(); g.translate(c.x, c.y); var zaman = (root.performance ? root.performance.now() : Date.now()) / 1000, don = kilit ? 0 : zaman * 1.6;
-    g.lineWidth = Math.max(3, r * 0.26);
-    for (var i = 0; i < 8; i++) { g.strokeStyle = i % 2 ? '#ffffff' : '#d8253a'; g.beginPath(); g.arc(0, 0, r, don + i * Math.PI / 4 + 0.06, don + (i + 1) * Math.PI / 4 - 0.06); g.stroke(); }
-    g.fillStyle = kilit ? '#d8253a' : '#ffffff'; g.beginPath(); g.arc(0, 0, Math.max(2, r * 0.16), 0, Math.PI * 2); g.fill(); g.restore();
+  /* FIFA 02 tarzı yer oku: topun gerçek uçuş yolunu izler. Falso → ok yana eğilir; alt temas → ok havaya kalkar; üst temas → ok yerde kalır.
+   * Altında yere izdüşüm çizgisi var (yükseklik okunabilsin). Yalnız görüntü. */
+  function fifaOkCiz(g, yol, kilit) {
+    if (!yol || yol.length < 3 || !pos) return;
+    var uzun = Math.max(7, Math.min(15, 0.55 * pos.D)), bas = 0.7, nok = [], yer = [], top = 0, onc = null, zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
+    for (var i = 0; i < yol.length; i++) {
+      var p = yol[i]; if (onc) top += Math.hypot(p.x - onc.x, p.y - onc.y, p.z - onc.z); onc = p;
+      if (top < bas) continue; if (top > uzun + bas) break;
+      var s = izdus(p.x, Math.max(0.03, p.y), p.z), z0 = izdus(p.x, 0.02, p.z); if (!s || !z0) continue;
+      if (s.y < 70) break;   // ok ekranın üstünden taşmasın
+      nok.push(s); yer.push(z0);
+    }
+    if (nok.length < 4) return;
+    var gen = 0.34;   // ok gövde genişliği (m)
+    function normal(a, i) { var u = a[Math.max(0, i - 1)], v = a[Math.min(a.length - 1, i + 1)], dx = v.x - u.x, dy = v.y - u.y, l = Math.hypot(dx, dy) || 1; return { tx: dx / l, ty: dy / l, nx: -dy / l, ny: dx / l }; }
+    g.save();
+    // yere izdüşüm
+    g.strokeStyle = 'rgba(0,0,0,0.32)'; g.lineWidth = 2; g.setLineDash([5, 5]); g.beginPath(); yer.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); g.stroke(); g.setLineDash([]);
+    var sol = [], sag = [];
+    nok.forEach(function (s, i) { var n = normal(nok, i), w = Math.max(2.2, gen * s.olcek) / 2 * (0.55 + 0.45 * i / (nok.length - 1)); sol.push({ x: s.x + n.nx * w, y: s.y + n.ny * w }); sag.push({ x: s.x - n.nx * w, y: s.y - n.ny * w }); });
+    var son = nok[nok.length - 1], nn = normal(nok, nok.length - 1), wd = Math.max(2.2, gen * son.olcek) / 2, bw = wd * 2.3, bl = wd * 4.2;
+    var tip = { x: son.x + nn.tx * bl, y: son.y + nn.ty * bl }, a = nok[0], parla = kilit ? 0.86 : 0.74 + 0.10 * Math.sin(zaman * 4);
+    var grad = g.createLinearGradient(a.x, a.y, tip.x, tip.y); grad.addColorStop(0, 'rgba(229,57,53,0.25)'); grad.addColorStop(0.35, 'rgba(229,57,53,' + (parla * 0.9).toFixed(3) + ')'); grad.addColorStop(1, 'rgba(255,92,76,' + parla.toFixed(3) + ')');
+    g.fillStyle = grad; g.strokeStyle = 'rgba(255,225,215,' + (parla * 0.7).toFixed(3) + ')'; g.lineWidth = 1;
+    g.beginPath(); sol.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); });
+    g.lineTo(son.x + nn.nx * bw, son.y + nn.ny * bw); g.lineTo(tip.x, tip.y); g.lineTo(son.x - nn.nx * bw, son.y - nn.ny * bw);
+    for (var k = sag.length - 1; k >= 0; k--) g.lineTo(sag[k].x, sag[k].y); g.closePath(); g.fill(); g.stroke();
+    g.restore();
   }
   function nisanCiz(g, aim, kilit, falso, onizleme, fifa) {
     if (!aim) return;
     var D = pos.D;
-    if (fifa) { var fc = izdus(aim.x, aim.y, D); if (fc) fifaHedefCiz(g, fc, Math.max(11, 0.24 * fc.olcek), kilit); return; }
+    if (fifa) return;   // FIFA frikik: hedef halkası yok; yalnız yer oku (fifaOkCiz)
     if (onizleme) {
       g.save(); g.setLineDash([3, 6]); g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 2; g.lineCap = 'round';
       g.beginPath();
@@ -543,7 +550,7 @@
     else if(supporter)pankartCiz(g,supporter);
 
     kaleArka(g);
-    if (d.nisan && d.nisan.fifa) fifaOkCiz(g, d.nisan.aim, d.nisan.kilit);
+    if (d.nisan && d.nisan.fifa) fifaOkCiz(g, d.nisan.fifaYol, d.nisan.kilit);
 
     // derinliğe göre sıralanan nesneler (uzaktan yakına)
     var liste = [];

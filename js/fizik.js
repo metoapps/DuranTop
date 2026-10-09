@@ -77,7 +77,7 @@
 
     var zamanVar = typeof girdi.zaman === 'number';
     var hata = zamanVar ? girdi.zaman - 0.5 : 0;
-    var bant=DT.zamanBandi(aim,girdi.gucZorlugu===false?undefined:girdi.guc);
+    var bant=DT.zamanBandi(aim,girdi.gucZorlugu===false?undefined:girdi.guc,girdi.kural10===true);
     var kontrolSapmasi=hata*DT.koseBandi(aim)/bant;
     var bandaGirdi = zamanVar && Math.abs(hata) <= bant;
     var quality = Math.exp(-Math.pow(hata / (0.18*bant/A.zaman.bant), 2));
@@ -92,7 +92,7 @@
       var px = uz, pz = -ux;
       var mesafe = A.baraj.mesafe;
       baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe, merkezZ: uz * mesafe };
-      baraj.oyuncular=DT.baraj.kur(pos);
+      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0}:null);
       var hit=DT.baraj.ilkTemas(baraj,ornekler,R);
       if(hit){sonuc='baraj';olayIndex=hit.index;baraj.temas=hit;}
 

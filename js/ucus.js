@@ -110,11 +110,11 @@ function fixedDirection(pos,aim,speed,tracked){
 }
 function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked,k10){
  var power=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
- /* Kural 10 (k10, şimdilik yalnız antrenman/hedef): sert vuruş gerçekten hızlı (penaltı 31, frikik 30 m/sn tavan, %30'da 9 m/sn);
+ /* Kural 10 (k10, şimdilik yalnız antrenman/hedef): sert vuruş gerçekten hızlı (her iki vuruşta %100 = 36 m/sn ≈130 km/sa, %30'da 9 m/sn);
   * temas yüksekliği atış açısını belirler (alt: yükselir, orta: nişan yüksekliği, üst: yerden); yeşilden çok uzak + sert vuruş: top savrulur. */
  var x=contact.x||0,y=contact.y||0,r=Math.hypot(x,y);if(r>.85){x*=.85/r;y*=.85/r;r=.85;}
  var R=A.kale.topYaricap,m=A.aerodinamik.kutle,inertia=(2/3)*m*R*R;
- var nominal=k10?9+((pos.tip==='penalti'?31:30)-9)*(power-.3)/.7:A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal,tracked);
+ var nominal=k10?9+(36-9)*(power-.3)/.7:A.hiz[pos.tip]*power,clean=fixedDirection(pos,aim,nominal,tracked);
  var yaw=Math.atan2(clean[0],clean[2])+hata*.14+(1-quality)*.010*noise();
  var pitch=Math.atan2(clean[1],Math.hypot(clean[0],clean[2]));
  // Under-ball shoe path is an explicit game technique assumption. Contact

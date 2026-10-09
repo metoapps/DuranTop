@@ -19,7 +19,7 @@ function delikBul(x,y,R){var en=null;DELIKLER.forEach(function(h,i){var d=Math.h
 function hesapla(girdi){
  var pos=girdi.pos,aim=girdi.aim,rng=mulberry(girdi.seed|0),R=A.kale.topYaricap,yari=A.kale.genislik/2,H=A.kale.yukseklik,Dz=pos.D,dt=1/120;
  function gauss(){var u=Math.max(rng(),1e-9),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
- var zamanVar=typeof girdi.zaman==='number',hata=zamanVar?girdi.zaman-.5:0,bant=D.zamanBandi(aim,girdi.guc),bandaGirdi=zamanVar&&Math.abs(hata)<=bant;
+ var zamanVar=typeof girdi.zaman==='number',hata=zamanVar?girdi.zaman-.5:0,bant=D.zamanBandi(aim,girdi.guc,girdi.kural10===true),bandaGirdi=zamanVar&&Math.abs(hata)<=bant;
  var quality=Math.exp(-Math.pow(hata/(.18*bant/A.zaman.bant),2));
  var flight=D.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},hata*D.koseBandi(aim)/bant,quality,gauss,girdi.guc,true,girdi.kural10===true?{hata:hata,bant:bant}:null);
  var orn=flight.yol,son=orn[orn.length-1],gecis={x:son.x,y:son.y},sonuc,delik=null;
