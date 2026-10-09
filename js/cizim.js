@@ -7,7 +7,8 @@
 
   var KAMERA = {
     penalti: { geri: 8.0, yuk: 5.5, kaleGen: 0.78 },
-    frikik:  { geri: 13.0, yuk: 5.5, kaleGen: 0.78 }
+    frikik:  { geri: 13.0, yuk: 5.5, kaleGen: 0.78 },
+    hedef:   { geri: 9.0, yuk: 4.8, kaleGen: 0.82 }   // hedef ağı: delikler okunsun diye daha yakın ve alçak
   };
 
   var cv, ctx, W = 360, H = 640, dpr = 1;
@@ -548,7 +549,9 @@
     var liste = [];
     var D = pos.D;
     var kd = izdus(0, 1, D + 0.25);
-    if (d.kaleci) liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci, d.baraj); } });
+    if (d.kaleci && pos.tip !== 'hedef') liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci, d.baraj); } });
+    // Hedef ağı: kale ağzına gerili delikli ağ; derinliğe göre topla sıralanır (delikten geçen top arkasında kalır).
+    if (pos.tip === 'hedef' && DT.hedef) { var hd = izdus(0, 1.2, pos.D); liste.push({ z: hd ? hd.d : 1e9, ciz: function () { DT.hedef.ciz(g, izdus, pos.D, d.hedefVurulan); } }); }
     var fd = izdus(0, 1, D);
     liste.push({ z: fd ? fd.d + 0.01 : 1e9, ciz: function () { kaleOn(g); } });
     if (d.baraj) {

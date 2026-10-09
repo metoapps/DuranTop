@@ -65,6 +65,6 @@ const bekle=ms=>new Promise(r=>setTimeout(r,ms));
   for(const ad of ['vur','vurusUygula','fifaBas','fifaBirak','fifaKare','nisanIlerle']) assert(!/ses\.cal\('islik'\)/.test(govde(ad)),ad+' içinde düdük çalmamalı');
   assert(/function vurusHazirla[\s\S]*?DT\.ses\.cal\('islik'\)/.test(govde('vurusHazirla')),'düdük vurusHazirla içinde çalmalı');
   const html=fs.readFileSync(path.join(KOK,'index.html'),'utf8');
-  assert(/js\/ses\.js\?v=20261006a/.test(html)&&/js\/oyun\.js\?v=20261006f/.test(html),'index.html önbellek etiketleri');
+  assert(/js\/ses\.js\?v=20261006a/.test(html)&&/js\/oyun\.js\?v=20261009a/.test(html),'index.html önbellek etiketleri');
   console.log('PASS five real recordings present; all loaded and played; crowd roar cut on next shot/mute; whistle waits for first load; synth fallback; oyun.js wiring');
 })().catch(e=>{console.error(e);process.exit(1);});
