@@ -496,16 +496,34 @@
     g.restore();
   }
 
+  /* Ok noktaları: topun uçuş yolunun ilk `uzun` metresi (başlangıçtan `bas` m sonra başlar). Yolun ilk 1 m'sindeki doğrultuya göre YATAY yanal sapma
+   * OK_KAZANC kat büyütülür (en çok OK_SINIR m). Falso yoksa sapma 0'dır, ok düz kalır; falso verilince ok topun gideceği yana doğru eğilir. Yalnız görüntü. */
+  var OK_KAZANC = 8, OK_SINIR = 1.2;
+  function okNoktalari(yol, uzun, bas) {
+    if (!yol || yol.length < 3) return [];
+    var p0 = yol[0], i, top = 0, kum = [0], q = yol[yol.length - 1];
+    for (i = 1; i < yol.length; i++) { top += Math.hypot(yol[i].x - yol[i - 1].x, yol[i].y - yol[i - 1].y, yol[i].z - yol[i - 1].z); kum.push(top); }
+    for (i = 1; i < yol.length; i++) if (kum[i] >= 1.0) { q = yol[i]; break; }
+    var tx = q.x - p0.x, ty = q.y - p0.y, tz = q.z - p0.z, tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    var nx = tz, nz = -tx, nl = Math.hypot(nx, nz); if (nl < 1e-6) { nx = 1; nz = 0; } else { nx /= nl; nz /= nl; }
+    var out = [];
+    for (i = 0; i < yol.length; i++) {
+      if (kum[i] < bas) continue; if (kum[i] > bas + uzun) break;
+      var p = yol[i], dx = p.x - p0.x, dy = p.y - p0.y, dz = p.z - p0.z, al = dx * tx + dy * ty + dz * tz;
+      var dh = (dx - al * tx) * nx + (dz - al * tz) * nz, ek = Math.max(-OK_SINIR, Math.min(OK_SINIR, dh * (OK_KAZANC - 1)));
+      out.push({ x: p.x + nx * ek, y: p.y, z: p.z + nz * ek });
+    }
+    return out;
+  }
   /* FIFA 02 tarzı yer oku: topun gerçek uçuş yolunu izler. Falso → ok yana eğilir; alt temas → ok havaya kalkar; üst temas → ok yerde kalır.
    * Altında yere izdüşüm çizgisi var (yükseklik okunabilsin). Yalnız görüntü. */
   function fifaOkCiz(g, yol, kilit) {
     if (!yol || yol.length < 3 || !pos) return;
-    // Kısa ok: yalnız ilk 3–4,5 m gösterilir (kaleye kadar uzanmaz, nişanı kolaylaştırmaz).
-    var uzun = Math.max(3, Math.min(4.5, 0.2 * pos.D)), bas = 0.7, nok = [], yer = [], top = 0, onc = null, zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
-    for (var i = 0; i < yol.length; i++) {
-      var p = yol[i]; if (onc) top += Math.hypot(p.x - onc.x, p.y - onc.y, p.z - onc.z); onc = p;
-      if (top < bas) continue; if (top > uzun + bas) break;
-      var s = izdus(p.x, Math.max(0.03, p.y), p.z), z0 = izdus(p.x, 0.02, p.z); if (!s || !z0) continue;
+    // Kısa ok: yalnız ilk 3–4,5 m gösterilir (kaleye kadar uzanmaz, nişanı kolaylaştırmaz). Falso eğrisi bu kısa mesafede çok küçüktür (~10 cm),
+    // bu yüzden yanal sapma yalnız GÖSTERİMDE büyütülür (okNoktalari): yön ve işaret topun gerçek sapmasıdır, eğrilik okunur.
+    var uzun = Math.max(3, Math.min(4.5, 0.2 * pos.D)), bas = 0.7, nok = [], yer = [], zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
+    for (var pi = 0, pts = okNoktalari(yol, uzun, bas); pi < pts.length; pi++) {
+      var p = pts[pi], s = izdus(p.x, Math.max(0.03, p.y), p.z), z0 = izdus(p.x, 0.02, p.z); if (!s || !z0) continue;
       if (s.y < 70) break;   // ok ekranın üstünden taşmasın
       nok.push(s); yer.push(z0);
     }
@@ -726,7 +744,7 @@
   }
 
   DT.cizim = {
-    kameraAyar: KAMERA,
+    kameraAyar: KAMERA, okNoktalari: okNoktalari,
     kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },

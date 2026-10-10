@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261006c">
+  <link rel="stylesheet" href="css/stil.css?v=20261010c">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -81,8 +81,10 @@
     <div class="ipucu" id="ipucu">Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.</div>
 
     <div id="fifaNisan" class="temas-panel saha-secimi" hidden>
-      <h2>1/3 · Yön</h2><p>Okları basılı tut: ◀ ▶ yön (oyuncu döner), ▲ ▼ yükseklik. Hazırsan Tamam.</p>
-      <div class="yon-satir"><button id="nisanSol" class="yon-ok" type="button" aria-label="Nişan sola">◀</button><button id="nisanYukari" class="yon-ok" type="button" aria-label="Nişan yukarı">▲</button><button id="nisanAsagi" class="yon-ok" type="button" aria-label="Nişan aşağı">▼</button><button id="nisanSag" class="yon-ok" type="button" aria-label="Nişan sağa">▶</button><button id="nisanKilit" class="btn ana yon-tamam" type="button">Tamam</button></div>
+      <h2>1/3 · Duruş ve yön</h2><p>İkisi ayrı: <b>Vücut</b> oyuncunun duruşunu çevirir, <b>Nişan</b> topun gideceği yeri seçer. Hazırsan Tamam.</p>
+      <div class="yon-satir"><span class="yon-etiket">Vücut</span><button id="yonSol" class="yon-ok" type="button" aria-label="Vücudu sola çevir (basılı tut)">◀</button><span id="yonAci" class="yon-aci" aria-live="polite">Düz · 0°</span><button id="yonSag" class="yon-ok" type="button" aria-label="Vücudu sağa çevir (basılı tut)">▶</button></div>
+      <div class="yon-satir"><span class="yon-etiket">Nişan</span><button id="nisanSol" class="yon-ok" type="button" aria-label="Nişan sola">◀</button><button id="nisanYukari" class="yon-ok" type="button" aria-label="Nişan yukarı">▲</button><button id="nisanAsagi" class="yon-ok" type="button" aria-label="Nişan aşağı">▼</button><button id="nisanSag" class="yon-ok" type="button" aria-label="Nişan sağa">▶</button></div>
+      <button id="nisanKilit" class="btn ana yon-tamam-genis" type="button">Tamam</button>
     </div>
     <div id="gucPanel" class="temas-panel guc-panel saha-secimi" hidden>
       <h2>1 · Şut gücü</h2><p id="gucNot">%100 · Tam güç</p>
@@ -156,8 +158,8 @@
   <script src="js/futbolcu3d.js?v=20261009b"></script>
   <script src="js/sevinc.js?v=20261010b"></script>
   <script src="js/tribun.js?v=20261010b"></script>
-  <script src="js/cizim.js?v=20261010b"></script>
+  <script src="js/cizim.js?v=20261010c"></script>
   <script src="js/canli.js?v=20261006f"></script>
-  <script src="js/oyun.js?v=20261010b"></script>
+  <script src="js/oyun.js?v=20261010c"></script>
 </body>
 </html>

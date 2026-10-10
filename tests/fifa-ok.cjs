@@ -23,5 +23,22 @@ assert.equal(fark(null).n,0,'yol yoksa ok yok');
  let toplam=0,nokta=yl[0];for(let i=1;i<yl.length;i++){toplam+=Math.hypot(yl[i].x-yl[i-1].x,yl[i].y-yl[i-1].y,yl[i].z-yl[i-1].z);if(toplam>=6.4){nokta=yl[i];break;}}
  const sinir=D.cizim.izdus(nokta.x,nokta.y,nokta.z).y;assert(enUst>=sinir-4,'ok 6,4 m ötesine uzanmaz: en üst piksel '+enUst+', sınır '+sinir.toFixed(0));
  const uzunHal=D.cizim.izdus(pos.bx,0.02,pos.D-.5).y;assert(enUst>uzunHal+30,'ok kaleye ulaşmaz');}
+// Ok eğriliği: ok kısa olduğu için gerçek falso sapması ilk 4,5 m'de ~10 cm'dir; gösterimde büyütülür. Falsosuz düz, falsoda görünür biçimde eğri, işaret gerçek sapmayla aynı.
+{const tum=[...F,...D.AYAR.pozisyonlar.filter(p=>p.tip==='penalti').slice(0,2)];
+ function sapma(nok){const a=nok[0],z=nok[nok.length-1];let tx=nok[Math.min(nok.length-1,4)].x-a.x,tz=nok[Math.min(nok.length-1,4)].z-a.z,l=Math.hypot(tx,tz);tx/=l;tz/=l;return (z.x-a.x)*tz-(z.z-a.z)*tx;}   // sondaki noktanın başlangıç doğrultusuna yanal uzaklığı (m)
+ for(const pos of tum){const duz=D.cizim.okNoktalari(yol(pos,{x:1,y:1.4},{x:0,y:0}),4.5,.7),sag=D.cizim.okNoktalari(yol(pos,{x:1,y:1.4},{x:.8,y:0}),4.5,.7),sol=D.cizim.okNoktalari(yol(pos,{x:1,y:1.4},{x:-.8,y:0}),4.5,.7),az=D.cizim.okNoktalari(yol(pos,{x:1,y:1.4},{x:.3,y:0}),4.5,.7);
+  assert(duz.length>4&&sag.length>4);
+  assert(Math.abs(sapma(duz))<.05,pos.ad+': falsosuz ok düz '+sapma(duz).toFixed(3));
+  assert(Math.abs(sapma(sag))>.45&&Math.abs(sapma(sol))>.45,pos.ad+': falsolu ok görünür biçimde eğilir '+sapma(sag).toFixed(2)+' / '+sapma(sol).toFixed(2));
+  assert(sapma(sag)*sapma(sol)<0,pos.ad+': iki falso ters yana eğer');
+  assert(Math.abs(sapma(az))>.1&&Math.abs(sapma(az))<Math.abs(sapma(sag)),pos.ad+': az falso az eğri');
+  assert(Math.abs(sapma(sag))<=1.3,'eğrilik sınırlı');
+  // yön: gösterilen eğri, topun GERÇEK sapma yönüyle aynı işaretli (yalnız büyüklük büyütülür)
+  for(const cx of [.8,-.8,.4]){const g=yol(pos,{x:1,y:1.4},{x:cx,y:0}),nk=D.cizim.okNoktalari(g,4.5,.7);let kum=[0],t=0;for(let i=1;i<g.length;i++){t+=Math.hypot(g[i].x-g[i-1].x,g[i].y-g[i-1].y,g[i].z-g[i-1].z);kum.push(t);}
+   const q=g[kum.findIndex(v=>v>=1)];let tx=q.x-g[0].x,ty=q.y-g[0].y,tz=q.z-g[0].z;const tl=Math.hypot(tx,ty,tz);tx/=tl;ty/=tl;tz/=tl;let nx=tz,nz=-tx;const nl=Math.hypot(nx,nz);nx/=nl;nz/=nl;
+   const i5=kum.findIndex(v=>v>=5.2),dx=g[i5].x-g[0].x,dy=g[i5].y-g[0].y,dz=g[i5].z-g[0].z,al=dx*tx+dy*ty+dz*tz,ham=(dx-al*tx)*nx+(dz-al*tz)*nz;
+   assert(Math.abs(ham)>.03&&Math.abs(ham)<.2,pos.ad+': gerçek sapma küçük ('+(ham*100).toFixed(1)+' cm), ok büyütür');assert(ham*sapma(nk)>0,pos.ad+': gösterilen eğri gerçek sapmayla aynı yönde');}}
+ // çizimde: falsolu okun ekrandaki yatay yayılımı falsosuz okunkinden belirgin büyük
+ const pp=F[1];D.cizim.sahneKur(pp,0);const dz=fark(yol(pp,{x:1,y:1.4},{x:0,y:0})),fs_=fark(yol(pp,{x:1,y:1.4},{x:.8,y:0}));assert(fs_.gen>dz.gen+10,'ekranda falsolu ok daha geniş yayılır '+dz.gen+' → '+fs_.gen);}
 const oyun=fs.readFileSync(__dirname+'/../js/cizim.js','utf8');assert(/if \(fifa\) return;/.test(oyun),'hedef halkası frikikte çizilmez');
-console.log('PASS FIFA yer oku: falso iki yana eğer, alt temas yükseltir, üst temas yerde, ok görünür ('+duz.n+' px değişti), halka yok');
+console.log('PASS FIFA yer oku: kısa ok, falso görünür biçimde iki yana eğer (gösterimde büyütülür), alt temas yükseltir, üst temas yerde, ok görünür ('+duz.n+' px değişti), halka yok');

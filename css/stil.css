@@ -359,3 +359,10 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 .fifa-sayac span { font-size:14px; color:#eee; }
 #vurBtn.fifa { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
 @media (max-height:700px){ .fifa-sayac canvas{width:72px;height:72px;flex-basis:72px;} }
+
+/* Duruş (vücut) ve nişan okları ayrı satırlarda (20261010c) */
+.yon-etiket { flex:0 0 52px; font-size:13px; color:#cfd6d2; }
+#fifaNisan .yon-ok { flex:0 0 44px; height:46px; font-size:20px; }
+#fifaNisan .yon-satir { justify-content:flex-start; gap:6px; margin:4px 0; }
+.yon-tamam-genis { width:100%; height:44px; margin-top:6px; }
+@media (max-height:700px){ #fifaNisan .yon-ok{height:40px;} .yon-tamam-genis{height:38px;} }
