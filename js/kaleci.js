@@ -14,7 +14,12 @@ function oku(yol,t){
  var rem=(end.z-b.z)/vz;return {x:b.x+vx*rem,y:b.y+vy*rem-.5*A.yercekimi*rem*rem,t:b.t,arrival:b.t+rem};
 }
 function planla(target,tip,practice,noise,T,options){
- if(options&&options.penaltiTahmin&&tip==='penalti')return penaltiPlan(practice,noise,options);
+ if(options&&options.penaltiTahmin&&tip==='penalti'){
+  /* Kural 10 (yalnız antrenman/hedef): YAVAŞ penaltıda (varış 0,9 sn'den geç) kaleci vuruşla birlikte yere yatmaz; topu izler (frikikteki gibi yan adım, geç dalış).
+   * Hızlı penaltıda yön vuruştan önce seçilir (rules 9) ve değişmez. Yavaş toptan sonra yanlış köşe yok. */
+  if(options.kural10===true){var yavas=gozlem(options.yol||[],.13+(practice?.025:0),options.D,true);if(yavas&&yavas.arrival>.9)return takipPlan(tip,practice,noise,Object.assign({},options,{decision:1}));}
+  return penaltiPlan(practice,noise,options);
+ }
  if(options&&options.takipFizigi)return takipPlan(tip,practice,noise,options);
  var K=A.kaleci,reaction=K.tepki[tip]+(practice?A.antrenman.tepkiEk:0);
  options=options||{};var decision=options.decision===undefined?1:options.decision;
@@ -115,29 +120,48 @@ function takipPlan(tip,practice,noise,o){
  var segments=[],wrong=false,lapse=false,chosen=false,reads=[];
  function idle(){return {x:0,y:1,poz:'bekle',yon:0,ilerleme:0,eylem:'bekle',eskiKol:false,low:false,high:false,block:0,landing:false,recovery:0,airborne:false};}
  function sample(seg,t){
-  if(!seg)return idle();var u=clamp((t-seg.start)/seg.duration,0,1),e=u*u*(3-2*u),dive=seg.action==='dal'&&u>.18;
+  if(!seg)return idle();var u=clamp((t-seg.start)/seg.duration,0,1),e=seg.walk?u:u*u*(3-2*u),dive=seg.action==='dal'&&u>.18;
   var ground=dive?.30:(seg.gy<.6?.72:1),y=seg.origin.y+(seg.y-seg.origin.y)*e,end=seg.start+seg.duration;
   if(u===1)y=Math.max(ground,y-.5*A.yercekimi*Math.pow(Math.max(0,t-end-.04),2));
   var landingT=end+.04+Math.sqrt(2*Math.max(0,seg.y-ground)/A.yercekimi),landed=u===1&&y<=ground+1e-6;
   var recovery=landed?clamp((t-landingT-.22)/1.15,0,1):0;if(recovery)y=ground+(1-ground)*recovery;
   return {x:seg.origin.x+(seg.x-seg.origin.x)*e,y:y,poz:dive&&recovery<1?'dal':'bekle',yon:dive?seg.dir:0,
    ilerleme:u,eylem:seg.action,eskiKol:false,low:seg.gy<.6&&recovery<1,high:seg.gy>1.75&&t<end+.6,
-   block:tip==='frikik'&&seg.central&&!lapse?Math.min(1,u*2):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed};
+   block:tip==='frikik'&&seg.central&&!lapse?(seg.blokT!==undefined?clamp((t-seg.blokT)/.25,0,1):Math.min(1,u*2)):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed,
+   yuruyor:!!seg.walk&&u<1,adimFaz:t*2.4};
  }
  for(var t=first;t<=8;t+=.10){
-  var old=segments[segments.length-1],current=sample(old,t);
+  var old=segments[segments.length-1],current;
+  if(o.kural10===true){while(segments.length&&segments[segments.length-1].at>t)segments.pop();current=konum(t);}   // henüz başlamamış dalış planı yenisiyle değişir
+  else current=sample(old,t);
   // Once a dive starts its momentum is committed. No mid-air teleport/reversal.
   if(old&&current.poz==='dal')break;
   var seen=gozlem(o.yol||[],t,o.D,o.yerTakibi===true);if(!seen)continue;
   var gx=seen.x+nx,gy=clamp(seen.y+ny,.15,2.6),central=Math.abs(gx)<=K.merkezEsik;
   if(!chosen){wrong=tip==='penalti'&&!central&&decision<K.penaltiYanlisKose;lapse=tip==='frikik'&&central&&decision<K.frikikMerkezHatasi;chosen=true;}
   if(wrong)gx=-gx;if(lapse)gx=(decision<K.frikikMerkezHatasi/2?-1:1)*3;
-  var dir=gx<current.x?-1:1,action=Math.abs(gx-current.x)<K.merkezEsik?'bekle':'dal';
+  var dir=gx<current.x?-1:1,action=o.kural10===true?(Math.abs(gx-current.x)<.35&&gy>=.6&&gy<=1.5?'bekle':'dal'):(Math.abs(gx-current.x)<K.merkezEsik?'bekle':'dal');   // kural 10: durup karşılama yalnız top elin ulaşabileceği yerdeyse (yanal <0,35 m, yükseklik 0,6–1,5 m); aksi hâlde dalış
   var x=action==='dal'?clamp(gx-dir*K.elMenzili,-2.85,2.85):clamp(gx,-2.85,2.85);
   var y=action==='dal'?clamp(gy-.16,.30,1.7):(gy<.6?.72:(gy>1.75?1.35:1));
   // Smoothstep peak speed is 1.5 times average. Bound body speed accordingly.
   var duration=K.hareketSabit+1.5*Math.hypot(x-current.x,y-current.y)/vmax;
-  var seg={at:t,start:Math.max(t,seen.arrival-duration-.09),duration:duration,origin:current,x:x,y:y,gy:gy,dir:dir,central:central,action:action};
+  var seg;
+  if(o.kural10===true){
+   /* Kural 10 (yalnız antrenman/hedef; kupa eski): kaleci topu beklerken DONMAZ. Dalışı eskisi gibi topun varışına göre önceden zamanlar
+    * (gözlem yer sekmesinde kesilse bile geç kalmaz), ama o ana kadar topun gideceği yana yan adımla yürür (2,8 m/sn) ve dalışa bulunduğu yerden başlar. */
+   var YURU=2.8,wx=clamp(gx,-2.2,2.2);
+   if(action==='dal'){
+    var xs=current.x,dur=duration,st=Math.max(t,seen.arrival-dur-.12);
+    for(var it=0;it<2;it++){var wd=wx-current.x;xs=current.x+(wd<0?-1:1)*Math.min(Math.abs(wd),YURU*Math.max(0,st-t));dur=K.hareketSabit+1.5*Math.hypot(x-xs,y-current.y)/vmax;st=Math.max(t,seen.arrival-dur-.12);}   // yavaş/sekmeli topta varış tahmini ±0,1 sn şaşar: 0,12 sn pay
+    if(st>t+1e-6)segments.push({at:t,start:t,duration:Math.max(.02,Math.abs(xs-current.x)/YURU),origin:current,x:xs,y:current.y,gy:gy,dir:xs<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45});
+    seg={at:st,start:st,duration:dur,origin:{x:xs,y:current.y},x:x,y:y,gy:gy,dir:dir,central:central,action:'dal',blokT:seen.arrival-.45};
+   }else{
+    var hx=clamp(gx,-2.2,2.2);
+    seg={at:t,start:t,duration:Math.max(.1,Math.abs(hx-current.x)/YURU),origin:current,x:hx,y:y,gy:gy,dir:hx<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45};
+   }
+  }else{
+   seg={at:t,start:Math.max(t,seen.arrival-duration-.09),duration:duration,origin:current,x:x,y:y,gy:gy,dir:dir,central:central,action:action};
+  }
   segments.push(seg);reads.push({t:t,x:gx,y:gy});
  }
  function konum(t){var seg=null;for(var i=0;i<segments.length&&segments[i].at<=t;i++)seg=segments[i];return sample(seg,t);}

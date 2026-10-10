@@ -90,6 +90,8 @@ function iskelet(k,z,opt){
   var alt=ust==='l'?'r':'l',ea=sub(n['f'+alt],kalca),r2=ik(kalca,add(kalca,add(mul(ea,1-.05*buk),[0,0,.04*buk])),BACAK,n['k'+alt]);
   n['k'+alt]=r2.orta;n['f'+alt]=r2.uc;
  }
+ // Yan adım: kaleci yürürken (plan.yuruyor) ayaklar sırayla kalkar; yoksa yerde kayıyor gibi görünür. Eldiven, baş ve gövde fizik yerinde kalır.
+ if(k.yuruyor&&!dal){var ad=Math.cos(2*Math.PI*(k.adimFaz||0));[['l',.08*Math.max(0,ad)],['r',.08*Math.max(0,-ad)]].forEach(function(q){var ay='f'+q[0],diz='k'+q[0],rr=ik(n.hip,[n[ay][0],n[ay][1]+q[1],n[ay][2]],BACAK,n[diz]);n[diz]=rr.orta;n[ay]=rr.uc;});}
  // Fizik ağırlığı b: vuruştan 0,12 sn sonra 1 (tam fizik). Önce: görsel kalıp. Geçiş kesintisiz.
  var vt=Number.isFinite(k.vurusT)?k.vurusT:null,b=vt===null?(kimildadi?1:0):ease((vt+.05)/.17);
  if(b<1){
