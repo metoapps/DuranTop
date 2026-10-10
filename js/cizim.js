@@ -142,6 +142,45 @@
     return root.__yapCanvas(w, h);
   }
 
+  var kalabalik = null;
+  var KTEN = ['#cdc6b2', '#af8d75', '#d6ad8a', '#adada8'], KFORMA = ['#e1e0d8', '#08090b', '#b3262f', '#d7b33a', '#1d3f86', '#e1e0d8', '#08090b', '#7d1d24'];
+  /* Bir sıra seyirci: A = normal duruş, B = kollar havada. Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
+  function kalabalikSerit(kisiler, sy, sc) {
+    var h = Math.ceil(20 * sc), y0 = sy - 7 * sc, kare = [];
+    [false, true].forEach(function (yukari) {
+      var c = yerelCanvas(Math.ceil(W * dpr), Math.ceil(h * dpr)), g = c.getContext('2d'); g.scale(dpr, dpr); g.translate(0, -y0);
+      kisiler.forEach(function (k) {
+        g.fillStyle = KTEN[k.ten]; g.beginPath(); g.arc(k.px, k.py, 1.7 * sc, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = KFORMA[k.fa]; g.lineWidth = 2.8 * sc; g.beginPath(); g.moveTo(k.px, k.py + 2); g.lineTo(k.px, k.py + 6 * sc); g.stroke();
+        g.lineWidth = 1.2 * sc; g.beginPath();
+        if (yukari) { g.moveTo(k.px - 3.8 * sc, k.py - 6 * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 3.8 * sc, k.py - (k.kol ? 7 : 5) * sc); }
+        else { g.moveTo(k.px - 3 * sc, k.py + (k.kol ? -2 : 4) * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 3 * sc, k.py - 1 * sc); }
+        g.stroke();
+      });
+      kare.push(c);
+    });
+    return { A: kare[0], B: kare[1], y0: y0, h: h, sc: sc };
+  }
+  /* Seyirci hareketi: herkes kendi ritminde zıplar, gruplar kollarını kaldırır, ~11 sn'de bir "Meksika dalgası" soldan sağa geçer.
+   * heyecan (0..1): gol olunca herkes zıplar ve kollar havada. Yalnız görüntü. */
+  function kalabalikCiz(g, t, heyecan) {
+    var K = kalabalik; if (!K) return;
+    if (root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches) { t = 0; heyecan = 0; }   // hareketi azalt ayarı: seyirci durgun
+    var seg = 26, tw = t % 11, onde = tw < 3.8 ? (tw / 3.8) * (W + 300) - 150 : -1e9;
+    g.save(); g.beginPath(); g.rect(0, 30, W, Math.max(0, K.alt - 30)); g.clip();
+    K.satirlar.forEach(function (r, ri) {
+      for (var x0 = 0; x0 < W; x0 += seg) {
+        var k = (x0 / seg) | 0, ph = ((ri * 7 + k * 13) % 19) / 19 * 6.283, w = Math.min(seg, W - x0);
+        var bob = Math.sin(t * (2.6 + (k % 3) * 0.35) + ph) * (0.55 + 1.7 * heyecan) * r.sc * 0.5;
+        var yukari = Math.sin(t * 1.7 + ph * 3) > (0.70 - heyecan * 1.4);
+        var dalga = Math.exp(-Math.pow((x0 + ri * 6 - onde) / 55, 2));
+        if (dalga > 0.35) yukari = true;
+        bob -= dalga * 3.2 * r.sc + heyecan * 1.6 * r.sc * Math.abs(Math.sin(t * 5.2 + ph));
+        g.drawImage(yukari ? r.B : r.A, x0 * dpr, 0, w * dpr, r.h * dpr, x0, r.y0 + bob, w, r.h);
+      }
+    });
+    g.restore();
+  }
   function arkaPlanCiz() {
     var c = yerelCanvas(Math.round(W * dpr), Math.round(H * dpr));
     var g = c.getContext('2d');
@@ -182,19 +221,16 @@
     var standGradient=g.createLinearGradient(0,35,0,standBottom);
     standGradient.addColorStop(0,'#13171e');standGradient.addColorStop(1,'#34383d');
     g.fillStyle=standGradient;g.fillRect(0,35,W,standBottom-35);
-    var crowd=rng(19),row=0;
+    // Seyirciler artık hareketli: her sıra iki kare (normal, kollar havada) olarak ayrı şeride çizilir; her karede şeritler zıplatılıp kare değiştirilir.
+    var crowd=rng(19),row=0;kalabalik={satirlar:[],alt:standBottom-6};
     for(var sy=48;sy<standBottom-8;sy+=Math.min(15,8+row*.65),row++){
-      var scale=Math.min(1.4,.7+row*.065),spacing=10*scale;
+      var scale=Math.min(1.4,.7+row*.065),spacing=10*scale,kisiler=[];
       g.fillStyle='#0c1015';g.fillRect(0,sy+7*scale,W,3);
       for(var sx=-8+(row%2)*spacing*.5;sx<W+8;sx+=spacing){
-        var px=sx+(crowd()-.5)*3,py=sy+(crowd()-.5)*3;
-        g.fillStyle=['#cdc6b2','#af8d75','#d6ad8a','#adada8'][Math.floor(crowd()*4)];
-        g.beginPath();g.arc(px,py,1.7*scale,0,Math.PI*2);g.fill();
-        g.strokeStyle=['#e1e0d8','#08090b','#b3262f','#d7b33a','#1d3f86','#e1e0d8','#08090b','#7d1d24'][Math.floor(crowd()*8)];g.lineWidth=2.8*scale;
-        g.beginPath();g.moveTo(px,py+2);g.lineTo(px,py+6*scale);g.stroke();
-        g.lineWidth=1.2*scale;g.beginPath();g.moveTo(px-3*scale,py+(crowd()<.4?-2:4)*scale);g.lineTo(px,py+3*scale);g.lineTo(px+3*scale,py-1*scale);g.stroke();
+        kisiler.push({px:sx+(crowd()-.5)*3,py:sy+(crowd()-.5)*3,ten:Math.floor(crowd()*4),fa:Math.floor(crowd()*8),kol:crowd()<.4});
       }
       g.strokeStyle='rgba(177,184,194,.23)';g.lineWidth=1;g.beginPath();g.moveTo(0,sy+10*scale);g.lineTo(W,sy+10*scale);g.stroke();
+      kalabalik.satirlar.push(kalabalikSerit(kisiler,sy,scale));
     }
     g.fillStyle='#a4a6a3';g.fillRect(0,standBottom-4,W,2);
 
@@ -254,28 +290,37 @@
       var foot=izdus(x,0,D);b.fillStyle='rgba(0,0,0,.4)';b.beginPath();b.ellipse(foot.x,foot.y,.12*foot.olcek,.035*foot.olcek,0,0,Math.PI*2);b.fill();
     });
     kaleBoru(b,[-w,h,z],[w,h,z],.045,true);kaleBoru(b,[-w,.025,z],[w,.025,z],.035,true);
-    var faces=[],ag;
-    function faceCanvas(kind,value,corners){
+    // Ağ yüzeyleri: her biri ayrı tuval. ciz(dyn): dyn=false → durgun ağ; dyn=true → js/ag.js'deki yer değiştirmelerle (top çarpınca sallanan ağ) yeniden çizer.
+    var faces=[],cols=32,rows=11,layers=7,line=Math.max(.55,Math.min(1.1,W/650)),i,j,pts,AG=DT.ag;
+    function yuz(kind,value,corners,cizici){
       var fc=yerelCanvas(c.width,c.height),fg=fc.getContext('2d');fg.scale(dpr,dpr);fg.translate(-left,-top);
-      kaleYuz(fg,corners,'rgba(200,225,219,.035)');
       var middle=corners.reduce(function(m,p){return m.map(function(v,i){return v+p[i]/corners.length;});},[0,0,0]);
-      faces.push({canvas:fc,kind:kind,value:value,depth:izdus.apply(null,middle).d});ag=fg;
-    }
-    faceCanvas('z',z,[[-w,0,z],[w,0,z],[w,h,z],[-w,h,z]]);
-    var cols=32,rows=11,layers=7,line=Math.max(.55,Math.min(1.1,W/650)),i,j,pts;
-    function rear(x,y){return [x,y,z+.06*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*y/h)];}
-    // Fine cords curve slightly between their attachment points.
-    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=rows;j++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(225,236,233,.25)',line);}
-    for(j=0;j<=rows;j++){pts=[];for(i=0;i<=cols;i++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(230,240,237,.3)',line);}
-    [-1,1].forEach(function(side){faceCanvas('x',side*w,[[side*w,0,D],[side*w,0,z],[side*w,h,z],[side*w,h,D]]);function sidePoint(y,t){return [side*(w+.04*Math.sin(Math.PI*y/h)*Math.sin(Math.PI*t)),y,D+depth*t];}
-      for(i=0;i<=layers;i++){pts=[];for(j=0;j<=rows;j++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(231,242,238,.42)',line);}
-      for(j=0;j<=rows;j++){pts=[];for(i=0;i<=layers;i++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(233,243,240,.4)',line);}
+      var ilk=true,f={canvas:fc,kind:kind,value:value,depth:izdus.apply(null,middle).d,ciz:function(dyn){
+        if(!ilk){fg.save();fg.setTransform(1,0,0,1,0,0);fg.clearRect(0,0,fc.width,fc.height);fg.restore();}   // ilk çizimden sonra her yeniden çizimde önce temizle (durgun hâle dönerken de)
+        ilk=false;
+        kaleYuz(fg,corners,'rgba(200,225,219,.035)');cizici(fg,dyn&&AG);}};
+      f.ciz(false);faces.push(f);return f;}
+    // Arka ağ: ince ipler iki nokta arasında hafif kavis yapar; darbede çukura doğru çekilir (düzlem içi) ve geriye göçer.
+    yuz('z',z,[[-w,0,z],[w,0,z],[w,h,z],[-w,h,z]],function(ag,dyn){
+      function rear(x,y){var p=[x,y,z+.06*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*y/h)];
+        if(dyn){var k=AG.kay(AG.z,(x+w)/(2*w),y/h);p=[p[0]-AG.GAIN*k[1],p[1]-AG.GAIN*k[2],p[2]+k[0]];}return p;}
+      function iz(a,b){var q=[];for(var t=0;t<=b;t++)q.push(a(t));return q;}
+      for(i=0;i<=cols;i++){pts=[];for(j=0;j<=rows;j++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(225,236,233,.25)',line);}
+      for(j=0;j<=rows;j++){pts=[];for(i=0;i<=cols;i++)pts.push(rear(-w+2*w*i/cols,h*j/rows));kaleCizgi(ag,pts,'rgba(230,240,237,.3)',line);}
     });
-    faceCanvas('y',h,[[-w,h,D],[w,h,D],[w,h,z],[-w,h,z]]);
-    function roof(x,t){return [x,h-.045*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*t),D+depth*t];}
-    for(i=0;i<=cols;i++){pts=[];for(j=0;j<=layers;j++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(237,245,242,.36)',line);}
-    for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(226,241,235,.3)',line);}
-    kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr,faces:faces};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
+    [-1,1].forEach(function(side){var yy=side<0?'xl':'xr';
+      yuz('x',side*w,[[side*w,0,D],[side*w,0,z],[side*w,h,z],[side*w,h,D]],function(ag,dyn){
+        function sidePoint(y,t){var u=dyn?AG.ornek(AG[yy],t,y/h):0;return [side*(w+.04*Math.sin(Math.PI*y/h)*Math.sin(Math.PI*t)+u),y,D+depth*t];}
+        for(i=0;i<=layers;i++){pts=[];for(j=0;j<=rows;j++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(231,242,238,.42)',line);}
+        for(j=0;j<=rows;j++){pts=[];for(i=0;i<=layers;i++)pts.push(sidePoint(h*j/rows,i/layers));kaleCizgi(ag,pts,'rgba(233,243,240,.4)',line);}
+      });
+    });
+    yuz('y',h,[[-w,h,D],[w,h,D],[w,h,z],[-w,h,z]],function(ag,dyn){
+      function roof(x,t){var u=dyn?AG.ornek(AG.y,(x+w)/(2*w),t):0;return [x,h-.045*Math.sin(Math.PI*(x+w)/(2*w))*Math.sin(Math.PI*t)+u,D+depth*t];}
+      for(i=0;i<=cols;i++){pts=[];for(j=0;j<=layers;j++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(237,245,242,.36)',line);}
+      for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(226,241,235,.3)',line);}
+    });
+    kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr,faces:faces,sallanan:false};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
   }
   function kaleOn(g) {
     var D=pos.D,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2;
@@ -537,6 +582,15 @@
 
   /* ---------- ana çizim ---------- */
   var ogeAdlari = null;
+  /* Ağ: top çarpınca yüzeyler sallanır. Enerji varken her karede yeniden çizilir, sönünce son bir kez durgun hâle döner (maliyet yalnız hareket sürerken). */
+  function agGuncelle(d) {
+    if (!DT.ag || !kaleArkaCache) return;
+    var now = root.performance ? root.performance.now() : Date.now();
+    DT.ag.guncelle(d.top || null, now);
+    var e = DT.ag.enerji(), cache = kaleArkaCache;
+    if (e > 1e-2) { cache.faces.forEach(function (f) { f.ciz(true); }); cache.sallanan = true; }
+    else if (cache.sallanan) { DT.ag.temizle(); cache.faces.forEach(function (f) { f.ciz(false); }); cache.sallanan = false; }
+  }
   function ciz(d) {
     if (!kam || !arka) return;
     var g = ctx;
@@ -544,12 +598,15 @@
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
+    kalabalikCiz(g, (root.performance ? root.performance.now() : Date.now()) / 1000, d.heyecan || 0);
+    if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     if(DT.tribun&&DT.tribun.atmosfer)DT.tribun.atmosfer(g,{W:W,ust:35,alt:izdus(0,A.kale.yukseklik,pos.D).y+14,time:(root.performance?root.performance.now():Date.now())/1000,makeCanvas:yerelCanvas});
     if(supporter&&DT.tribun){DT.tribun.draw(g,{id:supporter,D:pos.D,time:(root.performance?root.performance.now():Date.now())/1000,project:izdus,makeCanvas:yerelCanvas,image:gorseller['_menu_'+supporter+'_bekle']||sprite(supporter,'bekle')});}
     else if(supporter)pankartCiz(g,supporter);
 
     kaleArka(g);
+    agGuncelle(d);
     if (d.nisan && d.nisan.fifa) fifaOkCiz(g, d.nisan.fifaYol, d.nisan.kilit);
 
     // derinliğe göre sıralanan nesneler (uzaktan yakına)
@@ -558,7 +615,7 @@
     var kd = izdus(0, 1, D + 0.25);
     if (d.kaleci && pos.tip !== 'hedef') liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci, d.baraj); } });
     // Hedef ağı: kale ağzına gerili delikli ağ; derinliğe göre topla sıralanır (delikten geçen top arkasında kalır).
-    if (pos.tip === 'hedef' && DT.hedef) { var hd = izdus(0, 1.2, pos.D); liste.push({ z: hd ? hd.d : 1e9, ciz: function () { DT.hedef.ciz(g, izdus, pos.D, d.hedefVurulan); } }); }
+    if (pos.tip === 'hedef' && DT.hedef) { var hd = izdus(0, 1.2, pos.D); liste.push({ z: hd ? hd.d : 1e9, ciz: function () { DT.hedef.ciz(g, izdus, pos.D, d.hedefVurulan, d.hedefSecili); } }); }
     var fd = izdus(0, 1, D);
     liste.push({ z: fd ? fd.d + 0.01 : 1e9, ciz: function () { kaleOn(g); } });
     if (d.baraj) {
@@ -629,12 +686,12 @@
   }
 
   function sahneKur(p, durus) {
-    pos = p; if (durus !== undefined) kamDurus = durus; kam = kameraKur(p); kaleArkaCache=null; arka = arkaPlanCiz();
+    pos = p; if (durus !== undefined) kamDurus = durus; kam = kameraKur(p); kaleArkaCache=null; if(DT.ag)DT.ag.sifirla(p); arka = arkaPlanCiz();
   }
   // Duruş seçilince kamera yeni duruşa göre döner (tek kesme; arka plan bir kez yeniden çizilir, her karede değil).
   function kameraDurus(durus) {
     if (durus === kamDurus || !pos) return;
-    kamDurus = durus; kam = kameraKur(pos); kaleArkaCache=null; arka = arkaPlanCiz();
+    kamDurus = durus; kam = kameraKur(pos); kaleArkaCache=null; if(DT.ag)DT.ag.sifirla(pos); arka = arkaPlanCiz();
   }
 
   function kur(canvas, genislik, yukseklik, dprZorla) {

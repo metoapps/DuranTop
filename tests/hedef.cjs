@@ -12,8 +12,7 @@ const tipler=D.hedef.antrenmanTuru.map(p=>p.tip);assert.deepEqual(tipler,['penal
 let k10=0;const eskiH=D.fizik.hesapla,eskiHH=D.hedef.hesapla;D.fizik.hesapla=g=>{if(g.kural10)k10++;return eskiH(g);};D.hedef.hesapla=g=>{if(g.kural10)k10++;return eskiHH(g);};
 for(let i=0;i<10;i++){assert.equal(d.pos.tip,tipler[i]);
  fire('durusAc','click');fire('durusDuz','click');time+=1200;root.frame();
- if(d.pos.tip==='frikik'){fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});}
- else{el('gucSec').value=80;fire('gucOnay','click');fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');fire('temasOnay','click');time=d.cubukBasla+400;fire('vurBtn','pointerdown',{isPrimary:true});}
+ assert(el('gucPanel').hidden&&!el('fifaNisan').hidden,tipler[i]+': FIFA akışı (güç paneli yok, okla nişan)');fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});
  await flush();assert.equal(d.faz,'vurus','vuruş '+i);time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
 D.fizik.hesapla=eskiH;D.hedef.hesapla=eskiHH;assert.equal(d.ekran,'tursonu');assert(/10 vuruş/.test(el('turBaslik').textContent));assert(k10>=10,'antrenmanda kural 10');assert.equal(shots,0);
 fire('turMenu','click');await flush();
@@ -23,9 +22,8 @@ await flush();assert(el('btnHedef'),'menüde Hedef ağı düğmesi');fire('btnHe
 assert.equal(d.mod,'hedef');assert.equal(d.pos.tip,'hedef');assert.equal(el('hudVurus').textContent,'Vuruş 1/5');assert(el('fifaKutu').hidden,'hedefte FIFA sayacı yok');
 const sonuclar=[];
 for(let i=0;i<5;i++){
- fire('durusAc','click');fire('durusDuz','click');time+=1200;root.frame();assert(!el('gucPanel').hidden,'hedefte güç paneli (penaltı akışı)');el('gucSec').value=80;fire('gucOnay','click');
- fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');assert(d.kilit);fire('temasOnay','click');
- time=d.cubukBasla+400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();assert.equal(shots,0,'hedef vuruşu sunucuya gitmez');
+ fire('durusAc','click');fire('durusDuz','click');time+=1200;root.frame();assert(el('gucPanel').hidden&&!el('fifaNisan').hidden,'hedefte de FIFA akışı');
+ fire('nisanKilit','click');assert(d.kilit);fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();assert.equal(shots,0,'hedef vuruşu sunucuya gitmez');
  assert.equal(d.faz,'vurus');time+=15000;root.frame();assert.equal(d.faz,'sonuc');sonuclar.push(d.sonuclar[d.sonuclar.length-1]);
  assert(['delik','halka','ag','kisa','aut','direk_disari'].includes(sonuclar[i].sonuc),sonuclar[i].sonuc);assert(el('sonucBaslik').textContent.length>0);
  fire('devamBtn','click');}

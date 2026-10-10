@@ -334,9 +334,11 @@
       out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
     }
     if(d.pos&&d.pos.tip==='hedef'&&gecerliSonuc&&gecerliSonuc.r.delik&&(d.faz==='sonuc'||d.faz==='vurus'&&d.an&&(now-d.an.t0)/1000-d.an.on>=gecerliSonuc.r.olayT))out.hedefVurulan=gecerliSonuc.r.delik.i;
+    if(d.pos&&d.pos.tip==='hedef'&&d.aim&&DT.hedef&&d.faz==='nisan'){var yb=-1,yd=1e9;DT.hedef.delikler.forEach(function(h,i){var u=Math.hypot(d.aim.x-h.x,d.aim.y-h.y);if(u<yd){yd=u;yb=i;}});out.hedefSecili=yb;}   // oka en yakın delik sarı yanar
     // Görsel kaleci (kaleci3d): vuruşa göre zaman ve penaltı öncesi hareketin sönümü. Sonuç hesabına girmez.
     if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?gk-d.an.on:99;
       out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:gk<.55?now/1000:undefined,gestureW:Math.max(0,1-gk/.55)});}
+    out.heyecan = d.faz === 'sonuc' && gecerliSonuc ? (gecerliSonuc.p && gecerliSonuc.p.gol ? 1 : 0.15) : d.faz === 'vurus' ? 0.35 : 0;   // tribün: gol olunca herkes zıplar
     return out;
   }
 
@@ -521,10 +523,11 @@
     var f = DT.ucus.energyLaunch(d.pos, d.aim, c, 0, 1, function () { return 0; }, 1, true, k10() ? { hata: 0, bant: DT.zamanBandi(d.aim, 1, true) } : null);
     onizBel = { key: key, yol: f.yol, t: now }; return onizBel.yol;
   }
-  function fifaMod() { return !!(d.pos && d.pos.tip === 'frikik'); }
+  // FIFA sistemi (yer oku + falso + basılı tut güç + geri dönen ibre) artık penaltı, frikik ve hedef ağında aynı.
+  function fifaMod() { return !!d.pos; }
   function gucVeyaNisan() {
     if (!fifaMod()) { $('gucPanel').hidden = false; return; }
-    d.gucHazir = true; d.guc = 1; if (!d.aim) d.aim = { x: 0, y: 1.6 };
+    d.gucHazir = true; d.guc = 1; if (!d.aim) d.aim = { x: 0, y: d.pos.tip === 'penalti' ? 1.3 : 1.6 };
     $('fifaNisan').hidden = false; $('ipucu').hidden = true;
   }
   function nisanIlerle(now) {
@@ -538,7 +541,10 @@
   function fifaGuc(now) { var x = ((now - d.fifa.t0) / FIFA.gucSure) % 2, tri = x < 1 ? x : 2 - x; return Math.round((0.3 + 0.7 * tri) * 100) / 100; }
   // Kural 10: ibre güçle hızlanır (%30 güçte 0,80 sn, %100 güçte 0,62 sn); kupada eski hız.
   function ibreSure(){var t=Math.max(0,Math.min(1,((d.fifa&&d.fifa.guc||d.guc||1)-.3)/.7));return A.zamanCubuguSuresi*(k10()?1-.225*t:1)*1000;}
-  function fifaIsabet(now) { return Math.max(0, Math.min(1, (now - d.fifa.t0) / ibreSure())); }
+  /* İbre iki geçiş yapar: yeşilden aşağı iner (1. şans), sonra yukarı geri döner (2. şans). İkinci geçiş de bitince en kötü zamanlamayla vurulur.
+   * x: 0→1 aşağı, 1→2 yukarı. Dönen değer ibrenin konumudur (0 = güç noktası, 1 = dip); yeşil bant konumun 0,5 çevresindedir. */
+  function fifaIlerleme(now) { return Math.max(0, (now - d.fifa.t0) / ibreSure()); }
+  function fifaIsabet(now) { var x = fifaIlerleme(now); return Math.max(0, Math.min(1, x <= 1 ? x : 2 - x)); }
   function fifaHazir() { return d.faz === 'nisan' && d.kilit && d.temasHazir && d.durusHazir && DT.cizim.hazir(); }
   function fifaAt(zaman) { d.fifa.atis = true; vur(zaman); }
   function fifaBas() {
@@ -556,12 +562,12 @@
   }
   function fifaYaz() {
     var el = $('fifaYazi'); if (!el) return; var f = d.fifa || {};
-    el.textContent = f.faz === 'guc' ? 'Güç doluyor… bırak!' : f.faz === 'isabet' ? '%' + Math.round(f.guc * 100) + ' güç · İbre yeşildeyken bas!' : "VUR'u basılı tut: güç dolar. Fazla tutarsan geri düşer.";
+    el.textContent = f.faz === 'guc' ? 'Güç doluyor… bırak!' : f.faz === 'isabet' ? '%' + Math.round(f.guc * 100) + ' güç · Yeşilde bas! İbre aşağı iner, sonra bir kez geri döner.' : "VUR'u basılı tut: güç dolar. Fazla tutarsan geri düşer.";
     $('vurBtn').textContent = f.faz === 'isabet' ? 'BAS!' : 'VUR';
   }
   function fifaKare(now) {
     var f = d.fifa || {}, guc = f.faz === 'guc' ? fifaGuc(now) : f.faz === 'isabet' ? f.guc : null, v = f.faz === 'isabet' ? fifaIsabet(now) : null;
-    if (f.faz === 'isabet' && v >= 1) { fifaAt(1); return; }   // ibre sona vardı: en kötü zamanlamayla vurulur
+    if (f.faz === 'isabet' && fifaIlerleme(now) >= 2) { fifaAt(0); return; }   // ibre iki geçişi de bitirdi: en kötü zamanlamayla vurulur
     var cv = $('fifaSayac'); if (!cv || !cv.getContext) return; var g = cv.getContext('2d'); if (!g || !g.arc) return;
     var W = 240, c = 120, R = 92, a0 = Math.PI * 0.75, tam = Math.PI * 1.5, oran = function (x) { return (x - 0.3) / 0.7; };
     g.clearRect(0, 0, W, W); g.lineCap = 'butt';

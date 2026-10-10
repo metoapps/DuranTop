@@ -56,17 +56,21 @@ function hesapla(girdi){
 }
 function puanla(r){if(r.sonuc!=='delik')return{puan:0,taban:0,zaman:0,zor:0,gol:false};var z=r.bandaGirdi?1:0;return{puan:r.delik.puan+z,taban:r.delik.puan,zaman:z,zor:0,gol:true};}
 // Çizim: kale ağzında yarı saydam ağ; delikler boş, kenarları neon halka.
-function ciz(g,izdus,Dz,vurulan){
+function ciz(g,izdus,Dz,vurulan,secili){
  var yari=A.kale.genislik/2,H=A.kale.yukseklik,a=izdus(-yari,H,Dz),b=izdus(yari,H,Dz),c=izdus(yari,0,Dz),d=izdus(-yari,0,Dz);if(!a||!b||!c||!d)return;
- var halkalar=DELIKLER.map(function(h){var m=izdus(h.x,h.y,Dz),k=izdus(h.x+h.r,h.y,Dz),u=izdus(h.x,h.y+h.r,Dz);return m&&k&&u?{x:m.x,y:m.y,rx:Math.abs(k.x-m.x),ry:Math.abs(u.y-m.y)}:null;}).filter(Boolean);
+ // Ağ sallanırken (js/ag.js) düğümler çarpma noktasına doğru çekilir ve geriye göçer; durgunken düz çizgiler.
+ var AG=D.ag&&D.ag.hole&&D.ag.enerji()>1e-2;
+ function P(x,y){if(!AG)return izdus(x,y,Dz);var k=D.ag.kay(D.ag.hole,(x+yari)/(2*yari),y/H);return izdus(x-D.ag.GAIN*k[1],y-D.ag.GAIN*k[2],Dz+k[0]);}
+ var halkalar=DELIKLER.map(function(h){var m=P(h.x,h.y),k=P(h.x+h.r,h.y),u=P(h.x,h.y+h.r);return m&&k&&u?{x:m.x,y:m.y,rx:Math.abs(k.x-m.x),ry:Math.abs(u.y-m.y)}:null;}).filter(Boolean);
  g.save();g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineTo(c.x,c.y);g.lineTo(d.x,d.y);g.closePath();
  halkalar.forEach(function(h){g.moveTo(h.x+h.rx,h.y);g.ellipse(h.x,h.y,h.rx,h.ry,0,0,Math.PI*2);});
- g.clip('evenodd');g.fillStyle='rgba(255,255,255,.07)';g.fillRect(Math.min(a.x,d.x)-2,Math.min(a.y,b.y)-2,Math.abs(b.x-a.x)+Math.abs(c.x-d.x)+4,Math.abs(d.y-a.y)+Math.abs(c.y-b.y)+4);
+ g.clip('evenodd');g.fillStyle='rgba(255,255,255,.07)';g.fillRect(Math.min(a.x,d.x)-2-(AG?40:0),Math.min(a.y,b.y)-2-(AG?20:0),Math.abs(b.x-a.x)+Math.abs(c.x-d.x)+4+(AG?80:0),Math.abs(d.y-a.y)+Math.abs(c.y-b.y)+4+(AG?40:0));
  g.strokeStyle='rgba(255,255,255,.42)';g.lineWidth=Math.max(.6,Math.abs(b.x-a.x)/520);g.beginPath();
- for(var x=-yari;x<=yari+1e-6;x+=.14){var p1=izdus(x,H,Dz),p2=izdus(x,0,Dz);g.moveTo(p1.x,p1.y);g.lineTo(p2.x,p2.y);}
- for(var y=0;y<=H+1e-6;y+=.14){var q1=izdus(-yari,y,Dz),q2=izdus(yari,y,Dz);g.moveTo(q1.x,q1.y);g.lineTo(q2.x,q2.y);}
+ function cizgi(pts){pts.forEach(function(q,i){if(!q)return;if(i)g.lineTo(q.x,q.y);else g.moveTo(q.x,q.y);});}
+ for(var x=-yari;x<=yari+1e-6;x+=.14){if(AG){var kp=[];for(var s=0;s<=10;s++)kp.push(P(x,H*s/10));cizgi(kp);}else{var p1=izdus(x,H,Dz),p2=izdus(x,0,Dz);g.moveTo(p1.x,p1.y);g.lineTo(p2.x,p2.y);}}
+ for(var y=0;y<=H+1e-6;y+=.14){if(AG){var hp=[];for(var t=0;t<=28;t++)hp.push(P(-yari+2*yari*t/28,y));cizgi(hp);}else{var q1=izdus(-yari,y,Dz),q2=izdus(yari,y,Dz);g.moveTo(q1.x,q1.y);g.lineTo(q2.x,q2.y);}}
  g.stroke();g.restore();
- g.save();halkalar.forEach(function(h,i){var vur=vurulan===i;g.strokeStyle=vur?'#ffffff':'#c8f43c';g.lineWidth=Math.max(1.5,h.rx*(vur?.20:.12));g.shadowColor=vur?'#c8f43c':'rgba(200,244,60,.6)';g.shadowBlur=vur?10:3;
+ g.save();halkalar.forEach(function(h,i){var vur=vurulan===i,sec=secili===i&&!vur;g.strokeStyle=vur?'#ffffff':sec?'#ffd84a':'#c8f43c';g.lineWidth=Math.max(1.5,h.rx*(vur?.20:sec?.18:.12));g.shadowColor=vur?'#c8f43c':sec?'#ffd84a':'rgba(200,244,60,.6)';g.shadowBlur=vur?10:sec?9:3;
   g.beginPath();g.ellipse(h.x,h.y,h.rx,h.ry,0,0,Math.PI*2);g.stroke();});g.restore();
 }
 // Antrenman turu (10 atış): 5 penaltı, 3 frikik, 2 hedef ağı. Kupa (sunucu) sırası değişmez: 5+2+3.

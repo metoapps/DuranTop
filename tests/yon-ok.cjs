@@ -15,7 +15,7 @@ fire('yonSag','pointerup',{});const dur=d.durus;for(let i=0;i<20;i++)kare(16);as
 fire('yonSol','pointerdown',{pointerId:2,preventDefault(){}});for(let i=0;i<300;i++)kare(16);assert.equal(d.durus,-1,'sol sınırda kalır');fire('yonSol','pointercancel',{});
 // klavye
 
-fire('yonTamam','click');assert(d.durusHazir&&el('durusPanel').hidden&&!el('gucPanel').hidden,'Tamam güç paneline geçer');
+fire('yonTamam','click');assert(d.durusHazir&&el('durusPanel').hidden&&!el('fifaNisan').hidden&&el('gucPanel').hidden,'Tamam okla nişan adımına geçer');
 fire('yonSag','pointerdown',{pointerId:3,preventDefault(){}});for(let i=0;i<20;i++)kare(16);assert.equal(d.durus,-1,'onaydan sonra ok yönü değiştirmez');fire('yonSag','pointerup',{});
 console.log('PASS ok tuşu: basılı tut-dön, bırak-dur, sınır, onay, onay sonrası kilit');
 })().catch(e=>{console.error(e);process.exit(1)});

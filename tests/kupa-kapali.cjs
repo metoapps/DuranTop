@@ -14,8 +14,8 @@ fire('btnResmi','click');await flush();assert.equal(d.ekran,'menu','kapalı kupa
 state.kupaAcik=undefined;fire('turMenu','click');assert.notEqual(el('btnResmi').textContent,'Kupa kapalı');
 // Tur sırasında kupa kapanırsa: CLOSED hatası menüye döndürür, hak harcanmaz.
 let uyari='';root.alert=m=>uyari=m;D.live.shot=async()=>{const e=Error('Juninho Kupası şu an kapalı. Vuruş hakkın harcanmadı.');e.code='CLOSED';throw e;};
-fire('btnResmi','click');await flush();assert.equal(d.ekran,'oyun');fire('durusAc','click');fire('durusDuz','click');el('gucSec').value=100;fire('gucOnay','click');
-fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');fire('temasOnay','click');time=d.cubukBasla+400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();
+fire('btnResmi','click');await flush();assert.equal(d.ekran,'oyun');fire('durusAc','click');fire('durusDuz','click');time+=1200;root.frame();
+fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();
 assert(/kapalı/.test(uyari));assert.equal(d.ekran,'menu');assert.equal(shots,0);
 console.log('PASS kapalı kupa: menü düğmesi pasif ve etiketli, tıklama tur başlatmaz, antrenman açık, tur içinde CLOSED menüye döner');
 })().catch(e=>{console.error(e);process.exit(1)});

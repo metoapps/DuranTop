@@ -105,23 +105,23 @@ function flamaDizisi(g,W,y,sag,boy,t,durgun,kayma){
  var adim=boy*1.7,n=Math.ceil(W/adim)+2,dayanak=W/3;g.save();g.strokeStyle='rgba(225,225,215,.55)';g.lineWidth=1;g.beginPath();
  function ip(x){var u=((x%dayanak)+dayanak)%dayanak/dayanak;return y+sag*4*u*(1-u);}
  for(var x=0;x<=W;x+=4){if(x)g.lineTo(x,ip(x));else g.moveTo(x,ip(x));}g.stroke();
- for(var i=0;i<n;i++){var px=i*adim+kayma,py=ip(px),a=durgun?0:Math.sin(t*2.3+i*.8)*.20+Math.sin(t*5.1+i*1.9)*.05;
+ for(var i=0;i<n;i++){var px=i*adim+kayma,py=ip(px),a=durgun?0:Math.sin(t*3.2+i*.8)*.32+Math.sin(t*6.4+i*1.9)*.08;
   g.save();g.translate(px,py);g.rotate(a);g.fillStyle=FLAMA[i%FLAMA.length];g.beginPath();g.moveTo(-boy*.55,0);g.lineTo(boy*.55,0);g.lineTo(0,boy*1.25);g.closePath();g.fill();
   g.fillStyle='rgba(0,0,0,.18)';g.beginPath();g.moveTo(0,0);g.lineTo(boy*.55,0);g.lineTo(0,boy*1.25);g.closePath();g.fill();g.restore();}
  g.restore();}
 function atmosfer(g,o){
  var W=o.W,ust=o.ust,alt=o.alt,hb=alt-ust;if(!(hb>20)||!o.makeCanvas)return;var durgun=reduced(),t=durgun?0:o.time,r=rastgele(97+Math.round(W));
  // direkli bayraklar: arka sıralar küçük, ön sıralar büyük
- var adet=Math.max(5,Math.min(10,Math.round(W/62))),liste=[];
+ var adet=Math.max(6,Math.min(14,Math.round(W/46))),liste=[];
  for(var i=0;i<adet;i++){var u=(i+.15+.7*r())/adet,derin=r();liste.push({i:i,x:u*W,yb:ust+hb*(.38+.52*derin),olcek:.65+.55*derin,faz:r()*6.28,yon:r()<.5?-1:1});}
  liste.sort(function(a,b){return a.yb-b.yb;});
  liste.forEach(function(f){
-  var direk=hb*.36*f.olcek,a=durgun?0:Math.sin(t*1.25+f.faz)*.30+Math.sin(t*2.7+f.faz*2)*.06,tx=f.x+Math.sin(a)*direk,ty=f.yb-Math.cos(a)*direk;
+  var direk=hb*.36*f.olcek,a=durgun?0:Math.sin(t*1.9+f.faz)*.42+Math.sin(t*3.6+f.faz*2)*.10,tx=f.x+Math.sin(a)*direk,ty=f.yb-Math.cos(a)*direk;
   g.save();g.strokeStyle='#b9bdb9';g.lineWidth=Math.max(1,1.3*f.olcek);g.beginPath();g.moveTo(f.x,f.yb);g.lineTo(tx,ty);g.stroke();
   // taşıyan seyircinin kolları
   g.strokeStyle='#c9a284';g.lineWidth=Math.max(1,1.4*f.olcek);g.beginPath();g.moveTo(f.x-3*f.olcek,f.yb+5*f.olcek);g.lineTo(f.x+Math.sin(a)*direk*.12,f.yb-Math.cos(a)*direk*.12);g.moveTo(f.x+3*f.olcek,f.yb+5*f.olcek);g.lineTo(f.x+Math.sin(a)*direk*.25,f.yb-Math.cos(a)*direk*.25);g.stroke();
   var doku=bayrakDoku(f.i,o.makeCanvas),fw=direk*.95,fh=fw*.62,dilim=8,yon=f.yon*(Math.cos(a)>=0?1:-1);
-  for(var k=0;k<dilim;k++){var u0=k/dilim,u1=(k+1)/dilim,dalga=function(u){return durgun?fh*.06*Math.sin(u*6):Math.sin(t*6.2-u*7+f.faz)*fh*.16*u+Math.sin(t*3.1-u*4)*fh*.05*u;};
+  for(var k=0;k<dilim;k++){var u0=k/dilim,u1=(k+1)/dilim,dalga=function(u){return durgun?fh*.06*Math.sin(u*6):Math.sin(t*8.5-u*7+f.faz)*fh*.26*u+Math.sin(t*4.2-u*4)*fh*.09*u;};
    var x0=tx+yon*fw*u0,x1=tx+yon*fw*u1+yon*.6,y0=ty+dalga(u0)-a*fw*u0*.3,y1=ty+dalga(u1)-a*fw*u1*.3,egim=(y1-y0)/(fw/dilim);
    var sx=Math.floor(u0*doku.width),sw=Math.ceil(doku.width/dilim);
    g.save();g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.lineTo(x1,y1+fh*(1-.06*u1));g.lineTo(x0,y0+fh*(1-.06*u0));g.closePath();g.clip();
