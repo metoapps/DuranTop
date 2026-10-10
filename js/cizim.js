@@ -144,43 +144,65 @@
 
   var kalabalik = null;
   var KTEN = ['#cdc6b2', '#af8d75', '#d6ad8a', '#adada8'], KFORMA = ['#e1e0d8', '#08090b', '#b3262f', '#d7b33a', '#1d3f86', '#e1e0d8', '#08090b', '#7d1d24'];
-  /* Bir sıra seyirci: A = normal duruş, B = kollar havada. Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
+  /* Bir sıra seyirci: A = normal, B = kollar havada, C = alay (kollar aşağıda dışa açık, "yuh"). Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
   function kalabalikSerit(kisiler, sy, sc) {
     var h = Math.ceil(20 * sc), y0 = sy - 7 * sc, kare = [];
-    [false, true].forEach(function (yukari) {
+    [0, 1, 2].forEach(function (tur) {
       var c = yerelCanvas(Math.ceil(W * dpr), Math.ceil(h * dpr)), g = c.getContext('2d'); g.scale(dpr, dpr); g.translate(0, -y0);
       kisiler.forEach(function (k) {
         g.fillStyle = KTEN[k.ten]; g.beginPath(); g.arc(k.px, k.py, 1.7 * sc, 0, Math.PI * 2); g.fill();
         g.strokeStyle = KFORMA[k.fa]; g.lineWidth = 2.8 * sc; g.beginPath(); g.moveTo(k.px, k.py + 2); g.lineTo(k.px, k.py + 6 * sc); g.stroke();
-        g.lineWidth = 1.2 * sc; g.beginPath();
-        if (yukari) { g.moveTo(k.px - 3.8 * sc, k.py - 6 * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 3.8 * sc, k.py - (k.kol ? 7 : 5) * sc); }
+        g.lineWidth = 1.3 * sc; g.beginPath();
+        if (tur === 1) { g.moveTo(k.px - 3.8 * sc, k.py - 6 * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 3.8 * sc, k.py - (k.kol ? 7 : 5) * sc); }
+        else if (tur === 2) { g.moveTo(k.px - 4.4 * sc, k.py + 5.5 * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 4.4 * sc, k.py + (k.kol ? 2 : 5.5) * sc); }
         else { g.moveTo(k.px - 3 * sc, k.py + (k.kol ? -2 : 4) * sc); g.lineTo(k.px, k.py + 3 * sc); g.lineTo(k.px + 3 * sc, k.py - 1 * sc); }
         g.stroke();
       });
       kare.push(c);
     });
-    return { A: kare[0], B: kare[1], y0: y0, h: h, sc: sc };
+    return { A: kare[0], B: kare[1], C: kare[2], y0: y0, h: h, sc: sc };
   }
-  /* Seyirci hareketi: herkes kendi ritminde zıplar, gruplar kollarını kaldırır, ~11 sn'de bir "Meksika dalgası" soldan sağa geçer.
-   * heyecan (0..1): gol olunca herkes zıplar ve kollar havada. Yalnız görüntü. */
-  function kalabalikCiz(g, t, heyecan) {
+  var ALAY = { aut: ['Yuh!', 'Çüş!', 'Nereye vuruyon?', 'Hahaha!', 'Kaleyi göremedin mi?'], kisa: ['Yuh!', 'Çüş!', 'Kısa kaldı!', 'Hahaha!', 'Topa kuvvet!'], kurtaris: ['Kaleci aldı!', 'Hadi canım!', 'Yuhhh!', 'Hahaha!', 'Bu muydu?'], baraj: ['Baraj yedi!', 'Yuh!', 'Hahaha!', 'Üstünden at!', 'Çüş!'], ag: ['Delik orada!', 'Yuh!', 'Hahaha!', 'Çüş!', 'Nişan nerede?'], halka: ['Delik orada!', 'Yuh!', 'Hahaha!', 'Çüş!', 'Nişan nerede?'] };
+  /* Alay balonları: kaçan şutta tribünden 5 yorum yükselip kaybolur. Konumlar sonuç türünden türetilir (deterministik). */
+  function alayBalon(g, s, tur) {
+    var metin = ALAY[tur] || ALAY.aut, K = kalabalik, ust = 52, alt = Math.max(ust + 40, K.alt - 20);
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + Math.round(Math.max(11, Math.min(15, W / 28))) + 'px Arial';
+    for (var i = 0; i < metin.length; i++) {
+      var t0 = 0.12 * i + 0.05 * ((i * 3) % 2), u = (s - t0) / 2.6; if (u <= 0 || u >= 1) continue;
+      var a = u < 0.12 ? u / 0.12 : u > 0.75 ? (1 - u) / 0.25 : 1, w = g.measureText(metin[i]).width + 16, h = 21;
+      var x = Math.max(w / 2 + 4, Math.min(W - w / 2 - 4, W * (0.14 + 0.72 * (((i * 37 + 11) % 100) / 100)))), y = alt - (alt - ust) * (((i * 53 + 7) % 100) / 100) - u * 18;
+      g.globalAlpha = a * 0.95; g.fillStyle = '#fff6df'; g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1;
+      g.beginPath(); if (g.roundRect) g.roundRect(x - w / 2, y - h / 2, w, h, 9); else g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(x - 4, y + h / 2 - 1); g.lineTo(x + 2, y + h / 2 + 6); g.lineTo(x + 5, y + h / 2 - 1); g.closePath(); g.fill();
+      g.fillStyle = '#2a1a10'; g.fillText(metin[i], x, y + 1);
+    }
+    g.restore();
+  }
+  /* Seyirci hareketi (belirgin): herkes kendi ritminde zıplar ve sallanır, gruplar kollarını kaldırır (~%40), ~7 sn'de bir "Meksika dalgası" geçer.
+   * heyecan (0..1): gol olunca herkes zıplar, kollar havada. alay (sn, <0 yok): kaçan şutta herkes kollarını aşağı açıp titreyerek güler, balonlar çıkar.
+   * AYAR.hareket=false → durgun (testler). Sistem "hareketi azalt" ayarı yok sayılır. Yalnız görüntü. */
+  function kalabalikCiz(g, t, heyecan, alay, alayTur) {
     var K = kalabalik; if (!K) return;
-    if (root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches) { t = 0; heyecan = 0; }   // hareketi azalt ayarı: seyirci durgun
-    var seg = 26, tw = t % 11, onde = tw < 3.8 ? (tw / 3.8) * (W + 300) - 150 : -1e9;
+    if (A.hareket === false) { t = 0; heyecan = 0; alay = -1; }
+    var seg = 22, tw = t % 7, onde = tw < 3.2 ? (tw / 3.2) * (W + 300) - 150 : -1e9, alayda = alay >= 0 && alay < 3.4, alayYog = alayda ? Math.min(1, alay / 0.25) * (alay > 2.8 ? (3.4 - alay) / 0.6 : 1) : 0;
     g.save(); g.beginPath(); g.rect(0, 30, W, Math.max(0, K.alt - 30)); g.clip();
     K.satirlar.forEach(function (r, ri) {
       for (var x0 = 0; x0 < W; x0 += seg) {
         var k = (x0 / seg) | 0, ph = ((ri * 7 + k * 13) % 19) / 19 * 6.283, w = Math.min(seg, W - x0);
-        var bob = Math.sin(t * (2.6 + (k % 3) * 0.35) + ph) * (0.55 + 1.7 * heyecan) * r.sc * 0.5;
-        var yukari = Math.sin(t * 1.7 + ph * 3) > (0.70 - heyecan * 1.4);
-        var dalga = Math.exp(-Math.pow((x0 + ri * 6 - onde) / 55, 2));
-        if (dalga > 0.35) yukari = true;
-        bob -= dalga * 3.2 * r.sc + heyecan * 1.6 * r.sc * Math.abs(Math.sin(t * 5.2 + ph));
-        g.drawImage(yukari ? r.B : r.A, x0 * dpr, 0, w * dpr, r.h * dpr, x0, r.y0 + bob, w, r.h);
+        var bob = Math.sin(t * (3.0 + (k % 3) * 0.5) + ph) * (1.5 + 2.4 * heyecan) * r.sc * 0.7;
+        var dx = Math.sin(t * 1.9 + ph * 2) * 1.3 * r.sc;
+        var kare = Math.sin(t * 1.5 + ph * 3) > (0.35 - heyecan * 1.4) ? r.B : r.A;
+        var dalga = Math.exp(-Math.pow((x0 + ri * 6 - onde) / 60, 2));
+        if (dalga > 0.3) kare = r.B;
+        bob -= dalga * 5 * r.sc + heyecan * 2.4 * r.sc * Math.abs(Math.sin(t * 5.2 + ph));
+        if (alayYog > 0.05) { kare = r.C; bob = bob * (1 - alayYog) + Math.sin(alay * 17 + ph) * 2.6 * r.sc * alayYog; dx += Math.sin(alay * 11 + ph * 3) * 1.2 * r.sc * alayYog; }
+        g.drawImage(kare, x0 * dpr, 0, w * dpr, r.h * dpr, x0 + dx, r.y0 + bob, w, r.h);
       }
     });
     g.restore();
   }
+  // Balonlar bayrakların ve pankartın üstünde görünsün diye ayrı çağrılır (atmosfer çiziminden sonra).
+  function alayCiz(g, alay, tur) { if (A.hareket === false || !kalabalik || !(alay >= 0 && alay < 3.4)) return; alayBalon(g, alay, tur); }
   function arkaPlanCiz() {
     var c = yerelCanvas(Math.round(W * dpr), Math.round(H * dpr));
     var g = c.getContext('2d');
@@ -478,7 +500,8 @@
    * Altında yere izdüşüm çizgisi var (yükseklik okunabilsin). Yalnız görüntü. */
   function fifaOkCiz(g, yol, kilit) {
     if (!yol || yol.length < 3 || !pos) return;
-    var uzun = Math.max(7, Math.min(15, 0.55 * pos.D)), bas = 0.7, nok = [], yer = [], top = 0, onc = null, zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
+    // Kısa ok: yalnız ilk 3–4,5 m gösterilir (kaleye kadar uzanmaz, nişanı kolaylaştırmaz).
+    var uzun = Math.max(3, Math.min(4.5, 0.2 * pos.D)), bas = 0.7, nok = [], yer = [], top = 0, onc = null, zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
     for (var i = 0; i < yol.length; i++) {
       var p = yol[i]; if (onc) top += Math.hypot(p.x - onc.x, p.y - onc.y, p.z - onc.z); onc = p;
       if (top < bas) continue; if (top > uzun + bas) break;
@@ -598,12 +621,13 @@
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
-    kalabalikCiz(g, (root.performance ? root.performance.now() : Date.now()) / 1000, d.heyecan || 0);
+    kalabalikCiz(g, (root.performance ? root.performance.now() : Date.now()) / 1000, d.heyecan || 0, d.alay === undefined ? -1 : d.alay, d.alayTur);
     if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     if(DT.tribun&&DT.tribun.atmosfer)DT.tribun.atmosfer(g,{W:W,ust:35,alt:izdus(0,A.kale.yukseklik,pos.D).y+14,time:(root.performance?root.performance.now():Date.now())/1000,makeCanvas:yerelCanvas});
     if(supporter&&DT.tribun){DT.tribun.draw(g,{id:supporter,D:pos.D,time:(root.performance?root.performance.now():Date.now())/1000,project:izdus,makeCanvas:yerelCanvas,image:gorseller['_menu_'+supporter+'_bekle']||sprite(supporter,'bekle')});}
     else if(supporter)pankartCiz(g,supporter);
+    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur);
 
     kaleArka(g);
     agGuncelle(d);

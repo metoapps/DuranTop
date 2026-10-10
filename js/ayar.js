@@ -54,7 +54,8 @@
     puan: { penalti: 100, frikik: 110, zaman: 10, zor: 5, bonusTavan: 15 },
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
 
-    zamanCubuguSuresi: 0.80   // çubuğun bir yönde gidiş süresi (s)
+    zamanCubuguSuresi: 0.80,  // çubuğun bir yönde gidiş süresi (s)
+    hareket: true             // tribün, bayrak, ağ ve gol sevinci hareketleri (sistem "hareketi azalt" ayarından bağımsız; testler false yapar)
   };
   // Shared by the visible bar, launch quality and server-side bonus calculation.
   DT.koseBandi=function(aim){var base=DT.AYAR.zaman.bant;if(!aim)return base;

@@ -11,16 +11,20 @@ function dunya(dosyalar){const istek=[];const root={AudioContext:AC,addEventList
 const bekle=()=>new Promise(r=>setTimeout(r,20));
 (async()=>{
  // ses kapalı: yükleme ve çalma yok
- let w=dunya({'ah.mp3':'AH'});assert.equal(w.T.uh(),false);assert.equal(sayac.src+sayac.osc,0);assert.equal(w.istek.length,0,'ses kapalıyken indirme yok');
+ let w=dunya({'ah.mp3':'AH'});assert.equal(w.T.uh(),false);assert.equal(w.T.alay(),false);assert.equal(sayac.src+sayac.osc,0);assert.equal(w.istek.length,0,'ses kapalıyken indirme yok');
  // ah.mp3 var: o çalınır
- w=dunya({'ah.mp3':'AH','gol.mp3':'GOL'});w.T.ayarla(true);await bekle();assert(w.T._test().ah&&!w.T._test().gol,'ah.* bulundu');assert.equal(w.T.uh(),true);assert.equal(sayac.osc,0,'osilatör yok: sentez kullanılmaz');assert(sayac.src>=1&&sayac.start>=1);
+ w=dunya({'ah.mp3':'AH','gol.mp3':'GOL'});w.T.ayarla(true);await bekle();assert(w.T._test().ah,'ah.* bulundu');assert.equal(w.T.uh(),true);assert.equal(sayac.osc,0,'osilatör yok: sentez kullanılmaz');assert(sayac.src>=1&&sayac.start>=1);
  // yalnız gol.ogg var: türetilir
  sayac.src=0;sayac.start=0;w=dunya({'gol.ogg':'GOL'});w.T.ayarla(true);await bekle();assert(w.T._test().gol&&!w.T._test().ah);assert.equal(w.T.uh(),true);assert(sayac.src>=1);assert(w.istek.some(u=>u==='assets/ses/ah.mp3')&&w.istek.some(u=>u==='assets/ses/gol.ogg'));
+ // alay: yuh.* varsa o, yoksa gol.* türevi, ikisi de yoksa çalmaz; sentez yok
+ sayac.src=0;sayac.start=0;w=dunya({'yuh.ogg':'YUH','gol.mp3':'GOL'});w.T.ayarla(true);await bekle();assert(w.T._test().yuh,'yuh.* bulundu');assert.equal(w.T.alay(),true);assert.equal(sayac.osc,0);assert(sayac.src>=1);
+ sayac.src=0;w=dunya({'gol.m4a':'GOL'});w.T.ayarla(true);await bekle();assert(w.T._test().gol&&!w.T._test().yuh);assert.equal(w.T.alay(),true,'gol kaydından türetilir');assert(sayac.src>=1);
+ sayac.src=0;w=dunya({});w.T.ayarla(true);await bekle();assert.equal(w.T.alay(),false,'kayıt yoksa alay sesi yok');assert.equal(sayac.src,0);
  // hiçbiri yok: çalmaz, oyun eski kısa 'ah'a düşer
  sayac.src=0;w=dunya({});w.T.ayarla(true);await bekle();assert.equal(w.T.uh(),false);assert.equal(sayac.src,0);
  // eski sentez API'si boş
  w.T.tezahurat();w.T.ortam(true);assert.equal(sayac.osc,0);
  // oyun bağlantısı
- const oyun=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/r\.sonuc==='direk_disari'&&DT\.tezahurat\)an\.uh=DT\.tezahurat\.uh\(\)/.test(oyun));assert(/r\.sonuc !== 'aut' && !an\.uh\) DT\.ses\.cal\('ah'\)/.test(oyun));
- console.log('PASS tribün ahhh: yalnız gerçek kayıt (ah.* → gol.* türevi → sessiz/eski ah), sentez yok, ses kapalıyken indirme ve çalma yok');
+ const oyun=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/r\.sonuc==='direk_disari'&&DT\.tezahurat\)an\.uh=DT\.tezahurat\.uh\(\)/.test(oyun));assert(/DT\.tezahurat\.alay\(\)/.test(oyun)&&/d\.alayT0 = now/.test(oyun),'kaçan şutta alay tetiklenir');
+ console.log('PASS tribün ahhh ve alay: yalnız gerçek kayıt (ah/yuh.* → gol.* türevi → sessiz), sentez yok, ses kapalıyken indirme ve çalma yok');
 })().catch(e=>{console.error(e);process.exit(1)});

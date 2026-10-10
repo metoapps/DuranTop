@@ -17,5 +17,11 @@ function fark(y){const k=kare(y);let n=0,x0=1e9,x1=-1,kirm=0;for(let i=0;i<k.len
 const duz=fark(yol(pos,{x:1,y:1.5},{x:0,y:0})),egri=fark(yol(pos,{x:1,y:1.5},{x:.9,y:0}));
 assert(duz.n>600&&egri.n>600&&duz.kirm>.8*duz.n,'ok görünür ve kırmızı '+JSON.stringify(duz));assert(egri.gen>duz.gen+4,'falsoda ok yatayda daha geniş yayılır '+duz.gen+'→'+egri.gen);
 assert.equal(fark(null).n,0,'yol yoksa ok yok');
+// Ok kısa: yalnız ilk ~4,5 m. Kaleye (ve baraja) kadar uzanmaz, nişanı kolaylaştırmaz.
+{const yl=yol(pos,{x:1,y:1.5},{x:0,y:0}),k=kare(yl);let enUst=1e9;for(let i=0;i<k.length;i+=4)if(Math.abs(k[i]-bos[i])+Math.abs(k[i+1]-bos[i+1])+Math.abs(k[i+2]-bos[i+2])>60&&k[i]>k[i+2]+40)enUst=Math.min(enUst,(i/4/W)|0);
+ // yolun 6,4 m'lik 3B uzunluğundaki noktasının ekran satırı: ok bunun ötesine geçmemeli (kaleye/baraja kadar uzanmaz)
+ let toplam=0,nokta=yl[0];for(let i=1;i<yl.length;i++){toplam+=Math.hypot(yl[i].x-yl[i-1].x,yl[i].y-yl[i-1].y,yl[i].z-yl[i-1].z);if(toplam>=6.4){nokta=yl[i];break;}}
+ const sinir=D.cizim.izdus(nokta.x,nokta.y,nokta.z).y;assert(enUst>=sinir-4,'ok 6,4 m ötesine uzanmaz: en üst piksel '+enUst+', sınır '+sinir.toFixed(0));
+ const uzunHal=D.cizim.izdus(pos.bx,0.02,pos.D-.5).y;assert(enUst>uzunHal+30,'ok kaleye ulaşmaz');}
 const oyun=fs.readFileSync(__dirname+'/../js/cizim.js','utf8');assert(/if \(fifa\) return;/.test(oyun),'hedef halkası frikikte çizilmez');
 console.log('PASS FIFA yer oku: falso iki yana eğer, alt temas yükseltir, üst temas yerde, ok görünür ('+duz.n+' px değişti), halka yok');

@@ -80,15 +80,9 @@
 
     <div class="ipucu" id="ipucu">Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.</div>
 
-    <div id="hazirlikPanel" class="hazirlik-panel saha-secimi" hidden><button id="durusAc" class="btn ana" type="button">Duruşunu seç</button></div>
-    <div id="durusPanel" class="temas-panel saha-secimi" hidden>
-      <h2>Duruşunu seç</h2><p id="durusNot">Okları basılı tut, oyuncu anında döner. Hazırsan Tamam.</p>
-      <div class="yon-satir"><button id="yonSol" class="yon-ok" type="button" aria-label="Sola dön (basılı tut)">◀</button><span id="yonAci" class="yon-aci" aria-live="polite">Düz · 0°</span><button id="yonSag" class="yon-ok" type="button" aria-label="Sağa dön (basılı tut)">▶</button><button id="yonTamam" class="btn ana yon-tamam" type="button">Tamam</button></div>
-      <div class="segment"><button id="durusSol" type="button">Sola dön</button><button id="durusDuz" type="button">Düz</button><button id="durusSag" type="button">Sağa dön</button></div>
-    </div>
     <div id="fifaNisan" class="temas-panel saha-secimi" hidden>
-      <h2>Nişan al</h2><p>Okları basılı tut: ◀ ▶ yön, ▲ ▼ yükseklik. Kaleye dokunarak da seçebilirsin.</p>
-      <div class="yon-satir"><button id="nisanSol" class="yon-ok" type="button" aria-label="Nişan sola">◀</button><button id="nisanYukari" class="yon-ok" type="button" aria-label="Nişan yukarı">▲</button><button id="nisanAsagi" class="yon-ok" type="button" aria-label="Nişan aşağı">▼</button><button id="nisanSag" class="yon-ok" type="button" aria-label="Nişan sağa">▶</button><button id="nisanKilit" class="btn ana yon-tamam" type="button">Kilitle</button></div>
+      <h2>1/3 · Yön</h2><p>Okları basılı tut: ◀ ▶ yön (oyuncu döner), ▲ ▼ yükseklik. Hazırsan Tamam.</p>
+      <div class="yon-satir"><button id="nisanSol" class="yon-ok" type="button" aria-label="Nişan sola">◀</button><button id="nisanYukari" class="yon-ok" type="button" aria-label="Nişan yukarı">▲</button><button id="nisanAsagi" class="yon-ok" type="button" aria-label="Nişan aşağı">▼</button><button id="nisanSag" class="yon-ok" type="button" aria-label="Nişan sağa">▶</button><button id="nisanKilit" class="btn ana yon-tamam" type="button">Tamam</button></div>
     </div>
     <div id="gucPanel" class="temas-panel guc-panel saha-secimi" hidden>
       <h2>1 · Şut gücü</h2><p id="gucNot">%100 · Tam güç</p>
@@ -97,10 +91,10 @@
       <button id="gucOnay" class="btn ana" type="button">Hedefi seç</button>
     </div>
     <div id="temasPanel" class="temas-panel saha-secimi" hidden>
-      <h2>3 · Temas noktası</h2><details class="secim-yardim"><summary>Temas ipuçları</summary><p>Merkez: temiz şut · Alt: yükselen top · Üst: bastırılan top<br>Yanlar: falso · Hedef, temiz vuruş yönüdür; temas varış yerini değiştirir.</p></details>
+      <h2>2/3 · Topun neresine?</h2><details class="secim-yardim"><summary>Temas ipuçları</summary><p>Merkez: temiz şut · Alt: yükselen top · Üst: bastırılan top<br>Yanlar: falso · Hedef, temiz vuruş yönüdür; temas varış yerini değiştirir.</p></details>
       <canvas id="temasTop" width="220" height="220" aria-label="Top üzerinde temas noktasını seç"></canvas>
       <p id="temasNot">Merkeze temas · Düz şut</p>
-      <button id="temasOnay" class="btn ana" type="button">Zamanlamaya geç</button>
+      <button id="temasOnay" class="btn ana" type="button">Ortadan vur</button>
     </div>
     <div class="alt" id="alt" hidden>
       <div class="falso" id="falsoKutu" hidden>
@@ -145,7 +139,7 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261009c"></script>
+  <script src="js/ayar.js?v=20261010b"></script>
   <script src="js/veri.js?v=20261005ab"></script>
   <script src="js/baraj.js?v=20261009c"></script>
   <script src="js/model3d.js?v=20261005ae"></script>
@@ -154,16 +148,16 @@
   <script src="js/kaleci.js?v=20261009c"></script>
   <script src="js/ucus.js?v=20261009c"></script>
   <script src="js/fizik.js?v=20261009c"></script>
-  <script src="js/hedef.js?v=20261010a"></script>
-  <script src="js/ag.js?v=20261010a"></script>
+  <script src="js/hedef.js?v=20261010b"></script>
+  <script src="js/ag.js?v=20261010b"></script>
   <script src="js/puan.js?v=20261005ab"></script>
   <script src="js/ses.js?v=20261006a"></script>
-  <script src="js/tezahurat.js?v=20261009c"></script>
+  <script src="js/tezahurat.js?v=20261010b"></script>
   <script src="js/futbolcu3d.js?v=20261009b"></script>
-  <script src="js/sevinc.js?v=20261006b"></script>
-  <script src="js/tribun.js?v=20261010a"></script>
-  <script src="js/cizim.js?v=20261010a"></script>
+  <script src="js/sevinc.js?v=20261010b"></script>
+  <script src="js/tribun.js?v=20261010b"></script>
+  <script src="js/cizim.js?v=20261010b"></script>
   <script src="js/canli.js?v=20261006f"></script>
-  <script src="js/oyun.js?v=20261010a"></script>
+  <script src="js/oyun.js?v=20261010b"></script>
 </body>
 </html>

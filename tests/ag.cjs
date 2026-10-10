@@ -3,8 +3,8 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');const C=require('/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/@napi-rs/canvas');
 let now=1000;const root={setTimeout,clearTimeout,Image:C.Image,__yapCanvas:C.createCanvas,performance:{now:()=>now},localStorage:{getItem(){return null},setItem(){}}};vm.createContext(root);
 for(const n of ['ayar','veri','model3d','kaleci3d','baraj3d','baraj','kaleci','ucus','fizik','hedef','ag','futbolcu3d','sevinc','tribun','cizim'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),root);
-root.matchMedia=()=>({matches:true});   // hareketi azalt: tribün ve bayraklar durgun, karşılaştırma yalnız ağı ölçer
 const D=root.DT,A=D.AYAR,AG=D.ag,R=A.kale.topYaricap,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2;
+A.hareket=false;   // tribün ve bayraklar durgun: karşılaştırma yalnız ağı ölçer
 const pen=A.pozisyonlar[0],Z=pen.D+1.5;
 function topla(y){let m=0;for(const v of y.u)m=Math.max(m,Math.abs(v));return m;}
 function enerjiYuz(y){let e=0;for(let k=0;k<y.u.length;k++)e+=y.u[k]*y.u[k];return e;}
@@ -37,6 +37,8 @@ const hesapA=JSON.stringify(D.fizik.hesapla({pos:pen,aim:{x:2,y:1.4},contact:{x:
 const farkSay=(a,b)=>{let n=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])>40)n++;return n;};
 const top0={x:pen.bx,y:.11,z:0};const durgun=kare(top0);
 kare({x:2,y:1.4,z:Z-R-.5});kare({x:2,y:1.4,z:Z-R});let salla;for(let k=0;k<8;k++)salla=kare({x:2,y:1.4,z:Z-R});assert(farkSay(durgun,salla)>150,'sallanan ağ görüntüde değişti: '+farkSay(durgun,salla));
-let son;for(let k=0;k<560;k++)son=kare(top0);   // ≈9 sn gerçek zamanlı kare akışıassert.equal(farkSay(durgun,son),0,'ağ sönünce durgun görüntüye birebir döner');
+let son;for(let k=0;k<560;k++)son=kare(top0);   
+// (≈9 sn gerçek zamanlı kare akışı)
+assert.equal(farkSay(durgun,son),0,'ağ sönünce durgun görüntüye birebir döner');
 assert.equal(hesapA,JSON.stringify(D.fizik.hesapla({pos:pen,aim:{x:2,y:1.4},contact:{x:0,y:0},zaman:.5,seed:1,guc:1,kural10:true,antrenman:true}).yol.slice(-3)),'ağ animasyonu sonuç hesabına karışmaz');
 console.log('PASS ağ: sert şut göçüğü '+sert.tepe.toFixed(2)+' m (yavaş '+yavas.tepe.toFixed(2)+'), salınım, sönüm, yan ağ+tavan sarsılır, delikten geçen sallamaz, çizimde değişir ve durgunlaşır');

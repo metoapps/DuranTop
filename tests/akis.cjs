@@ -7,20 +7,18 @@ D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Pro
 vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
 fire('btnResmi','click');await flush();
 for(let i=0;i<10;i++){
- assert.equal(d.idx,i);assert.equal(d.faz,'nisan');assert(el('durusPanel').hidden);assert(!el('hazirlikPanel').hidden);
- fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});assert.equal(d.aim,null);
- fire('durusAc','click');assert(!el('durusPanel').hidden);fire(['durusSol','durusDuz','durusSag'][i%3],'click');assert.equal(d.durusHazir,i%3===1,'unchanged stance skips artificial walking');
- time+=1200;root.frame();assert(d.durusHazir);
+ assert.equal(d.idx,i);assert.equal(d.faz,'nisan');assert(!el('fifaNisan').hidden,'pozisyon açılınca doğrudan 1/3 yön adımı');
+ assert(d.durusHazir&&!el('fifaNisan').hidden,'duruş adımı yok: doğrudan yön okları (1/3)');assert.equal(d.durus,0,'başlangıçta düz duruş');assert(!/Duruş/.test(el('fifaNisan').textContent||''));
  {
   // FIFA tarzı atış (penaltı, frikik ve hedef ağı aynı): güç paneli yok; okla nişan → kilitle → falso → basılı tut-bırak güç → yeşilde bas.
   assert(el('gucPanel').hidden,'güç paneli yok');assert(!el('fifaNisan').hidden);assert(d.gucHazir);assert(d.aim&&d.aim.x===0&&d.aim.y===(d.pos.tip==='penalti'?1.3:1.6));
   fire('sahne','pointerdown',{clientX:105,clientY:65,pointerId:1});fire('sahne','pointerup');assert(!d.kilit,'kaleye dokunmak FIFA modunda kilitlemez');const x0=d.aim.x;
-  fire('nisanSag','pointerdown',{pointerId:4,preventDefault(){}});for(let k=0;k<31;k++){time+=16;root.frame();}fire('nisanSag','pointerup');assert(Math.abs(d.aim.x-x0-1.0)<.1,'0,5 sn sağ ok ≈1 m: '+(d.aim.x-x0));
+  fire('nisanSag','pointerdown',{pointerId:4,preventDefault(){}});for(let k=0;k<31;k++){time+=16;root.frame();}fire('nisanSag','pointerup');const beklenen=3.2*(.48+1.2*.48*.48);assert(Math.abs(d.aim.x-x0-beklenen)<.25,'0,5 sn sağ ok ≈2,4 m (basılı tuttukça hızlanır): '+(d.aim.x-x0));assert(d.durus>.12&&d.durus<=1,'oyuncu seçilen yöne döndü (sağa): '+d.durus);
   fire('nisanYukari','pointerdown',{pointerId:5,preventDefault(){}});for(let k=0;k<400;k++){time+=16;root.frame();}fire('nisanYukari','pointerup');assert.equal(d.aim.y,3.1,'üst sınır');
-  fire('nisanAsagi','pointerdown',{pointerId:6,preventDefault(){}});for(let k=0;k<60;k++){time+=16;root.frame();}fire('nisanAsagi','pointerup');assert(d.aim.y<2.2&&d.aim.y>1.9);
+  fire('nisanAsagi','pointerdown',{pointerId:6,preventDefault(){}});for(let k=0;k<25;k++){time+=16;root.frame();}fire('nisanAsagi','pointerup');assert(d.aim.y<2.3&&d.aim.y>1.9,'aşağı ok: '+d.aim.y);
   fire('nisanKilit','click');assert(d.kilit);assert(el('fifaNisan').hidden);assert(!el('temasPanel').hidden);
   fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i);assert(!d.fifa.faz,'falso seçilmeden sayaç başlamaz');
-  fire('temasTop','pointerdown',{clientX:170,clientY:120,pointerId:2});fire('temasTop','pointerup');fire('temasOnay','click');assert(!el('alt').hidden);assert(!el('fifaKutu').hidden);assert(el('cubukKutu').hidden);
+  fire('temasTop','pointerdown',{clientX:170,clientY:120,pointerId:2});fire('temasTop','pointerup');assert(d.temasHazir,'topa dokunup bırakınca doğrudan sertlik adımına geçer (2/3 → 3/3)');assert(!el('alt').hidden);assert(!el('fifaKutu').hidden);assert(el('cubukKutu').hidden);
   if(i===5){fire('duzeltBtn','click');assert(!el('fifaNisan').hidden);assert(!d.kilit);fire('nisanKilit','click');fire('temasOnay','click');}
   fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'isabet');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
   if(i===6){time+=1500;root.frame();assert.notEqual(d.faz,'gonderiliyor','ibre aşağı indi ve geri dönüyor: hâlâ ikinci şans');time+=300;root.frame();assert.equal(d.faz,'gonderiliyor','iki geçiş de bitince en kötü zamanlamayla vurulur');}
@@ -30,6 +28,6 @@ for(let i=0;i<10;i++){
  }
  await flush();assert.equal(d.faz,'vurus');time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
 
-assert.deepEqual(state.players[0].entries.map(e=>e.input.zaman),[.5,.5,.5,.5,.5,.5,0,.5,.5,.5],'FIFA ibresi zamanlamayı verir: 4. vuruş ikinci geçişte (geri dönerken) yeşilde, 7. vuruş iki geçiş de bitince en kötü zamanlama (0)');assert(state.players[0].entries.every(e=>Math.abs(e.input.guc-.65)<.02&&e.input.aim.y<2.2));
+assert.deepEqual(state.players[0].entries.map(e=>e.input.zaman),[.5,.5,.5,.5,.5,.5,0,.5,.5,.5],'FIFA ibresi zamanlamayı verir: 4. vuruş ikinci geçişte (geri dönerken) yeşilde, 7. vuruş iki geçiş de bitince en kötü zamanlama (0)');assert(state.players[0].entries.every(e=>Math.abs(e.input.guc-.65)<.02&&e.input.aim.y<2.3));
 assert.equal(state.players[0].idx,10);assert.equal(state.players[0].entries.length,10);assert.equal(shots,10);assert.equal(d.ekran,'tursonu');assert(el('turNot').textContent.includes('otomatik'));console.log('PASS live cup flow; approach→3D walk→power→target→contact→timing; server wait; duplicate-press guard; ten automatic saves; result screen');
 })().catch(e=>{console.error(e);process.exit(1)});

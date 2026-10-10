@@ -3,7 +3,7 @@
 (function(root){'use strict';var D=root.DT,cache={},states={};
 var colors={meto:['#16191d','#dfd8c9','#d83243'],lort:['#1243a0','#e8dfc9','#b6d2ec'],latte:['#8a1726','#f0dfcc','#ded2b0'],josh:['#37226a','#efdab0','#bd333e'],fero:['#e0e1dc','#20252a','#c74b3f']};
 var slogans={meto:'Meto Forever',lort:'Gökhanlort 28 GİRESUNLUMM',latte:'IceLatte · Bergen',josh:'Yozgatlım ♥',fero:'ÇIKAR MASAYA KOY FERO BABA ♥'};
-function reduced(){return !!(root.matchMedia&&root.matchMedia('(prefers-reduced-motion: reduce)').matches);}
+function reduced(){return !!(D.AYAR&&D.AYAR.hareket===false);}   // sistem "hareketi azalt" ayarı yok sayılır (oyun süsü); testler AYAR.hareket=false ile dondurur
 function dot(a,b){return a.reduce(function(n,x,i){return n+x*b[i];},0);}
 function unit(v){var l=Math.hypot.apply(null,v)||1;return v.map(function(x){return x/l;});}
 function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
