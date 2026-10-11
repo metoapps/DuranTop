@@ -97,11 +97,14 @@ function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old
 }
 function draw(g,o){var r=rig(o),n=r.nodes,T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
  function project(p){if(o.project){var rotated=[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c];return o.project(rotated);}var xx=p[0]*c+p[2]*s,zz=-p[0]*s+p[2]*c,depth=zz+900,scale=900/depth;return{x:o.x+xx*o.scale*scale,y:o.y-(p[1]+zz*.12)*o.scale*scale,d:depth};}
+ /* Ayrıntı düzeyi ekrandaki boya göre: uzak frikikte oyuncu birkaç on piksel; ~1200 üçgenin her biri için clip+drawImage boşuna. Yakın oyuncu (>=140 px) değişmez. */
+ var LD={tube:8,ej:6,ei:10,patch:6,hj:10,hi:20};{var pt=project([n.head[0],n.head[1]+89,n.head[2]]),pf=project([(n.fl||n.hipl||n.hip)[0],(n.fl||n.hipl||n.hip)[1],(n.fl||n.hipl||n.hip)[2]]);
+  if(pt&&pf&&Number.isFinite(pt.y)&&Number.isFinite(pf.y)){var boyPx=Math.abs(pf.y-pt.y);if(boyPx<80)LD={tube:5,ej:3,ei:6,patch:3,hj:6,hi:12};else if(boyPx<140)LD={tube:6,ej:4,ei:8,patch:4,hj:8,hi:16};}}
  function face(a,b,c,color,uv,texture){if(color){var N=unit(cross(sub(b,a),sub(c,a))),light=.66+.34*Math.max(0,-N[0]*.4+N[1]*.55-N[2]*.65),v=parseInt(color.slice(1),16);color='rgb('+[v>>16,(v>>8)&255,v&255].map(x=>Math.round(x*light)).join(',')+')';}tri.push({p:[a,b,c],color:color,uv:uv,texture:texture});}
- function tube(a,b,radius,color){var w=unit(sub(b,a)),v=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),q=cross(w,v);for(var i=0;i<8;i++){var t=i*Math.PI/4,tt=(i+1)*Math.PI/4,off=add(mul(v,radius*Math.cos(t)),mul(q,radius*Math.sin(t))),next=add(mul(v,radius*Math.cos(tt)),mul(q,radius*Math.sin(tt)));face(add(a,off),add(b,off),add(a,next),color);face(add(a,next),add(b,off),add(b,next),color);}}
- function ellipsoid(center,radius,color){function v(a,b){return add(center,[radius[0]*Math.sin(a)*Math.cos(b),radius[1]*Math.cos(a),radius[2]*Math.sin(a)*Math.sin(b)]);}for(var j=0;j<6;j++)for(var i=0;i<10;i++){var a=j*Math.PI/6,b=(j+1)*Math.PI/6,t=i*Math.PI/5,tt=(i+1)*Math.PI/5;face(v(a,t),v(b,t),v(b,tt),color);face(v(a,t),v(b,tt),v(a,tt),color);}}
+ function tube(a,b,radius,color){var w=unit(sub(b,a)),v=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),q=cross(w,v);for(var i=0;i<LD.tube;i++){var t=i*2*Math.PI/LD.tube,tt=(i+1)*2*Math.PI/LD.tube,off=add(mul(v,radius*Math.cos(t)),mul(q,radius*Math.sin(t))),next=add(mul(v,radius*Math.cos(tt)),mul(q,radius*Math.sin(tt)));face(add(a,off),add(b,off),add(a,next),color);face(add(a,next),add(b,off),add(b,next),color);}}
+ function ellipsoid(center,radius,color){function v(a,b){return add(center,[radius[0]*Math.sin(a)*Math.cos(b),radius[1]*Math.cos(a),radius[2]*Math.sin(a)*Math.sin(b)]);}for(var j=0;j<LD.ej;j++)for(var i=0;i<LD.ei;i++){var a=j*Math.PI/LD.ej,b=(j+1)*Math.PI/LD.ej,t=i*2*Math.PI/LD.ei,tt=(i+1)*2*Math.PI/LD.ei;face(v(a,t),v(b,t),v(b,tt),color);face(v(a,t),v(b,tt),v(a,tt),color);}}
  // Back and front curved surfaces share finite side volume; no whole-body reflection.
- function patch(center,width,height,depth,back,texture){function v(u,v){var x=(u-.5)*width;return add(center,[x,(.5-v)*height,(back?-1:1)*(depth+12*Math.sqrt(Math.max(0,1-x*x/(width*width/4))))]);}for(var j=0;j<6;j++)for(var i=0;i<6;i++){var u=i/6,vv=j/6,uu=(i+1)/6,vvv=(j+1)/6;face(v(u,vv),v(uu,vv),v(uu,vvv),null,[[u,vv],[uu,vv],[uu,vvv]],texture);face(v(u,vv),v(uu,vvv),v(u,vvv),null,[[u,vv],[uu,vvv],[u,vvv]],texture);}}
+ function patch(center,width,height,depth,back,texture){function v(u,v){var x=(u-.5)*width;return add(center,[x,(.5-v)*height,(back?-1:1)*(depth+12*Math.sqrt(Math.max(0,1-x*x/(width*width/4))))]);}for(var j=0;j<LD.patch;j++)for(var i=0;i<LD.patch;i++){var u=i/LD.patch,vv=j/LD.patch,uu=(i+1)/LD.patch,vvv=(j+1)/LD.patch;face(v(u,vv),v(uu,vv),v(uu,vvv),null,[[u,vv],[uu,vv],[uu,vvv]],texture);face(v(u,vv),v(uu,vvv),v(u,vvv),null,[[u,vv],[uu,vvv],[u,vvv]],texture);}}
  tube(n.hip,n.chest,49,kit[0]);tube(n.chest,n.neck,28,kit[0]);
  tube(n.sl,n.el,18,kit[0]);tube(n.sr,n.er,18,kit[0]);
  // Hands use separate nodes from the hip attachment points.
@@ -113,7 +116,7 @@ function draw(g,o){var r=rig(o),n=r.nodes,T=textures(o.id,o.front,o.back,o.makeC
   if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),o.id==='fero'?'#bc9275':'#392b25');
   face(add(n.head,a),add(n.head,b),add(n.head,cc),null,uv,texture);
  }
- for(var hj=0;hj<10;hj++)for(var hi=0;hi<20;hi++){var ha=hj*Math.PI/10,hb=(hj+1)*Math.PI/10,ht=hi*Math.PI/10,htt=(hi+1)*Math.PI/10;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
+ for(var hj=0;hj<LD.hj;hj++)for(var hi=0;hi<LD.hi;hi++){var ha=hj*Math.PI/LD.hj,hb=(hj+1)*Math.PI/LD.hj,ht=hi*2*Math.PI/LD.hi,htt=(hi+1)*2*Math.PI/LD.hi;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
  // Only the camera-facing hemisphere is textured, avoiding a front face on the back of the head.
 
  patch([0,220+(n.chest[1]-249),0],88,112,49,true,T.shirtBack);

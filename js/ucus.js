@@ -6,12 +6,14 @@
 'use strict';var DT=root.DT,A=DT.AYAR,cache=new Map();
 function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
 function unit(a){var n=Math.hypot.apply(null,a)||1;return a.map(function(x){return x/n;});}
-function acceleration(v,omega,t){var P=A.aerodinamik,R=A.kale.topYaricap,speed=Math.hypot.apply(null,v),q=.5*P.havaYogunlugu*Math.PI*R*R/P.kutle;
- var c=cross(omega,v),cm=Math.hypot.apply(null,c),sp=R*cm/Math.max(speed*speed,1e-9)*Math.exp(-P.spinSonumu*t);
- var cl=Math.min(P.clTavan,P.clEgilim*sp),lift=q*speed*speed*cl;
- return v.map(function(x,i){return -q*P.cd*speed*x+(cm>1e-9?lift*c[i]/cm:0)-(i===1?A.yercekimi:0);});
+/* Hız için yeniden yazıldı (apply/map/slice/concat ayıklandı); işlemler ve sırası ESKİSİYLE AYNI, sonuç bayt bayt aynıdır
+ * (sunucu ve eski kayıtlar için şart). Tek tek bileşen: -q*cd*speed*x + (cm>1e-9 ? lift*c/cm : 0) - (y ekseni ? g : 0). */
+function acceleration(v,omega,t){var P=A.aerodinamik,R=A.kale.topYaricap,v0=v[0],v1=v[1],v2=v[2],speed=Math.hypot(v0,v1,v2),q=.5*P.havaYogunlugu*Math.PI*R*R/P.kutle;
+ var c0=omega[1]*v2-omega[2]*v1,c1=omega[2]*v0-omega[0]*v2,c2=omega[0]*v1-omega[1]*v0,cm=Math.hypot(c0,c1,c2),sp=R*cm/Math.max(speed*speed,1e-9)*Math.exp(-P.spinSonumu*t);
+ var cl=Math.min(P.clTavan,P.clEgilim*sp),lift=q*speed*speed*cl,drag=-q*P.cd*speed,m=cm>1e-9;
+ return [drag*v0+(m?lift*c0/cm:0)-0,drag*v1+(m?lift*c1/cm:0)-A.yercekimi,drag*v2+(m?lift*c2/cm:0)-0];
 }
-function derivative(s,omega,t){return s.slice(3).concat(acceleration(s.slice(3),omega,t));}
+function derivative(s,omega,t){var a=acceleration([s[3],s[4],s[5]],omega,t);return [s[3],s[4],s[5],a[0],a[1],a[2]];}
 function add(s,k,h){return s.map(function(x,i){return x+h*k[i];});}
 function step(s,omega,t,h){var k1=derivative(s,omega,t),k2=derivative(add(s,k1,h/2),omega,t+h/2),k3=derivative(add(s,k2,h/2),omega,t+h/2),k4=derivative(add(s,k3,h),omega,t+h);return s.map(function(x,i){return x+h*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6;});}
 function groundImpulse(velocity,omega,normalImpulse){

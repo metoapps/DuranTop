@@ -114,6 +114,9 @@ function golge(g,project,n,z){var xs=[],ymin=9;Object.keys(n).forEach(function(k
 function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.olcek||1),doku0=renk.yuz||yuz;
  /* Ayrıntı düzeyi: 1 = hızlı (kaleci, her karede çizilir: 8 kenarlı uzuvlar, küçük eklem küreleri, 2×2 yüz), 2 = ayrıntılı (baraj; önbelleğe alınıp bir kez çizilir). */
  var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay||1,NS=DET>1?12:8,CA=DET>1?4:3,CB=DET>1?8:5,KA=DET>1?7:5,KB=DET>1?12:8,FR=DET>1?4:2,FC=DET>1?3:2;
+ /* Ekrandaki boya göre ayrıntı: uzak frikikte kaleci birkaç on piksel; 1000+ üçgen çizmek boşuna (her karede path+fill+stroke). Yalnız hızlı (DET=1) kaleci/oyuncu; önbellekli baraj (DET>1) ve yakın kaleci aynı. */
+ if(DET===1){var tepe=project(n.head[0],n.head[1],n.head[2]),taban=project(n.fl[0],n.fl[1],n.fl[2]);
+  if(tepe&&taban){var boyPx=Math.abs(taban.y-tepe.y);if(boyPx<46){NS=5;CA=2;CB=3;KA=3;KB=5;}else if(boyPx<90){NS=6;CA=2;CB=4;KA=4;KB=6;}}}
  function yuzey(a,b,c,color){var nor=unit(cross(sub(b,a),sub(c,a))),isik=.58+.48*Math.abs(nor[0]*-.40+nor[1]*.62+nor[2]*-.67)-.10*Math.max(0,-nor[1]);ucgen.push({p:[a,b,c],color:ton(color,isik)});}
  function silindir(a,b,yr,color,yr2,atla){var w=unit(sub(b,a)),u=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),v=cross(w,u),N=NS,r2=yr2||yr;
   for(var i=0;i<N;i++){var t=i*2*Math.PI/N,tn=(i+1)*2*Math.PI/N,o1=add(mul(u,Math.cos(t)),mul(v,Math.sin(t))),o2=add(mul(u,Math.cos(tn)),mul(v,Math.sin(tn)));

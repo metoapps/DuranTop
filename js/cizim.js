@@ -642,6 +642,38 @@
     if (e > 1e-2) { cache.faces.forEach(function (f) { f.ciz(true); }); cache.sallanan = true; }
     else if (cache.sallanan) { DT.ag.temizle(); cache.faces.forEach(function (f) { f.ciz(false); }); cache.sallanan = false; }
   }
+  /* Tribün katmanı (kalabalık şeritleri, atmosfer, bayrak/pankart) her karede yeniden çizilmez: ayrı bir tuvale her 2. karede (60 fps'te ~30 Hz; yavaşta en geç 100 ms'de bir) çizilir,
+   * aradaki karelerde o tuval tek drawImage ile konur. Sahne, boyut, destekçi ya da heyecan/alay kipi değişirse hemen yenilenir.
+   * Yavaş telefonlarda en pahalı üç parça (kalabalık, bayrak bezi, atmosfer) kare süresinin ~%30'uydu. */
+  var TRIBUN_KARE = 2, TRIBUN_EN_GEC = 100, tribunTuval = null, tribunBaglam = null, tribunAnahtar = '', tribunT = -1e9, tribunKare = 0;   // her 2. karede, en geç 100 ms'de bir
+  function tribunDogrudan(g, d, supporter, saniye) {
+    kalabalikCiz(g, saniye, d.heyecan || 0, d.alay === undefined ? -1 : d.alay, d.alayTur);
+    if (DT.tribun && DT.tribun.atmosfer) DT.tribun.atmosfer(g, { W: W, ust: 35, alt: izdus(0, A.kale.yukseklik, pos.D).y + 14, time: saniye, makeCanvas: yerelCanvas });
+    if (supporter && DT.tribun) { DT.tribun.draw(g, { id: supporter, D: pos.D, time: saniye, project: izdus, makeCanvas: yerelCanvas, image: gorseller['_menu_' + supporter + '_bekle'] || sprite(supporter, 'bekle') }); }
+    else if (supporter) pankartCiz(g, supporter);
+  }
+  /* Katmanın alt sınırı (px): kalabalığın altı ve atmosferin altı + pay. Ölçüm: 320×568, 390×844, 844×390, 1366×768 ekranlarda 10 pozisyon × 5 destekçi içinde
+   * en alttaki dolu piksel ekranın %15-31'inde; tests/tribun-katman.cjs bu sınırı doğrular. */
+  function tribunSinir() {
+    var alt = Math.max(kalabalik ? kalabalik.alt : 0, izdus(0, A.kale.yukseklik, pos.D).y + 14);
+    return Math.min(H, Math.ceil(alt + 60));
+  }
+  function tribunKatmaniCiz(g, d, supporter) {
+    var simdi = root.performance ? root.performance.now() : Date.now(), saniye = simdi / 1000;
+    if (!cv || typeof yerelCanvas !== 'function') { tribunDogrudan(g, d, supporter, saniye); return; }
+    var anahtar = [W, H, dpr, kamSurum, supporter || '', (d.heyecan || 0) > 0.01 ? 1 : 0, d.alay >= 0 ? 1 : 0, d.alayTur || '', A.hareket === false ? 0 : 1].join('|');
+    try {
+      var sinir = tribunSinir(), gw = Math.round(W * dpr), gh = Math.max(1, Math.round(sinir * dpr));   // katman yalnız tribün bölgesi kadar (ekranın üst ~%15-30'u)
+      if (!tribunTuval || tribunTuval.width !== gw || tribunTuval.height !== gh) { tribunTuval = yerelCanvas(gw, gh); tribunBaglam = tribunTuval.getContext('2d'); tribunAnahtar = ''; }
+      tribunKare++;
+      if (anahtar !== tribunAnahtar || tribunKare >= TRIBUN_KARE || simdi - tribunT >= TRIBUN_EN_GEC || simdi < tribunT) {
+        tribunKare = 0;
+        tribunBaglam.setTransform(1, 0, 0, 1, 0, 0); tribunBaglam.clearRect(0, 0, tribunTuval.width, tribunTuval.height); tribunBaglam.setTransform(dpr, 0, 0, dpr, 0, 0);
+        tribunDogrudan(tribunBaglam, d, supporter, saniye); tribunAnahtar = anahtar; tribunT = simdi;
+      }
+      g.drawImage(tribunTuval, 0, 0, W, tribunTuval.height / dpr);
+    } catch (e) { tribunTuval = null; tribunBaglam = null; tribunDogrudan(g, d, supporter, saniye); }   // tuval yoksa eski yol: doğrudan çiz
+  }
   function ciz(d) {
     kareNo++;
     if (!kam || !arka) return;
@@ -650,12 +682,9 @@
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
     g.drawImage(arka, 0, 0, W, H);
-    kalabalikCiz(g, (root.performance ? root.performance.now() : Date.now()) / 1000, d.heyecan || 0, d.alay === undefined ? -1 : d.alay, d.alayTur);
-    if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
-    if(DT.tribun&&DT.tribun.atmosfer)DT.tribun.atmosfer(g,{W:W,ust:35,alt:izdus(0,A.kale.yukseklik,pos.D).y+14,time:(root.performance?root.performance.now():Date.now())/1000,makeCanvas:yerelCanvas});
-    if(supporter&&DT.tribun){DT.tribun.draw(g,{id:supporter,D:pos.D,time:(root.performance?root.performance.now():Date.now())/1000,project:izdus,makeCanvas:yerelCanvas,image:gorseller['_menu_'+supporter+'_bekle']||sprite(supporter,'bekle')});}
-    else if(supporter)pankartCiz(g,supporter);
+    tribunKatmaniCiz(g, d, supporter);   // kalabalık + atmosfer + bayrak/pankart: en çok ~30 Hz yenilenen önbellekli katman
+    if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
     alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur);
 
     kaleArka(g);
@@ -756,7 +785,7 @@
 
   DT.cizim = {
     kameraAyar: KAMERA, okNoktalari: okNoktalari, barajIsit: barajIsit,
-    kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
+    kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, _tribunKatman: function () { return tribunTuval; }, _tribunSinir: tribunSinir, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },
     karakterHazir: karakterHazir, karakterYukle: karakterYukle,
