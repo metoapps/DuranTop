@@ -142,7 +142,7 @@
     return root.__yapCanvas(w, h);
   }
 
-  var kalabalik = null;
+  var kalabalik = null, kamSurum = 0, kareNo = 0;   // kamSurum: kamera/sahne değişince artar; baraj önbelleği buna bağlı
   var KTEN = ['#cdc6b2', '#af8d75', '#d6ad8a', '#adada8'], KFORMA = ['#e1e0d8', '#08090b', '#b3262f', '#d7b33a', '#1d3f86', '#e1e0d8', '#08090b', '#7d1d24'];
   /* Bir sıra seyirci: A = normal, B = kollar havada, C = alay (kollar aşağıda dışa açık, "yuh"). Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
   function kalabalikSerit(kisiler, sy, sc) {
@@ -408,11 +408,19 @@
     g.restore();
   }
 
+  /* Pozisyon açılırken baraj sprite'larını önceden üretir (vuruş sırasında ilk çizim maliyeti kare atlatmasın). */
+  function barajIsit(b) {
+    if (!b || !pos || pos.tip !== 'frikik' || !DT.baraj3d || !DT.baraj3d.isit) return;
+    (b.oyuncular || DT.baraj.kur(pos)).forEach(function (player, i) {
+      var st = DT.baraj.durum(player, 0);
+      DT.baraj3d.isit(izdus, { x: b.merkezX + b.px * player.off, y: 0, z: b.merkezZ + b.pz * player.off, boy: st.boy }, i, { makeCanvas: yerelCanvas, dpr: dpr, surum: kamSurum });
+    });
+  }
   function barajCiz(g, ogeler) {
     if (!pos || pos.tip !== 'frikik') return;
     var b=ogeler.baraj, players=b.oyuncular||DT.baraj.kur(pos);
     players.map(function(player,i){var q=izdus(b.merkezX+b.px*player.off,0,b.merkezZ+b.pz*player.off);return{player:player,i:i,d:q?q.d:0};}).sort(function(a,c){return c.d-a.d;}).forEach(function(e){var player=e.player,i=e.i,state=DT.baraj.durum(player,ogeler.zaman||0),x=b.merkezX+b.px*player.off,z=b.merkezZ+b.pz*player.off;
-      if(!(DT.baraj3d&&DT.baraj3d.oyuncu(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i,{t:(root.performance?root.performance.now():0)/1000,makeCanvas:yerelCanvas})))DT.model3d.barajCiz(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i);
+      if(!(DT.baraj3d&&DT.baraj3d.oyuncu(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i,{t:(root.performance?root.performance.now():0)/1000,makeCanvas:yerelCanvas,dpr:dpr,surum:kamSurum})))DT.model3d.barajCiz(g,izdus,{x:x,y:state.y,z:z,boy:state.boy},i);
     });
   }
 
@@ -633,6 +641,7 @@
     else if (cache.sallanan) { DT.ag.temizle(); cache.faces.forEach(function (f) { f.ciz(false); }); cache.sallanan = false; }
   }
   function ciz(d) {
+    kareNo++;
     if (!kam || !arka) return;
     var g = ctx;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -728,12 +737,12 @@
   }
 
   function sahneKur(p, durus) {
-    pos = p; if (durus !== undefined) kamDurus = durus; kam = kameraKur(p); kaleArkaCache=null; if(DT.ag)DT.ag.sifirla(p); arka = arkaPlanCiz();
+    pos = p; if (durus !== undefined) kamDurus = durus; kam = kameraKur(p); kaleArkaCache=null; kamSurum++; if(DT.ag)DT.ag.sifirla(p); arka = arkaPlanCiz();
   }
   // Duruş seçilince kamera yeni duruşa göre döner (tek kesme; arka plan bir kez yeniden çizilir, her karede değil).
   function kameraDurus(durus) {
     if (durus === kamDurus || !pos) return;
-    kamDurus = durus; kam = kameraKur(pos); kaleArkaCache=null; if(DT.ag)DT.ag.sifirla(pos); arka = arkaPlanCiz();
+    kamDurus = durus; kam = kameraKur(pos); kaleArkaCache=null; kamSurum++; if(DT.ag)DT.ag.sifirla(pos); arka = arkaPlanCiz();
   }
 
   function kur(canvas, genislik, yukseklik, dprZorla) {
@@ -744,7 +753,7 @@
   }
 
   DT.cizim = {
-    kameraAyar: KAMERA, okNoktalari: okNoktalari,
+    kameraAyar: KAMERA, okNoktalari: okNoktalari, barajIsit: barajIsit,
     kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },

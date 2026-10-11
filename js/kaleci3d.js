@@ -112,25 +112,36 @@ function golge(g,project,n,z){var xs=[],ymin=9;Object.keys(n).forEach(function(k
  var c=project(cx,0,z),l=project(cx-yari,0,z),r=project(cx+yari,0,z),f=project(cx,0,z-.35);if(!c||!l||!r||!f)return;
  g.save();g.fillStyle='rgba(0,0,0,'+alfa.toFixed(3)+')';g.beginPath();g.ellipse(c.x,c.y,Math.abs(r.x-l.x)/2,Math.max(1.5,Math.abs(f.y-c.y)*.6),0,0,Math.PI*2);g.fill();g.restore();}
 function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.olcek||1),doku0=renk.yuz||yuz;
+ /* Ayrıntı düzeyi: 1 = hızlı (kaleci, her karede çizilir: 8 kenarlı uzuvlar, küçük eklem küreleri, 2×2 yüz), 2 = ayrıntılı (baraj; önbelleğe alınıp bir kez çizilir). */
+ var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay||1,NS=DET>1?12:8,CA=DET>1?4:3,CB=DET>1?8:5,KA=DET>1?7:5,KB=DET>1?12:8,FR=DET>1?4:2,FC=DET>1?3:2;
  function yuzey(a,b,c,color){var nor=unit(cross(sub(b,a),sub(c,a))),isik=.58+.48*Math.abs(nor[0]*-.40+nor[1]*.62+nor[2]*-.67)-.10*Math.max(0,-nor[1]);ucgen.push({p:[a,b,c],color:ton(color,isik)});}
- function silindir(a,b,yr,color,yr2){var w=unit(sub(b,a)),u=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),v=cross(w,u),N=10,r2=yr2||yr;
+ function silindir(a,b,yr,color,yr2,atla){var w=unit(sub(b,a)),u=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),v=cross(w,u),N=NS,r2=yr2||yr;
   for(var i=0;i<N;i++){var t=i*2*Math.PI/N,tn=(i+1)*2*Math.PI/N,o1=add(mul(u,Math.cos(t)),mul(v,Math.sin(t))),o2=add(mul(u,Math.cos(tn)),mul(v,Math.sin(tn)));
    var aa=add(a,mul(o1,yr)),ab=add(a,mul(o2,yr)),ba=add(b,mul(o1,r2)),bb=add(b,mul(o2,r2));yuzey(aa,ba,ab,color);yuzey(ab,ba,bb,color);}
-  kure(a,[yr,yr,yr],color,4,6);kure(b,[r2,r2,r2],color,4,6);}
- function kure(m,s,color,A,B){A=A||5;B=B||8;function p(la,lo){return add(m,[s[0]*Math.sin(la)*Math.cos(lo),s[1]*Math.cos(la),s[2]*Math.sin(la)*Math.sin(lo)]);}
+  if(!(atla&1))kure(a,[yr,yr,yr],color,CA,CB);if(!(atla&2))kure(b,[r2,r2,r2],color,CA,CB);}   // atla: 1 = a ucundaki küreyi çizme, 2 = b ucundaki
+ function kure(m,s,color,A,B){A=A||KA;B=B||KB;function p(la,lo){return add(m,[s[0]*Math.sin(la)*Math.cos(lo),s[1]*Math.cos(la),s[2]*Math.sin(la)*Math.sin(lo)]);}
   for(var i=0;i<A;i++)for(var j=0;j<B;j++){var a=i*Math.PI/A,b=(i+1)*Math.PI/A,c=j*2*Math.PI/B,d=(j+1)*2*Math.PI/B;yuzey(p(a,c),p(b,c),p(b,d),color);yuzey(p(a,c),p(b,d),p(a,d),color);}}
  // gövde: kalçadan göğse genişleyen forma, omuz kuşağı
- silindir(n.hip,n.chest,.21*K,renk.shirt,.25*K);silindir(n.sl,n.sr,.10*K,renk.shirt);silindir(n.chest,n.neck,.08*K,renk.skin);
- silindir(n.hip,add(n.hip,[0,-.10,0]),.22*K,renk.shorts);
+ if(renk.sortKisa){   // gerçekçi oyuncu: göğüs kalçadan biraz yukarıda başlar (şort bandı görünür), omuzlar yuvarlak (omuz pedi yok)
+  silindir(add(n.hip,[0,.07,0]),n.chest,.20*K,renk.shirt,.235*K);silindir(n.sl,n.sr,.07*K,renk.shirt);kure(n.sl,[.092*K,.092*K,.092*K],renk.shirt);kure(n.sr,[.092*K,.092*K,.092*K],renk.shirt);silindir(n.chest,n.neck,.07*K,renk.skin);
+  silindir(add(n.hip,[0,-.13,0]),add(n.hip,[0,.09,0]),.205*K,renk.shorts,.215*K);
+ }else{
+  silindir(n.hip,n.chest,.21*K,renk.shirt,.25*K);silindir(n.sl,n.sr,.10*K,renk.shirt);silindir(n.chest,n.neck,.08*K,renk.skin);
+  silindir(n.hip,add(n.hip,[0,-.10,0]),.22*K,renk.shorts);
+ }
  [['sl','el','hl'],['sr','er','hr']].forEach(function(k){silindir(n[k[0]],n[k[1]],.085*K,renk.shirt,.075*K);silindir(n[k[1]],n[k[2]],.072*K,renk.kol||renk.shirtKoyu,.065*K);
   var bilek=add(n[k[2]],mul(unit(sub(n[k[1]],n[k[2]])),.07));if(!renk.elCiplak){silindir(bilek,n[k[2]],.068*K,renk.cuff,.07*K);}kure(n[k[2]],renk.elCiplak?[.07*K,.06*K,.07*K]:[.105*K,.08*K,.105*K],renk.gloves);});
- [['kl','fl'],['kr','fr']].forEach(function(k,i){silindir(n.hip,n[k[0]],.115*K,renk.shorts,.095*K);silindir(n[k[0]],n[k[1]],.085*K,renk.socks,.065*K);
+ [['kl','fl'],['kr','fr']].forEach(function(k,i){
+  if(renk.sortKisa){var mid=lerpV(n.hip,n[k[0]],.50);silindir(n.hip,mid,.125*K,renk.shorts,.112*K);silindir(mid,n[k[0]],.092*K,renk.skin,.082*K);}   // şort uyluğun ortasına kadar, altı ten
+  else silindir(n.hip,n[k[0]],.115*K,renk.shorts,.095*K);
+  silindir(n[k[0]],n[k[1]],.085*K,renk.socks,.065*K,renk.sortKisa?1:0);   // gerçekçi: çorabın diz ucu top gibi şişmez
   kure(add(n[k[1]],[0,-.02,-.06*K]),[.10*K,.065*K,.19*K],renk.boots);});
- kure(n.head,[.14*K,.18*K,.145*K],renk.skin);
- var st=renk.sacStil||'kisa';if(st==='kisa')kure(add(n.head,[0,.10*K,.015*K]),[.148*K,.10*K,.15*K],renk.hair);else if(st==='kivircik')kure(add(n.head,[0,.11*K,.012*K]),[.158*K,.125*K,.162*K],renk.hair);else if(st==='ince')kure(add(n.head,[0,.115*K,.02*K]),[.146*K,.075*K,.148*K],renk.hair);
+ kure(n.head,[.14*KH,.18*KH,.145*KH],renk.skin);
+ if(renk.kulak)[-1,1].forEach(function(sg){kure(add(n.head,[sg*.136*KH,-.015*KH,.005*KH]),[.028*KH,.05*KH,.03*KH],renk.skin);});
+ var st=renk.sacStil||'kisa';if(st==='kisa')kure(add(n.head,[0,.10*KH,.015*KH]),[.148*KH,.10*KH,.15*KH],renk.hair);else if(st==='kivircik')kure(add(n.head,[0,.11*KH,.012*KH]),[.158*KH,.125*KH,.162*KH],renk.hair);else if(st==='ince')kure(add(n.head,[0,.115*KH,.02*KH]),[.146*KH,.075*KH,.148*KH],renk.hair);
  if(doku0){var up=unit(sub(n.head,n.neck)),right=[up[1],-up[0],0];
-  function v(u,w){var xx=(u-.5)*.34*K,yy=(.5-w)*.42*K,dp=(-.135-.035*Math.max(0,1-Math.pow(xx/(.17*K),2)))*K;return add(n.head,add(mul(right,xx),add(mul(up,yy),[0,0,dp])));}
-  for(var row=0;row<6;row++)for(var col=0;col<4;col++){var a=col/4,b=row/6,c=(col+1)/4,d=(row+1)/6;
+  function v(u,w){var xx=(u-.5)*.34*KH,yy=(.5-w)*.42*KH,dp=(-.135-.035*Math.max(0,1-Math.pow(xx/(.17*KH),2)))*KH;return add(n.head,add(mul(right,xx),add(mul(up,yy),[0,0,dp])));}
+  for(var row=0;row<FR;row++)for(var col=0;col<FC;col++){var a=col/FC,b=row/FR,c=(col+1)/FC,d=(row+1)/FR;
    ucgen.push({p:[v(a,b),v(c,b),v(c,d)],uv:[[a,b],[c,b],[c,d]],doku:doku0});ucgen.push({p:[v(a,b),v(c,d),v(a,d)],uv:[[a,b],[c,d],[a,d]],doku:doku0});}}
  ucgen.forEach(function(t){t.s=t.p.map(function(p){return project(p[0],p[1],p[2]);});t.d=t.s.every(Boolean)?(t.s[0].d+t.s[1].d+t.s[2].d)/3:-1;});
  ucgen.sort(function(a,b){return b.d-a.d;});

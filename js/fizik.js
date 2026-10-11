@@ -91,8 +91,9 @@
       var ux = -bx, uz = D, ul = Math.hypot(ux, uz); ux /= ul; uz /= ul;
       var px = uz, pz = -ux;
       var mesafe = A.baraj.mesafe;
-      baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe, merkezZ: uz * mesafe };
-      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0}:null);
+      var kay = girdi.kural10 === true ? DT.baraj.yanKayma(pos, ux, uz, px, pz, mesafe) : 0;   // kural 10: baraj yakın direğe giden hattı örter
+      baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe + px * kay, merkezZ: uz * mesafe + pz * kay };
+      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0,kural10:true}:null);
       var hit=DT.baraj.ilkTemas(baraj,ornekler,R);
       if(hit){sonuc='baraj';olayIndex=hit.index;baraj.temas=hit;}
 
