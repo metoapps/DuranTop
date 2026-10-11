@@ -661,7 +661,7 @@
   function tribunKatmaniCiz(g, d, supporter) {
     var simdi = root.performance ? root.performance.now() : Date.now(), saniye = simdi / 1000;
     if (!cv || typeof yerelCanvas !== 'function') { tribunDogrudan(g, d, supporter, saniye); return; }
-    var anahtar = [W, H, dpr, kamSurum, supporter || '', (d.heyecan || 0) > 0.01 ? 1 : 0, d.alay >= 0 ? 1 : 0, d.alayTur || '', A.hareket === false ? 0 : 1].join('|');
+    var anahtar = [W, H, dpr, kamSurum, supporter || '', (d.heyecan || 0) > 0.01 ? 1 : 0, d.alay >= 0 && d.alay < 3.4 ? 1 : 0, d.alayTur || '', A.hareket === false ? 0 : 1].join('|');
     try {
       var sinir = tribunSinir(), gw = Math.round(W * dpr), gh = Math.max(1, Math.round(sinir * dpr));   // katman yalnız tribün bölgesi kadar (ekranın üst ~%15-30'u)
       if (!tribunTuval || tribunTuval.width !== gw || tribunTuval.height !== gh) { tribunTuval = yerelCanvas(gw, gh); tribunBaglam = tribunTuval.getContext('2d'); tribunAnahtar = ''; }
