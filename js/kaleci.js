@@ -83,10 +83,14 @@ function gozlem(path,t,D,yerTakibi){
 // final target, flight duration or future samples can affect the lateral dive.
 function penaltiPlan(practice,noise,o){
  var K=A.kaleci,decision=o.preDecision===undefined?.5:o.preDecision;
- var dir=decision<.14?0:decision<.57?-1:1,start=-.10,x=dir*2.20;
+ /* Kural 10 (antrenman/hedef; resmi kupa rules 9 aynı): kaleci daha sık yerinde kalır (%24), dalışlar kısa da olabilir (%45 oranında 1,0-1,9 m) ve yerinde kalan kaleci topu gördükten sonra yana kayabilir:
+  * ortaya (falsolu da) giden şut artık %95 değil ~%65-75 gol. Rules 9 ve eski kayıtlar değişmez. */
+ var k10=!!o.kural10,dir=k10?(decision<.24?0:decision<.62?-1:1):(decision<.14?0:decision<.57?-1:1),start=-.10,x=dir*2.20;
+ if(k10&&dir){var ex=o.preExtent===undefined?.5:o.preExtent;x=dir*(ex<.55?2.20:1.0+.9*((ex-.55)/.45));}
  var vmax=K.penaltiHiz-(practice?A.antrenman.hizAzalt:0);
  var duration=K.hareketSabit+1.5*Math.abs(x)/vmax,end=start+duration;
  var readT=.13+(practice?.025:0),seen=gozlem(o.yol||[],readT,o.D,true);
+ if(k10&&!dir&&seen){x=clamp(seen.x,-.9,.9);start=readT;duration=K.hareketSabit+1.5*Math.abs(x)/vmax;end=start+duration;}   // yerinde kalan kaleci topun yönüne kayar (kural 10)
  // Only height is read after the shot. Lateral commitment cannot be corrected.
  var heightNoise=noise()*K.hedefGurultuY,reads=[];
  for(var rt=readT;rt<=1.3;rt+=.10){var observed=gozlem(o.yol||[],rt,o.D,true);if(observed)reads.push({t:rt,x:observed.x,y:clamp(observed.y+heightNoise,.15,2.6)});}
