@@ -162,13 +162,15 @@
     });
     return { A: kare[0], B: kare[1], C: kare[2], y0: y0, h: h, sc: sc };
   }
-  var ALAY = { aut: ['Yuh!', 'Çüş!', 'Nereye vuruyon?', 'Hahaha!', 'Kaleyi göremedin mi?'], kisa: ['Yuh!', 'Çüş!', 'Kısa kaldı!', 'Hahaha!', 'Topa kuvvet!'], kurtaris: ['Kaleci aldı!', 'Hadi canım!', 'Yuhhh!', 'Hahaha!', 'Bu muydu?'], baraj: ['Baraj yedi!', 'Yuh!', 'Hahaha!', 'Üstünden at!', 'Çüş!'], ag: ['Delik orada!', 'Yuh!', 'Hahaha!', 'Çüş!', 'Nişan nerede?'], halka: ['Delik orada!', 'Yuh!', 'Hahaha!', 'Çüş!', 'Nişan nerede?'] };
+  var ALAY = { aut: ['Yuh!', 'Senin ayağının dümenini skeyim', 'Nereye vuruyon?', 'Ebenin amk yayım ya!', 'Kaleyi göremedin mi?'], kisa: ['Yuh!', 'Çekeceğin şutun anasını avradını skeyim', 'Kısa kaldı!', 'Ebenin amk yayım ya!', 'Topa kuvvet!'], kurtaris: ['Kaleci aldı!', 'Senin ayağının dümenini skeyim', 'Yuhhh!', 'Çekeceğin şutun anasını avradını skeyim', 'Bu muydu?'], baraj: ['Baraj yedi!', 'Ebenin amk yayım ya!', 'Hahaha!', 'Senin ayağının dümenini skeyim', 'Çekeceğin şutun anasını avradını skeyim'], ag: ['Delik orada!', 'Çekeceğin şutun anasını avradını skeyim', 'Hahaha!', 'Ebenin amk yayım ya!', 'Nişan nerede?'], halka: ['Delik orada!', 'Senin ayağının dümenini skeyim', 'Hahaha!', 'Çekeceğin şutun anasını avradını skeyim', 'Nişan nerede?'] };
   /* Alay balonları: kaçan şutta tribünden 5 yorum yükselip kaybolur. Konumlar sonuç türünden türetilir (deterministik). */
   function alayBalon(g, s, tur) {
     var metin = ALAY[tur] || ALAY.aut, K = kalabalik, ust = 52, alt = Math.max(ust + 40, K.alt - 20);
     g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + Math.round(Math.max(11, Math.min(15, W / 28))) + 'px Arial';
     for (var i = 0; i < metin.length; i++) {
       var t0 = 0.12 * i + 0.05 * ((i * 3) % 2), u = (s - t0) / 2.6; if (u <= 0 || u >= 1) continue;
+      var fs = Math.round(Math.max(11, Math.min(15, W / 28))); g.font = 'bold ' + fs + 'px Arial';
+      var tw = g.measureText(metin[i]).width; if (tw > W - 28) { fs = Math.max(8, Math.floor(fs * (W - 28) / tw)); g.font = 'bold ' + fs + 'px Arial'; }   // uzun yorum ekrana sığsın
       var a = u < 0.12 ? u / 0.12 : u > 0.75 ? (1 - u) / 0.25 : 1, w = g.measureText(metin[i]).width + 16, h = 21;
       var x = Math.max(w / 2 + 4, Math.min(W - w / 2 - 4, W * (0.14 + 0.72 * (((i * 37 + 11) % 100) / 100)))), y = alt - (alt - ust) * (((i * 53 + 7) % 100) / 100) - u * 18;
       g.globalAlpha = a * 0.95; g.fillStyle = '#fff6df'; g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1;
