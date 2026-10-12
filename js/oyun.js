@@ -120,8 +120,8 @@
   function panelKonumu(){var el=$('oyun');if(el&&el.classList&&el.classList.toggle)el.classList.toggle('secim-sag',d.durus<=-.5);}
 
   function vurusHazirla(acik) {
-    var tAcilis = simdi();
     if (DT.ses.sustur) DT.ses.sustur();   // önceki golün tribün uğultusu yeni pozisyona taşmasın
+    var tAcilis = simdi();
     d.pos = pozlar()[d.idx];
     DT.cizim.sahneKur(d.pos, 0);
     // baraj konumu nişandan bağımsız; önizleme hesabından alınır

@@ -7,6 +7,8 @@ const pos=D.AYAR.pozisyonlar[5];D.cizim.sahneKur(pos,0);
 const res=D.fizik.hesapla({pos,aim:{x:2,y:1.4},contact:{x:0,y:0},zaman:.5,seed:3,guc:.8,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman:true,kural10:true});
 D.cizim.barajIsit(res.baraj);
 let sayac=0;const orijinal=g.drawImage.bind(g);g.drawImage=function(){sayac++;return orijinal.apply(null,arguments);};
+// Tribün (kalabalık, bayrak, atmosfer) ayrı bir katman tuvaline çizilir (cizim.js tribunKatmaniCiz): oradaki çizimleri de say.
+D.cizim.ciz({top:{x:pos.bx,y:.11,z:0}});{const kg=D.cizim._tribunKatman().getContext('2d'),ko=kg.drawImage.bind(kg);kg.drawImage=function(){sayac++;return ko.apply(null,arguments);};}
 function kare(t,kademe){D.perf.sabitle(kademe);now=1000+t*1000;sayac=0;D.cizim.ciz({top:{x:pos.bx,y:.11,z:0},oyuncu:{karakter:'meto',durus:0,poz:'vurus1'},kaleci:res.kaleci.cizimKonum(.2),baraj:res.baraj,zaman:0});const n=sayac;return{n,px:Uint8ClampedArray.from(g.getImageData(0,35,W,130).data)};}
 const fark=(a,b)=>{let n=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])>60)n++;return n;};
 const k0=kare(5.0,0),k1=kare(5.0,1),k2=kare(5.0,2);
