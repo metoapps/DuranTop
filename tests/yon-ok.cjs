@@ -28,6 +28,11 @@ let seed=7;const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x
 for(let k=0;k<40;k++){const op=Math.floor(rnd()*4),n=3+Math.floor(rnd()*20),dur0=d.durus,aim0=JSON.stringify(d.aim);
  const id=['yonSol','yonSag','nisanSol','nisanYukari'][op];fire(id,'pointerdown',{pointerId:10+k,preventDefault(){}});for(let i=0;i<n;i++)kare(16);fire(id,'pointerup',{});
  if(op<2){assert.equal(JSON.stringify(d.aim),aim0,'vücut oku nişanı değiştirmedi');}else{assert.equal(d.durus,dur0,'nişan oku duruşu değiştirmedi');}}
+// 5b) Nişan sınırı: antrenmanda ±9 m (direğin dışına nişan alıp falsoyla uzak köşeye sokmak için), kupada ±4,5 m
+d.mod='antrenman';fire('nisanSag','pointerdown',{pointerId:50,preventDefault(){}});for(let i=0;i<500;i++)kare(16);fire('nisanSag','pointerup',{});assert.equal(d.aim.x,9,'antrenman: sağ sınır 9 m: '+d.aim.x);
+fire('nisanSol','pointerdown',{pointerId:51,preventDefault(){}});for(let i=0;i<900;i++)kare(16);fire('nisanSol','pointerup',{});assert.equal(d.aim.x,-9,'antrenman: sol sınır -9 m: '+d.aim.x);
+d.mod='resmi';fire('nisanSag','pointerdown',{pointerId:52,preventDefault(){}});for(let i=0;i<60;i++)kare(16);fire('nisanSag','pointerup',{});assert(d.aim.x<=4.5,'kupa: nişan 4,5 m'+'den öteye gitmez: '+d.aim.x);d.mod='antrenman';
+fire('sahne','pointerdown',{clientX:350,clientY:150,pointerId:53});fire('sahne','pointerup',{});
 // 6) Tamam: ikisi birlikte kilitlenir, 2/3'e geçilir; sonra vücut oku bir şey yapmaz.
 fire('nisanKilit','click');assert(d.kilit&&el('fifaNisan').hidden&&!el('temasPanel').hidden,'Tamam → 2/3 topun neresine');assert.equal(kamCagri[kamCagri.length-1],d.durus,'kamera son duruşta');
 const d2=d.durus;fire('yonSag','pointerdown',{pointerId:99,preventDefault(){}});for(let i=0;i<20;i++)kare(16);fire('yonSag','pointerup',{});assert.equal(d.durus,d2,'kilitten sonra vücut oku etkisiz');

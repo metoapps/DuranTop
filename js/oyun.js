@@ -160,7 +160,7 @@
   function nisanGuncelle(e) {
     var p = ekranNoktasi(e), k = DT.cizim.ekranToKale(p.x, p.y);
     if (!k) return;
-    d.aim = { x: Math.max(-4.5, Math.min(4.5, k.x)), y: Math.max(0.11, Math.min(3.1, k.y)) };
+    d.aim = { x: Math.max(-aimXMax(), Math.min(aimXMax(), k.x)), y: Math.max(0.11, Math.min(3.1, k.y)) };
   }
   function girisBagla() {
     var cv = $('sahne'), basili = false;
@@ -176,12 +176,15 @@
   }
 
   function onizlemeHesapla() {
-    if (!d.aim) { d.onizleme = null; return; }
+    // FIFA akışında kesik çizgili tahmini uçuş yok (yer oku ayrı hesaplanır): bu pahalı tam hesap (parmak hareketi başına ≈14 ms, telefonda daha fazla) boşuna çalışmasın.
+    if (fifaMod() || !d.aim) { d.onizleme = null; return; }
     var r = hesap({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, guc:d.guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: true,kural10:d.mod!=="resmi" });
     d.onizleme = (!r.kaleci.onKarar&&(r.sonuc === 'baraj'||r.sonuc === 'kisa')) ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
   function k10(){return d.mod!=='resmi';}
+  /* Nişan sınırı: kupada ±4,5 m (eski), antrenman/hedefte ±9 m: direğin dışına nişan alıp falsoyla uzak köşeye sokmak için (falso 28 m'de topu ≈6 m saptırır). */
+  function aimXMax(){return k10()?9:4.5;}
   function bantGuncelle(){var bant=DT.zamanBandi(d.aim,d.guc,k10());$('cubukBant').style.left=((.5-bant)*100)+'%';$('cubukBant').style.width=(bant*200)+'%';
     $('cubukYazi').textContent='%'+Math.round(d.guc*100)+' güç · '+(d.guc>=.9?'Sert vuruş: dar yeşil, hatada daha fazla sapma':d.guc<=.7?'Kontrollü vuruş: daha geniş yeşil, kaleciye daha fazla süre':'Güç arttıkça isabet zorlaşır')+(DT.koseBandi(d.aim)<A.zaman.bant*.85?' · Hassas köşe: bant daha dar':'');
   }
@@ -522,13 +525,13 @@
    * Sunucuya giden girdiler aynı (nişan, temas, güç, zamanlama, duruş): kural sürümü değişmez (rules 9). */
   var FIFA = { gucSure: 1100, nisanX: 3.2, nisanY: 1.6 };   // m/sn; basılı tutuldukça 2,2 katına hızlanır
   /* Yer oku = topun GERÇEK uçuş yolu (tam güç, kusursuz zamanlama): falso verince ok eğilir, alt temasta ok havaya kalkar.
-   * 33 ms'lik hesap önbelleğe alınır; ok tuşu basılıyken en çok 8 kez/sn yenilenir. */
+   * Hesap önbelleğe alınır ve en çok ≈14 kez/sn yenilenir (kural 10 hızlı entegrasyonla ≈7 ms). */
   var onizBel = { key: '', yol: null, t: -1e9 };
   function fifaOnizleme(now) {
     if (!d.aim || !d.pos) return null;
     var c = d.contact || { x: 0, y: 0 }, key = [d.pos.ad, d.aim.x.toFixed(2), d.aim.y.toFixed(2), (+c.x).toFixed(2), (+c.y).toFixed(2), k10() ? 1 : 0].join('|');
     if (onizBel.key === key) return onizBel.yol;
-    if (d.nisanHiz && onizBel.yol && now - onizBel.t < 120) return onizBel.yol;
+    if (onizBel.yol && now - onizBel.t < 70) return onizBel.yol;   // en çok ≈14 kez/sn yenilenir (ok tuşu ya da falso sürüklemesi sırasında takılma olmasın)
     var f = DT.ucus.energyLaunch(d.pos, d.aim, c, 0, 1, function () { return 0; }, 1, true, k10() ? { hata: 0, bant: DT.zamanBandi(d.aim, 1, true) } : null);
     onizBel = { key: key, yol: f.yol, t: now }; return onizBel.yol;
   }
@@ -544,7 +547,7 @@
     if (d.nisanSon == null) { d.nisanSon = now; d.nisanTut = 0; return; }
     var dt = Math.max(0, Math.min(.1, (now - d.nisanSon) / 1000)); d.nisanSon = now; d.nisanTut = (d.nisanTut || 0) + dt;
     var ivme = 1 + Math.min(1.2, d.nisanTut / 0.5 * 1.2);   // basılı tuttukça hızlanır: ince ayar başta, uzun yol sonra
-    d.aim = { x: Math.max(-4.5, Math.min(4.5, d.aim.x + d.nisanHiz.x * FIFA.nisanX * ivme * dt)), y: Math.max(0.11, Math.min(3.1, d.aim.y + d.nisanHiz.y * FIFA.nisanY * ivme * dt)) };
+    d.aim = { x: Math.max(-aimXMax(), Math.min(aimXMax(), d.aim.x + d.nisanHiz.x * FIFA.nisanX * ivme * dt)), y: Math.max(0.11, Math.min(3.1, d.aim.y + d.nisanHiz.y * FIFA.nisanY * ivme * dt)) };
 
   }
   function nisanBirak() { d.nisanHiz = null; d.nisanSon = null; ['nisanSol','nisanSag','nisanYukari','nisanAsagi'].forEach(function (id) { var b = $(id); if (b && b.classList) b.classList.toggle('basili', false); }); }

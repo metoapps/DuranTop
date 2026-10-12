@@ -25,7 +25,7 @@
     hiz: { penalti: 25, frikik: 24 },   // m/s
     yercekimi: 9.81,
     aerodinamik: { kutle:.43, havaYogunlugu:1.20, cd:.25, clEgilim:.9,
-      clTavan:.35, spinAktarimi:.23, spinSonumu:.12, sekme:.35 },
+      clTavan:.35, spinAktarimi:.23, spinSonumu:.12, sekme:.35, ruloK10:.5, ruloVK10:0, maxAciK10:.55, minVarisK10:3 },   // kural 10 (yalnız antrenman/hedef): ağır çim (yuvarlanma sürtünmesi .5·g), düz vuruşta çıkış açısı ≤32°, yerde 3 m/sn'nin altına düşen top hemen durur (kaleye sürünerek varmaz)   // ruloK10: kural 10 yuvarlanma sürtünme katsayısı (g ile çarpılır); .055 = eski
 
     // Zamanlama çubuğu: 0..1, tam isabet 0.5
     zaman: {

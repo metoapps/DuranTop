@@ -6,7 +6,7 @@ const D=r.DT,P=D.AYAR.pozisyonlar;
 const G=(pi,a,seed,guc,k10)=>D.fizik.hesapla({pos:P[pi],aim:{x:a[0],y:a[1]},contact:{x:0,y:0},zaman:.5,seed,guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman:true,kural10:k10});
 const aims=[[2.4,1.2],[-2.0,.7],[.4,1.5],[1.2,.5],[-2.6,1.6],[2.0,1.9]];
 // 1) Yavaş frikik: durgunluk, ilk hareket, dalış zamanlaması, süreklilik, gol oranı
-for(const guc of [.4,.5,.6]){let n=0,gol=0,enUzunDurgun=0,enGecIlk=0,enGecBitis=-9,enErkenBitis=9,maxAtlama=0,maxYuru=0,yururken=0;
+for(const guc of [.5,.55,.6]){let n=0,gol=0,enUzunDurgun=0,enGecIlk=0,enGecBitis=-9,enErkenBitis=9,maxAtlama=0,maxYuru=0,yururken=0;
  for(const pi of [5,8,9])for(const a of aims)for(let seed=1;seed<=8;seed++){const res=G(pi,a,seed,guc,true),k=res.kaleci,T=res.olayT;if(res.sonuc==='baraj'||res.sonuc==='kisa'||k.merkezHatasi)continue;n++;if(res.sonuc==='gol')gol++;
   let prev=k.konum(0),idle=0,ilk=null,dive=false,endT=null;
   for(let t=1/60;t<=T+.3;t+=1/60){const q=k.konum(t),vx=Math.abs(q.x-prev.x)*60;maxAtlama=Math.max(maxAtlama,Math.abs(q.x-prev.x));
@@ -19,11 +19,18 @@ for(const guc of [.4,.5,.6]){let n=0,gol=0,enUzunDurgun=0,enGecIlk=0,enGecBitis=
  assert(enGecBitis<=.13,'güç '+guc+': dalış topun varışından en çok 0,13 sn sonra biter: '+enGecBitis.toFixed(2));assert(enErkenBitis>=-.4,'güç '+guc+': dalış topun varışından 0,4 sn'+'den fazla önce bitmez: '+enErkenBitis.toFixed(2));
  assert(maxAtlama<.13,'ışınlanma yok: kare başı '+maxAtlama.toFixed(3)+' m');assert(maxYuru<=3.1,'yürüyüş hızı ≤ 3 m/sn: '+maxYuru.toFixed(2));assert(yururken>50,'yürüme bayrağı (yan adım animasyonu) var');
  assert(gol/n<=.08,'güç '+guc+': yavaş şutta gol oranı makul (≤%8): %'+(100*gol/n).toFixed(1));}
+// 1b) Çok yavaş toplarda (varış >1,8 sn) kaleci UÇMAZ: topun hattına yürür, ayakta ya da çömelerek tutar
+{let n=0,dalan=0,alcak=0,alcakCome=0,kurt=0,gol=0;for(const guc of [.4,.45,.5,.55])for(const pi of [5,8,9])for(const a of aims){for(let seed=1;seed<=6;seed++){const res=G(pi,a,seed,guc,true),k=res.kaleci,T=res.olayT;if(res.sonuc==='baraj'||res.sonuc==='kisa'||k.merkezHatasi||T<1.8)continue;n++;
+   let dal=false;for(let t=0;t<=T+.2;t+=.02){if(k.konum(t).poz==='dal'){dal=true;break;}}if(dal)dalan++;
+   if(res.sonuc==='kurtaris')kurt++;if(res.sonuc==='gol')gol++;
+   if(res.gecis.y<.6){alcak++;const q=k.konum(T);if(q.y<=.85&&q.poz!=='dal')alcakCome++;}}}
+ assert(n>40,'yavaş top örneği '+n);assert(dalan/n<=.10,'çok yavaş topta kaleci uçmaz: dalan '+dalan+'/'+n);
+ assert(alcak<5||alcakCome/alcak>=.8,'alçak yavaş topu çömelerek tutar: '+alcakCome+'/'+alcak);assert(kurt/n>=.85,'yavaş topu çoğunlukla tutar: %'+(100*kurt/n).toFixed(0)+' gol %'+(100*gol/n).toFixed(0));}
 // 2) Yavaş penaltı: yere erken yatmaz, kalkarken top gelmez; kural 10 kapalıyken eski davranış aynı
-for(const guc of [.3,.4]){let n=0,gol=0;for(const a of aims)for(let seed=1;seed<=10;seed++){const res=G(0,a,seed,guc,true),k=res.kaleci,T=res.olayT;if(res.sonuc==='baraj'||res.sonuc==='kisa')continue;n++;if(res.sonuc==='gol')gol++;
+for(const guc of [.35,.4]){let n=0,gol=0;for(const a of aims)for(let seed=1;seed<=10;seed++){const res=G(0,a,seed,guc,true),k=res.kaleci,T=res.olayT;if(res.sonuc==='baraj'||res.sonuc==='kisa')continue;n++;if(res.sonuc==='gol')gol++;
   assert(!k.onKarar,'yavaş penaltıda kaleci vuruştan önce yön seçmez, topu izler');let land=null;for(let t=0;t<T;t+=.02){const q=k.konum(t);if(q.landing){land=t;break;}}
   assert(land===null||T-land<=.4,'güç '+guc+': kaleci top gelmeden 0,4 sn'+'den fazla önce yere yatmaz: '+(land===null?'-':(T-land).toFixed(2)));const q=k.konum(T);assert(!(q.recovery>0&&q.recovery<1),'top gelirken kalkmaya çalışmaz');}
- assert(gol/n<=.25,'güç '+guc+': yavaş penaltıda gol oranı '+(100*gol/n).toFixed(0)+'%');}
+ assert(n>20&&gol/n<=.25,'güç '+guc+': yavaş penaltıda gol oranı '+(100*gol/n).toFixed(0)+'% (n='+n+')');}
 {const eski=G(0,[2.4,1.2],3,.3,false);assert(eski.kaleci.onKarar,'kural 10 kapalı: eski davranış (yön önceden seçilir)');}
 // 3) Hızlı penaltıda yön önceden seçilir (rules 9 davranışı korunur)
 {let pen=0,penOk=0;for(const guc of [.6,1])for(const a of aims)for(let seed=1;seed<=6;seed++){const res=G(0,a,seed,guc,true);if(res.sonuc==='baraj'||res.sonuc==='kisa')continue;pen++;if(res.kaleci.onKarar===true)penOk++;}

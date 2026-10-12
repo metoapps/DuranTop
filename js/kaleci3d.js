@@ -113,7 +113,7 @@ function golge(g,project,n,z){var xs=[],ymin=9;Object.keys(n).forEach(function(k
  g.save();g.fillStyle='rgba(0,0,0,'+alfa.toFixed(3)+')';g.beginPath();g.ellipse(c.x,c.y,Math.abs(r.x-l.x)/2,Math.max(1.5,Math.abs(f.y-c.y)*.6),0,0,Math.PI*2);g.fill();g.restore();}
 function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.olcek||1),doku0=renk.yuz||yuz;
  /* Ayrıntı düzeyi: 1 = hızlı (kaleci, her karede çizilir: 8 kenarlı uzuvlar, küçük eklem küreleri, 2×2 yüz), 2 = ayrıntılı (baraj; önbelleğe alınıp bir kez çizilir). */
- var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay||1,NS=DET>1?12:8,CA=DET>1?4:3,CB=DET>1?8:5,KA=DET>1?7:5,KB=DET>1?12:8,FR=DET>1?4:2,FC=DET>1?3:2;
+ var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay===undefined?1:renk.detay,NS=DET>1?12:DET===0?6:8,CA=DET>1?4:DET===0?0:3,CB=DET>1?8:5,KA=DET>1?7:DET===0?3:5,KB=DET>1?12:DET===0?6:8,FR=DET>1?4:DET===0?1:2,FC=DET>1?3:DET===0?1:2;   // 0 = çok küçük figür (≤85 px): kapak yok, 6 kenar
  /* Ekrandaki boya göre ayrıntı: uzak frikikte kaleci birkaç on piksel; 1000+ üçgen çizmek boşuna (her karede path+fill+stroke). Yalnız hızlı (DET=1) kaleci/oyuncu; önbellekli baraj (DET>1) ve yakın kaleci aynı. */
  if(DET===1){var tepe=project(n.head[0],n.head[1],n.head[2]),taban=project(n.fl[0],n.fl[1],n.fl[2]);
   if(tepe&&taban){var boyPx=Math.abs(taban.y-tepe.y);if(boyPx<46){NS=5;CA=2;CB=3;KA=3;KB=5;}else if(boyPx<90){NS=6;CA=2;CB=4;KA=4;KB=6;}}}
@@ -121,7 +121,7 @@ function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.ol
  function silindir(a,b,yr,color,yr2,atla){var w=unit(sub(b,a)),u=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),v=cross(w,u),N=NS,r2=yr2||yr;
   for(var i=0;i<N;i++){var t=i*2*Math.PI/N,tn=(i+1)*2*Math.PI/N,o1=add(mul(u,Math.cos(t)),mul(v,Math.sin(t))),o2=add(mul(u,Math.cos(tn)),mul(v,Math.sin(tn)));
    var aa=add(a,mul(o1,yr)),ab=add(a,mul(o2,yr)),ba=add(b,mul(o1,r2)),bb=add(b,mul(o2,r2));yuzey(aa,ba,ab,color);yuzey(ab,ba,bb,color);}
-  if(!(atla&1))kure(a,[yr,yr,yr],color,CA,CB);if(!(atla&2))kure(b,[r2,r2,r2],color,CA,CB);}   // atla: 1 = a ucundaki küreyi çizme, 2 = b ucundaki
+  if(CA){if(!(atla&1))kure(a,[yr,yr,yr],color,CA,CB);if(!(atla&2))kure(b,[r2,r2,r2],color,CA,CB);}}   // atla: 1 = a ucundaki küreyi çizme, 2 = b ucundaki
  function kure(m,s,color,A,B){A=A||KA;B=B||KB;function p(la,lo){return add(m,[s[0]*Math.sin(la)*Math.cos(lo),s[1]*Math.cos(la),s[2]*Math.sin(la)*Math.sin(lo)]);}
   for(var i=0;i<A;i++)for(var j=0;j<B;j++){var a=i*Math.PI/A,b=(i+1)*Math.PI/A,c=j*2*Math.PI/B,d=(j+1)*2*Math.PI/B;yuzey(p(a,c),p(b,c),p(b,d),color);yuzey(p(a,c),p(b,d),p(a,d),color);}}
  // gövde: kalçadan göğse genişleyen forma, omuz kuşağı
@@ -156,6 +156,8 @@ function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.ol
   else{g.fillStyle=t.color;g.fill();g.strokeStyle=t.color;g.lineWidth=.6;g.stroke();}});
 }
 function ton(hex,l){var v=parseInt(hex.slice(1),16);return'rgb('+[v>>16,(v>>8)&255,v&255].map(function(x){return Math.min(255,Math.round(x*l));}).join(',')+')';}
-function kaleciCiz(g,project,k,z,opt){var r=iskelet(k,z,opt);golge(g,project,r.nodes,z);ciz(g,project,r,RENK);return r;}
+var RENK0=Object.assign({},RENK,{detay:0});
+// Ekranda küçük görünen kaleci (≤85 px) daha az üçgenle çizilir (frikikte kaleci 60–80 px; çizim maliyeti ≈yarı).
+function kaleciCiz(g,project,k,z,opt){var r=iskelet(k,z,opt);golge(g,project,r.nodes,z);var a=project(k.x||0,0,z),b=project(k.x||0,1.9,z),kucuk=a&&b&&Math.abs(a.y-b.y)<85;ciz(g,project,r,kucuk?RENK0:RENK);return r;}
 D.kaleci3d={kalip:kalip,cizGovde:ciz,golge:golge,iskelet:iskelet,onHareket:onHareket,ciz:kaleciCiz,HAZIR:HAZIR,RUTIN:RUTIN,PENALTI:PENALTI,SURE:SURE};
 })(typeof globalThis!=='undefined'?globalThis:window);

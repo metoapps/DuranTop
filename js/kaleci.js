@@ -143,8 +143,11 @@ function takipPlan(tip,practice,noise,o){
   var seen=gozlem(o.yol||[],t,o.D,o.yerTakibi===true);if(!seen)continue;
   var gx=seen.x+nx,gy=clamp(seen.y+ny,.15,2.6),central=Math.abs(gx)<=K.merkezEsik;
   if(!chosen){wrong=tip==='penalti'&&!central&&decision<K.penaltiYanlisKose;lapse=tip==='frikik'&&central&&decision<K.frikikMerkezHatasi;chosen=true;}
-  if(wrong)gx=-gx;if(lapse)gx=(decision<K.frikikMerkezHatasi/2?-1:1)*3;
-  var dir=gx<current.x?-1:1,action=o.kural10===true?(Math.abs(gx-current.x)<.35&&gy>=.6&&gy<=1.5?'bekle':'dal'):(Math.abs(gx-current.x)<K.merkezEsik?'bekle':'dal');   // kural 10: durup karşılama yalnız top elin ulaşabileceği yerdeyse (yanal <0,35 m, yükseklik 0,6–1,5 m); aksi hâlde dalış
+  var kalan=seen.arrival-t,yavasTop=o.kural10===true&&kalan>1.2;   // kural 10: varışa 1,2 sn'den fazla var = yavaş top
+  if(!yavasTop){if(wrong)gx=-gx;if(lapse)gx=(decision<K.frikikMerkezHatasi/2?-1:1)*3;}   // yavaş şutta kasıtlı hata yok (kaleci topu açıkça görür)
+  /* Kural 10: kaleci topun hattına yürüyerek ulaşabiliyorsa (kalan süre ≥ yürüme süresi + 0,15 sn) DALMAZ; ayakta ya da çömelerek karşılar. Dalış yalnız yürüyerek yetişemeyeceği hızlı toplar için. */
+  var yurur=o.kural10===true&&kalan>=Math.abs(clamp(gx,-3.3,3.3)-current.x)/2.8+.15;
+  var dir=gx<current.x?-1:1,action=o.kural10===true?((yurur||(Math.abs(gx-current.x)<.35&&gy<=2.1))?'bekle':'dal'):(Math.abs(gx-current.x)<K.merkezEsik?'bekle':'dal');
   var x=action==='dal'?clamp(gx-dir*K.elMenzili,-2.85,2.85):clamp(gx,-2.85,2.85);
   var y=action==='dal'?clamp(gy-.16,.30,1.7):(gy<.6?.72:(gy>1.75?1.35:1));
   // Smoothstep peak speed is 1.5 times average. Bound body speed accordingly.
@@ -160,8 +163,8 @@ function takipPlan(tip,practice,noise,o){
     if(st>t+1e-6)segments.push({at:t,start:t,duration:Math.max(.02,Math.abs(xs-current.x)/YURU),origin:current,x:xs,y:current.y,gy:gy,dir:xs<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45});
     seg={at:st,start:st,duration:dur,origin:{x:xs,y:current.y},x:x,y:y,gy:gy,dir:dir,central:central,action:'dal',blokT:seen.arrival-.45};
    }else{
-    var hx=clamp(gx,-2.2,2.2);
-    seg={at:t,start:t,duration:Math.max(.1,Math.abs(hx-current.x)/YURU),origin:current,x:hx,y:y,gy:gy,dir:hx<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45};
+    var hx=clamp(gx,-3.3,3.3),yy=kalan>.55?1:y;   // topa >0,55 sn varsa dik yürür; son anda alçak topa çömelir
+    seg={at:t,start:t,duration:Math.max(.1,Math.abs(hx-current.x)/YURU),origin:current,x:hx,y:yy,gy:gy,dir:hx<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45};
    }
   }else{
    seg={at:t,start:Math.max(t,seen.arrival-duration-.09),duration:duration,origin:current,x:x,y:y,gy:gy,dir:dir,central:central,action:action};

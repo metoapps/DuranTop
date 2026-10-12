@@ -79,9 +79,11 @@ function draw(g,o){
  var h=base.map(function(v,i){return v+p.axis[i]*.6;}),head=[base[0],base[1]-.15,base[2]+.2],hp=o.project.apply(null,head);
  if(hp){g.fillStyle='#d0aa8d';g.beginPath();g.arc(hp.x,hp.y,Math.max(2,.12*hp.olcek),0,Math.PI*2);g.fill();line(g,[head[0],head[1]-.1,head[2]],[head[0],head[1]-.8,head[2]],o.project,colors[o.id][1],Math.max(3,.18*hp.olcek));line(g,[head[0]-.17,head[1]-.35,head[2]],h,o.project,'#d0aa8d',2);line(g,[head[0]+.17,head[1]-.35,head[2]],base,o.project,'#d0aa8d',2);}
  line(g,base,p.end,o.project,'#a5adaf',2.5);line(g,base,p.end,o.project,'#d1d8d7',.8);
- triangles(g,mesh.pts,mesh.cols,mesh.rows,texture(o.id,o.image,o.makeCanvas,false),o.project);
+ // Çizim yoğunluğu: bayrak ağı 12×8 simüle edilir ama ekranda küçük olduğu için her ikinci düğümden 6×4 olarak çizilir (üçgen sayısı 192 → 48).
+ var ince=[],kc=mesh.cols/2,kr=mesh.rows/2;for(var yy=0;yy<=kr;yy++)for(var xx=0;xx<=kc;xx++)ince.push(mesh.pts[yy*2*(mesh.cols+1)+xx*2]);
+ triangles(g,ince,kc,kr,texture(o.id,o.image,o.makeCanvas,false),o.project);
  // Hanging banner has fixed upper corners, sag, free lower edge and shallow folds.
- var cols=20,rows=3,verts=[];
+ var cols=10,rows=3,verts=[];   // pankart 20×3 yerine 10×3 (120 → 60 üçgen; 9 m genişlik ≈150 px)
  for(var y=0;y<=rows;y++)for(var x=0;x<=cols;x++){var u=x/cols,v=y/rows,sag=.13*Math.sin(Math.PI*u),wave=.08*Math.sin(u*18-time*1.4)*Math.sin(Math.PI*u)*(v+.15);
   verts.push({u:u,v:v,p:[-4.5+9*u,4.15-.73*v-sag-.06*v*Math.sin(time*.9+u*9),o.D+10.5+wave]});}
  triangles(g,verts,cols,rows,texture(o.id,null,o.makeCanvas,true),o.project);
@@ -120,7 +122,7 @@ function atmosfer(g,o){
   g.save();g.strokeStyle='#b9bdb9';g.lineWidth=Math.max(1,1.3*f.olcek);g.beginPath();g.moveTo(f.x,f.yb);g.lineTo(tx,ty);g.stroke();
   // taşıyan seyircinin kolları
   g.strokeStyle='#c9a284';g.lineWidth=Math.max(1,1.4*f.olcek);g.beginPath();g.moveTo(f.x-3*f.olcek,f.yb+5*f.olcek);g.lineTo(f.x+Math.sin(a)*direk*.12,f.yb-Math.cos(a)*direk*.12);g.moveTo(f.x+3*f.olcek,f.yb+5*f.olcek);g.lineTo(f.x+Math.sin(a)*direk*.25,f.yb-Math.cos(a)*direk*.25);g.stroke();
-  var doku=bayrakDoku(f.i,o.makeCanvas),fw=direk*.95,fh=fw*.62,dilim=8,yon=f.yon*(Math.cos(a)>=0?1:-1);
+  var doku=bayrakDoku(f.i,o.makeCanvas),fw=direk*.95,fh=fw*.62,dilim=5,yon=f.yon*(Math.cos(a)>=0?1:-1);
   for(var k=0;k<dilim;k++){var u0=k/dilim,u1=(k+1)/dilim,dalga=function(u){return durgun?fh*.06*Math.sin(u*6):Math.sin(t*8.5-u*7+f.faz)*fh*.26*u+Math.sin(t*4.2-u*4)*fh*.09*u;};
    var x0=tx+yon*fw*u0,x1=tx+yon*fw*u1+yon*.6,y0=ty+dalga(u0)-a*fw*u0*.3,y1=ty+dalga(u1)-a*fw*u1*.3,egim=(y1-y0)/(fw/dilim);
    var sx=Math.floor(u0*doku.width),sw=Math.ceil(doku.width/dilim);
