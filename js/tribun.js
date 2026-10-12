@@ -56,19 +56,21 @@ function texture(id,image,makeCanvas,banner){
  g.strokeStyle='rgba(240,235,218,.35)';g.lineWidth=2;g.setLineDash([3,5]);g.strokeRect(9,9,width-18,height-18);
  cache[key]={image:image,canvas:c};return c;
 }
+/* Dokulu bez: her ızgara hücresi yalnız KENDİ doku parçasıyla (drawImage kaynak dikdörtgeni), köşe noktalarından kurulan afin dönüşümle çizilir.
+ * Önceden her üçgen için tüm doku kırpılarak yeniden çiziliyordu (alan yüzlerce kez boyanıyordu; kare süresinin ≈%75'i). Görüntü aynı, maliyet ≈1/50. */
 function triangles(g,vertices,cols,rows,tex,project){var list=[];
- function add(a,b,c){var p=[a,b,c].map(function(n){return project(n.p[0],n.p[1],n.p[2]);});if(p.some(function(q){return !q;}))return;
-  var ab=b.p.map(function(v,i){return v-a.p[i];}),ac=c.p.map(function(v,i){return v-a.p[i];}),normal=unit(cross(ab,ac));
-  list.push({v:[a,b,c],p:p,depth:(p[0].d+p[1].d+p[2].d)/3,shade:Math.max(.10,.42-.32*Math.abs(dot(normal,unit([-.3,.6,-1]))))});
- }
- for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){var i=y*(cols+1)+x,a=vertices[i],b=vertices[i+1],c=vertices[i+cols+1],d=vertices[i+cols+2];add(a,c,b);add(b,c,d);}
- list.sort(function(a,b){return b.depth-a.depth;});
- list.forEach(function(t){var uv=t.v.map(function(n){return[n.u*tex.width,n.v*tex.height];}),a=uv[0],du=uv[1][0]-a[0],dv=uv[1][1]-a[1],eu=uv[2][0]-a[0],ev=uv[2][1]-a[1],det=du*ev-eu*dv;if(Math.abs(det)<1e-8)return;
-  var p=t.p,dx=p[1].x-p[0].x,dy=p[1].y-p[0].y,ex=p[2].x-p[0].x,ey=p[2].y-p[0].y,A=(dx*ev-ex*dv)/det,B=(dy*ev-ey*dv)/det,C=(du*ex-eu*dx)/det,E=(du*ey-eu*dy)/det;
-  var center={x:(p[0].x+p[1].x+p[2].x)/3,y:(p[0].y+p[1].y+p[2].y)/3};
-  g.save();g.beginPath();p.forEach(function(q,i){var vx=q.x-center.x,vy=q.y-center.y,len=Math.hypot(vx,vy)||1,x=q.x+.35*vx/len,y=q.y+.35*vy/len;if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.closePath();g.clip();
-  g.save();g.transform(A,B,C,E,p[0].x-A*a[0]-C*a[1],p[0].y-B*a[0]-E*a[1]);g.drawImage(tex,0,0);g.restore();g.fillStyle='rgba(0,0,0,'+t.shade.toFixed(3)+')';g.fillRect(Math.min(p[0].x,p[1].x,p[2].x)-1,Math.min(p[0].y,p[1].y,p[2].y)-1,Math.max(p[0].x,p[1].x,p[2].x)-Math.min(p[0].x,p[1].x,p[2].x)+2,Math.max(p[0].y,p[1].y,p[2].y)-Math.min(p[0].y,p[1].y,p[2].y)+2);g.restore();
- });
+ for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){var i=y*(cols+1)+x,a=vertices[i],b=vertices[i+1],c=vertices[i+cols+1],d=vertices[i+cols+2];
+  var pa=project(a.p[0],a.p[1],a.p[2]),pb=project(b.p[0],b.p[1],b.p[2]),pc=project(c.p[0],c.p[1],c.p[2]),pd=project(d.p[0],d.p[1],d.p[2]);if(!pa||!pb||!pc||!pd)continue;
+  var ab=b.p.map(function(v,k){return v-a.p[k];}),ac=c.p.map(function(v,k){return v-a.p[k];}),normal=unit(cross(ab,ac));
+  list.push({a:a,b:b,c:c,p:[pa,pb,pd,pc],depth:(pa.d+pb.d+pc.d+pd.d)/4,shade:Math.max(.10,.42-.32*Math.abs(dot(normal,unit([-.3,.6,-1]))))});}
+ list.sort(function(p,q){return q.depth-p.depth;});
+ var w=tex.width,h=tex.height;
+ list.forEach(function(t){var sx=t.a.u*w,sy=t.a.v*h,sw=(t.b.u-t.a.u)*w,sh=(t.c.v-t.a.v)*h;if(!(sw>0.01)||!(sh>0.01))return;
+  var pa=t.p[0],pb=t.p[1],pc=t.p[3],A=(pb.x-pa.x)/sw,B=(pb.y-pa.y)/sw,C=(pc.x-pa.x)/sh,E=(pc.y-pa.y)/sh;
+  g.save();g.transform(A,B,C,E,pa.x-A*sx-C*sy,pa.y-B*sx-E*sy);
+  var ex=Math.min(.6,sw*.05),ey=Math.min(.6,sh*.05);   // hücreler arası dikişi kapatmak için kaynak/hedef biraz taşar
+  g.drawImage(tex,Math.max(0,sx-ex),Math.max(0,sy-ey),Math.min(w,sw+2*ex),Math.min(h,sh+2*ey),Math.max(0,sx-ex),Math.max(0,sy-ey),Math.min(w,sw+2*ex),Math.min(h,sh+2*ey));g.restore();
+  g.fillStyle='rgba(0,0,0,'+t.shade.toFixed(3)+')';g.beginPath();g.moveTo(pa.x,pa.y);g.lineTo(pb.x,pb.y);g.lineTo(t.p[2].x,t.p[2].y);g.lineTo(pc.x,pc.y);g.closePath();g.fill();});
 }
 function line(g,a,b,project,color,width){var p=project.apply(null,a),q=project.apply(null,b);if(!p||!q)return;g.strokeStyle=color;g.lineWidth=width;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.stroke();}
 function draw(g,o){
@@ -81,9 +83,9 @@ function draw(g,o){
  line(g,base,p.end,o.project,'#a5adaf',2.5);line(g,base,p.end,o.project,'#d1d8d7',.8);
  // Çizim yoğunluğu: bayrak ağı 12×8 simüle edilir ama ekranda küçük olduğu için her ikinci düğümden 6×4 olarak çizilir (üçgen sayısı 192 → 48).
  var ince=[],kc=mesh.cols/2,kr=mesh.rows/2;for(var yy=0;yy<=kr;yy++)for(var xx=0;xx<=kc;xx++)ince.push(mesh.pts[yy*2*(mesh.cols+1)+xx*2]);
- triangles(g,ince,kc,kr,texture(o.id,o.image,o.makeCanvas,false),o.project);
+ if(!(o.kalite>=2))triangles(g,ince,kc,kr,texture(o.id,o.image,o.makeCanvas,false),o.project);   // kademe 2: elde taşınan bayrak çizilmez
  // Hanging banner has fixed upper corners, sag, free lower edge and shallow folds.
- var cols=10,rows=3,verts=[];   // pankart 20×3 yerine 10×3 (120 → 60 üçgen; 9 m genişlik ≈150 px)
+ var cols=o.kalite>=1?6:10,rows=3,verts=[];   // pankart 20×3 yerine 10×3 (120 → 60 üçgen; 9 m genişlik ≈150 px)
  for(var y=0;y<=rows;y++)for(var x=0;x<=cols;x++){var u=x/cols,v=y/rows,sag=.13*Math.sin(Math.PI*u),wave=.08*Math.sin(u*18-time*1.4)*Math.sin(Math.PI*u)*(v+.15);
   verts.push({u:u,v:v,p:[-4.5+9*u,4.15-.73*v-sag-.06*v*Math.sin(time*.9+u*9),o.D+10.5+wave]});}
  triangles(g,verts,cols,rows,texture(o.id,null,o.makeCanvas,true),o.project);
@@ -114,7 +116,8 @@ function flamaDizisi(g,W,y,sag,boy,t,durgun,kayma){
 function atmosfer(g,o){
  var W=o.W,ust=o.ust,alt=o.alt,hb=alt-ust;if(!(hb>20)||!o.makeCanvas)return;var durgun=reduced(),t=durgun?0:o.time,r=rastgele(97+Math.round(W));
  // direkli bayraklar: arka sıralar küçük, ön sıralar büyük
- var adet=Math.max(6,Math.min(14,Math.round(W/46))),liste=[];
+ var Q=o.kalite||0,adet=Math.max(6,Math.min(14,Math.round(W/46))),liste=[];
+ if(Q>=2)adet=Math.min(adet,4);else if(Q>=1)adet=Math.min(adet,8);   // kademeli kalite: yavaş cihazda daha az bayrak
  for(var i=0;i<adet;i++){var u=(i+.15+.7*r())/adet,derin=r();liste.push({i:i,x:u*W,yb:ust+hb*(.38+.52*derin),olcek:.65+.55*derin,faz:r()*6.28,yon:r()<.5?-1:1});}
  liste.sort(function(a,b){return a.yb-b.yb;});
  liste.forEach(function(f){
@@ -137,7 +140,7 @@ function atmosfer(g,o){
  // flamalar: tribün üstünde ve korkulukta
  var boy=Math.max(4,Math.min(10,hb*.075));
  flamaDizisi(g,W,ust+3,6,boy,t,durgun,0);
- flamaDizisi(g,W,alt-5,4,boy*.85,t+1.3,durgun,boy*.8);
+ if(Q<1)flamaDizisi(g,W,alt-5,4,boy*.85,t+1.3,durgun,boy*.8);   // ikinci flama dizisi yalnız kademe 0'da
 }
 D.tribun={draw:draw,atmosfer:atmosfer,pole:pole,newMesh:newMesh,advance:advance,slogans:slogans};
 })(typeof globalThis!=='undefined'?globalThis:window);

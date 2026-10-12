@@ -120,6 +120,7 @@
   function panelKonumu(){var el=$('oyun');if(el&&el.classList&&el.classList.toggle)el.classList.toggle('secim-sag',d.durus<=-.5);}
 
   function vurusHazirla(acik) {
+    var tAcilis = simdi();
     if (DT.ses.sustur) DT.ses.sustur();   // önceki golün tribün uğultusu yeni pozisyona taşmasın
     d.pos = pozlar()[d.idx];
     DT.cizim.sahneKur(d.pos, 0);
@@ -149,6 +150,7 @@
       falsoSec(acik.falso || 0);
       kilitle(true);
     } else { gucVeyaNisan(); }
+    if (DT.perf) DT.perf.olay('pozisyon açılışı', simdi() - tAcilis);   // önizleme hesabı, baraj sprite üretimi, kamera: ilk karedeki takılmanın kaynağı
   }
 
   /* ---------- nişan ---------- */
@@ -257,7 +259,8 @@
   }
   function vurusUygula(girdi,serverEntry){
     var now=simdi();
-    var r = hesap(girdi);
+    var tHesap = simdi(), r = hesap(girdi);
+    if (DT.perf) DT.perf.olay('vuruş hesabı', simdi() - tHesap);
     var p = d.pos.tip==='hedef' ? DT.hedef.puanla(r) : DT.puan.puanla(d.pos.tip, r);
     if(serverEntry&&(serverEntry.sonuc!==r.sonuc||serverEntry.puan!==p.puan||serverEntry.gol!==p.gol)){var mismatch=new Error('Sonuç hesabının sürümü uyuşmuyor. Vuruşun kaydedildi; oyunu güncelle.');mismatch.code='CLIENT_VERSION';throw mismatch;}
     var giris = { yesil:r.bandaGirdi, quality: r.quality, speed: r.speed, ad: d.pos.ad, sonuc: r.sonuc, puan: p.puan, zaman: p.zaman, zor: p.zor, taban: p.taban, gol: p.gol };
@@ -437,6 +440,7 @@
       }
       if (fifaMod() && d.faz === 'nisan' && d.kilit && !$('fifaKutu').hidden) fifaKare(now);
       if (!doc.hidden && d.pos && DT.cizim.kareOlc && d.sonKare) DT.cizim.kareOlc(now - d.sonKare);
+      if (!doc.hidden && d.sonKare && DT.perf) DT.perf.kare(now - d.sonKare, d.ekran === 'oyun' ? d.faz : 'menu');   // faza göre kare süresi (gizli performans göstergesi)
       d.sonKare = now;
       if (d.pos) {
         var cd = d.faz === 'menu' || d.ekran !== 'oyun' ? { top: { x: d.pos.bx, y: A.kale.topYaricap, z: 0 }, kaleci: { x: Math.sin(now / 900) * 0.08, y: 1, ilerleme: 0, yon: 0, poz: 'bekle' } } : cizimDurumu(now);
@@ -636,6 +640,7 @@
     if (kayit) { ayar.cubuk = kayit.cubuk !== false; }
     ayar.ses = false;                       // ses her açılışta kapalı başlar
     DT.cizim.kur($('sahne'));
+    if (DT.perf) DT.perf.baslat();
     $('cubukBant').style.left = ((0.5 - A.zaman.bant) * 100) + '%';
     $('cubukBant').style.width = (A.zaman.bant * 200) + '%';
     kadroDoldur(); girisBagla(); ayarGuncelle();
