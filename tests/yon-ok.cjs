@@ -9,11 +9,11 @@ fire('btnResmi','click');await flush();
 // Duruş (vücut) ve nişan (topun gideceği yer) AYRI: vücut okları yalnız duruşu, nişan okları yalnız hedefi değiştirir. İkisi aynı ekranda.
 function kare(ms){time+=ms;if(root.frame)root.frame(time);}
 assert.equal(d.faz,'nisan');assert(d.durusHazir&&!el('fifaNisan').hidden,'pozisyon açılınca doğrudan 1/3 ekranı');assert.equal(d.durus,0);assert.equal(d.aim.x,0);const y0=d.aim.y;
-assert(/Düz/.test(el('yonAci').textContent),'gösterge: '+el('yonAci').textContent);
+{const html=require('fs').readFileSync(__dirname+'/../index.html','utf8'),blok=html.slice(html.indexOf('id="fifaNisan"'),html.indexOf('id="gucPanel"'));assert(!/<h2|<p[ >]|yonAci/.test(blok),'kumandada başlık, açıklama ya da gösterge metni yok');assert((blok.match(/<button/g)||[]).length===7,'yalnız 7 düğme: 4 nişan oku, Tamam, 2 vücut oku');assert(!/Vücut<|Nişan<|1\/3/.test(blok),'etiket yok');}
 // 1) Vücut ▶ basılı: yalnız duruş döner, nişan aynı; basılıyken kamera kesmesi yok; yerinde adım atar.
 fire('yonSag','pointerdown',{pointerId:1,preventDefault(){}});for(let i=0;i<30;i++)kare(16);
 assert(d.durus>.3&&d.durus<.5,'0,5 sn ≈0,43: '+d.durus);assert.equal(d.aim.x,0,'vücut oku nişanı değiştirmez');assert.equal(d.aim.y,y0);assert.equal(kamCagri.length,0);
-assert(/^Sağa · \d+°$/.test(el('yonAci').textContent),el('yonAci').textContent);assert.equal(sonCizim.oyuncu.durus,d.durus);assert(sonCizim.oyuncu.donus!==null&&sonCizim.oyuncu.donus>=0,'oyuncu yerinde adım atıyor');
+assert.equal(sonCizim.oyuncu.durus,d.durus);assert(sonCizim.oyuncu.donus!==null&&sonCizim.oyuncu.donus>=0,'oyuncu yerinde adım atıyor');
 fire('yonSag','pointerup',{});assert.equal(kamCagri.length,1,'bırakınca kamera bir kez geçti');assert.equal(kamCagri[0],d.durus);kare(16);assert.equal(sonCizim.oyuncu.donus,null,'durunca adım animasyonu yok');
 const dur=d.durus;for(let i=0;i<20;i++)kare(16);assert.equal(d.durus,dur,'bırakınca durur');
 // 2) Nişan ▶ basılı: yalnız hedef değişir, duruş ve kamera aynı.

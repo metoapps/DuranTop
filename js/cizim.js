@@ -525,33 +525,84 @@
     }
     return out;
   }
-  /* FIFA 02 tarzı yer oku: topun gerçek uçuş yolunu izler. Falso → ok yana eğilir; alt temas → ok havaya kalkar; üst temas → ok yerde kalır.
-   * Altında yere izdüşüm çizgisi var (yükseklik okunabilsin). Yalnız görüntü. */
+  /* 3B yer oku: topun gerçek uçuş yolunu (okNoktalari) izleyen KALINLIĞI olan bir bant (üst yüz + iki yan yüz + kuyruk kapağı) ve uçta dört yüzlü ok başı (piramit).
+   * Her üçgen ışığa göre gölgelenir ve derinliğe göre sıralanır; yerde gölgesi var. Falso → ok yana eğilir; alt temas → ok havaya kalkar. Yalnız görüntü. */
+  function okUcgenleri(pts, olcekCarpan) {
+    var n = pts.length, k = olcekCarpan || 1, W = 0.40 * k, TH = 0.12 * k, HW = 0.56 * k, HL = 1.15 * k, HH = 0.07 * k, tri = [], i;
+    if (n < 4) return tri;
+    function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+    function crs(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function nrm(a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+    function add(a, b, s) { return [a[0] + b[0] * s, a[1] + b[1] * s, a[2] + b[2] * s]; }
+    var P = pts.map(function (p) { return [p.x, p.y, p.z]; }), T = [], Rg = [], U = [];
+    for (i = 0; i < n; i++) {
+      var t = nrm(sub(P[Math.min(n - 1, i + 1)], P[Math.max(0, i - 1)])), r = crs([0, 1, 0], t); if (Math.hypot(r[0], r[1], r[2]) < 1e-6) r = [1, 0, 0]; r = nrm(r);
+      T.push(t); Rg.push(r); U.push(nrm(crs(t, r)));
+    }
+    function yuz(a, b, c, d, tur, u) {   // dörtgeni iki üçgene böl
+      [[a, b, c], [a, c, d]].forEach(function (v) { tri.push({ v: v, n: nrm(crs(sub(v[1], v[0]), sub(v[2], v[0]))), tur: tur, u: u }); });
+    }
+    var UL = [], UR = [], BL = [], BR = [];
+    for (i = 0; i < n; i++) {
+      var w = W / 2 * (0.6 + 0.4 * i / (n - 1)), h = TH / 2;
+      UL.push(add(add(P[i], Rg[i], w), U[i], h)); UR.push(add(add(P[i], Rg[i], -w), U[i], h));
+      BL.push(add(add(P[i], Rg[i], w), U[i], -h)); BR.push(add(add(P[i], Rg[i], -w), U[i], -h));
+    }
+    yuz(UL[0], UR[0], BR[0], BL[0], 'kapak', 0);   // kuyruk kapağı (kameraya bakar)
+    for (i = 0; i < n - 1; i++) {
+      var u = (i + 0.5) / (n - 1);
+      yuz(UL[i], UR[i], UR[i + 1], UL[i + 1], 'ust', u);
+      yuz(UL[i], BL[i], BL[i + 1], UL[i + 1], 'yan', u);
+      yuz(UR[i], UR[i + 1], BR[i + 1], BR[i], 'yan', u);
+      yuz(BL[i], BL[i + 1], BR[i + 1], BR[i], 'alt', u);
+    }
+    // Ok başı: gövdenin ucunda, gövdeden geniş (kulakçıklar); tabanı kameraya bakan dikdörtgen, ucu yolun devamında
+    var son = n - 1, c = P[son], tt = T[son], rr = Rg[son], uu = U[son], tip = add(c, tt, HL);
+    var hUL = add(add(c, rr, HW), uu, HH), hUR = add(add(c, rr, -HW), uu, HH), hBL = add(add(c, rr, HW), uu, -HH), hBR = add(add(c, rr, -HW), uu, -HH);
+    yuz(hUL, hUR, hBR, hBL, 'bas', 1);   // taban (kameraya bakan yüz)
+    [[hUL, hUR, tip], [hUL, hBL, tip], [hUR, hBR, tip], [hBL, hBR, tip]].forEach(function (v, j) { tri.push({ v: v, n: nrm(crs(sub(v[1], v[0]), sub(v[2], v[0]))), tur: j === 0 ? 'bas-ust' : j === 3 ? 'bas-alt' : 'bas-yan', u: 1 }); });
+    return tri;
+  }
+  var OK_ISIK = (function () { var l = Math.hypot(-0.35, 0.85, -0.40); return [-0.35 / l, 0.85 / l, -0.40 / l]; })();
   function fifaOkCiz(g, yol, kilit) {
     if (!yol || yol.length < 3 || !pos) return;
     // Kısa ok: yalnız ilk 3–4,5 m gösterilir (kaleye kadar uzanmaz, nişanı kolaylaştırmaz). Falso eğrisi bu kısa mesafede çok küçüktür (~10 cm),
     // bu yüzden yanal sapma yalnız GÖSTERİMDE büyütülür (okNoktalari): yön ve işaret topun gerçek sapmasıdır, eğrilik okunur.
-    var uzun = Math.max(3, Math.min(4.5, 0.2 * pos.D)), bas = 0.7, nok = [], yer = [], zaman = (root.performance ? root.performance.now() : Date.now()) / 1000;
-    for (var pi = 0, pts = okNoktalari(yol, uzun, bas); pi < pts.length; pi++) {
-      var p = pts[pi], s = izdus(p.x, Math.max(0.03, p.y), p.z), z0 = izdus(p.x, 0.02, p.z); if (!s || !z0) continue;
-      if (s.y < 70) break;   // ok ekranın üstünden taşmasın
-      nok.push(s); yer.push(z0);
+    var uzun = Math.max(3, Math.min(4.5, 0.2 * pos.D)), bas = 0.7, zaman = (root.performance ? root.performance.now() : Date.now()) / 1000, pts = okNoktalari(yol, uzun, bas);
+    if (pts.length < 4) return;
+    var b0 = izdus(pts[0].x, pts[0].y, pts[0].z); if (!b0) return;
+    var k = Math.max(1, Math.min(1.9, 26 / Math.max(1, b0.olcek)));   // uzakta ok ince kalmasın: boyutlar en çok 1,9 kat büyür
+    var tri = okUcgenleri(pts, k); if (!tri.length) return;
+    var parla = kilit ? 0.92 : 0.80 + 0.10 * Math.sin(zaman * 4), liste = [], i, j;
+    for (i = 0; i < tri.length; i++) {
+      var t = tri[i], pr = t.v.map(function (q) { return izdus(q[0], Math.max(0.02, q[1]), q[2]); });
+      if (pr.some(function (q) { return !q; })) continue;
+      if (t.tur === 'alt' || t.tur === 'bas-alt') continue;   // alt yüzler zeminde, görünmez
+      liste.push({ t: t, p: pr, d: (pr[0].d + pr[1].d + pr[2].d) / 3 });
     }
-    if (nok.length < 4) return;
-    var gen = 0.34;   // ok gövde genişliği (m)
-    function normal(a, i) { var u = a[Math.max(0, i - 1)], v = a[Math.min(a.length - 1, i + 1)], dx = v.x - u.x, dy = v.y - u.y, l = Math.hypot(dx, dy) || 1; return { tx: dx / l, ty: dy / l, nx: -dy / l, ny: dx / l }; }
+    liste.sort(function (a, c) { return c.d - a.d; });
     g.save();
-    // yere izdüşüm
-    g.strokeStyle = 'rgba(0,0,0,0.32)'; g.lineWidth = 2; g.setLineDash([5, 5]); g.beginPath(); yer.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); g.stroke(); g.setLineDash([]);
-    var sol = [], sag = [];
-    nok.forEach(function (s, i) { var n = normal(nok, i), w = Math.max(2.2, gen * s.olcek) / 2 * (0.55 + 0.45 * i / (nok.length - 1)); sol.push({ x: s.x + n.nx * w, y: s.y + n.ny * w }); sag.push({ x: s.x - n.nx * w, y: s.y - n.ny * w }); });
-    var son = nok[nok.length - 1], nn = normal(nok, nok.length - 1), wd = Math.max(2.2, gen * son.olcek) / 2, bw = wd * 2.3, bl = wd * 4.2;
-    var tip = { x: son.x + nn.tx * bl, y: son.y + nn.ty * bl }, a = nok[0], parla = kilit ? 0.86 : 0.74 + 0.10 * Math.sin(zaman * 4);
-    var grad = g.createLinearGradient(a.x, a.y, tip.x, tip.y); grad.addColorStop(0, 'rgba(229,57,53,0.25)'); grad.addColorStop(0.35, 'rgba(229,57,53,' + (parla * 0.9).toFixed(3) + ')'); grad.addColorStop(1, 'rgba(255,92,76,' + parla.toFixed(3) + ')');
-    g.fillStyle = grad; g.strokeStyle = 'rgba(255,225,215,' + (parla * 0.7).toFixed(3) + ')'; g.lineWidth = 1;
-    g.beginPath(); sol.forEach(function (q, i) { if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); });
-    g.lineTo(son.x + nn.nx * bw, son.y + nn.ny * bw); g.lineTo(tip.x, tip.y); g.lineTo(son.x - nn.nx * bw, son.y - nn.ny * bw);
-    for (var k = sag.length - 1; k >= 0; k--) g.lineTo(sag[k].x, sag[k].y); g.closePath(); g.fill(); g.stroke();
+    // Yerde gölge: gövdenin zemin izdüşümü (yüksekliğin okunmasını da sağlar)
+    var gl = [], gr = [];
+    for (i = 0; i < pts.length; i++) {
+      var w = 0.20 * k * (0.6 + 0.4 * i / (pts.length - 1)), a1 = pts[Math.max(0, i - 1)], a2 = pts[Math.min(pts.length - 1, i + 1)], dx = a2.x - a1.x, dz = a2.z - a1.z, l = Math.hypot(dx, dz) || 1;
+      var L = izdus(pts[i].x + dz / l * w, 0.02, pts[i].z - dx / l * w), Rr = izdus(pts[i].x - dz / l * w, 0.02, pts[i].z + dx / l * w); if (L && Rr) { gl.push(L); gr.push(Rr); }
+    }
+    if (gl.length > 3) { g.fillStyle = 'rgba(0,0,0,0.30)'; g.beginPath(); gl.forEach(function (q, ix) { if (ix) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); for (j = gr.length - 1; j >= 0; j--) g.lineTo(gr[j].x, gr[j].y); g.closePath(); g.fill(); }
+    liste.forEach(function (o) {
+      var t = o.t, nd = Math.abs(t.n[0] * OK_ISIK[0] + t.n[1] * OK_ISIK[1] + t.n[2] * OK_ISIK[2]), isik = 0.38 + 0.78 * nd;
+      var baz = t.tur === 'ust' ? [236, 66, 58] : t.tur === 'yan' ? [176, 34, 32] : t.tur === 'kapak' ? [150, 28, 28] : [250, 84, 70];   // üst, yan, kuyruk kapağı, ok başı
+      var ton = isik * (0.70 + 0.30 * t.u) * (kilit ? 1 : 0.94 + 0.06 * Math.sin(zaman * 4)), rgb = Math.min(255, Math.round(baz[0] * ton)) + ',' + Math.min(255, Math.round(baz[1] * ton)) + ',' + Math.min(255, Math.round(baz[2] * ton));
+      g.fillStyle = 'rgb(' + rgb + ')'; g.strokeStyle = 'rgb(' + rgb + ')'; g.lineWidth = 0.7;   // opak: üçgen birleşim çizgileri görünmez; kuyruğa doğru koyulaşır
+      g.beginPath(); g.moveTo(o.p[0].x, o.p[0].y); g.lineTo(o.p[1].x, o.p[1].y); g.lineTo(o.p[2].x, o.p[2].y); g.closePath(); g.fill(); g.stroke();
+    });
+    // ince parlak kenar çizgisi: üst yüzün iki uzun kenarı (3B kenar vurgusu)
+    g.strokeStyle = 'rgba(255,225,215,' + (0.55 * parla).toFixed(3) + ')'; g.lineWidth = 1;
+    [0, 1].forEach(function (yan) {
+      g.beginPath(); var ilk = true;
+      tri.forEach(function (t) { if (t.tur !== 'ust') return; var q = t.v[yan === 0 ? 0 : 1], p = izdus(q[0], q[1], q[2]); if (!p) return; if (ilk) { g.moveTo(p.x, p.y); ilk = false; } else g.lineTo(p.x, p.y); });
+      g.stroke();
+    });
     g.restore();
   }
   function nisanCiz(g, aim, kilit, falso, onizleme, fifa) {
@@ -784,7 +835,7 @@
   }
 
   DT.cizim = {
-    kameraAyar: KAMERA, okNoktalari: okNoktalari, barajIsit: barajIsit,
+    kameraAyar: KAMERA, okNoktalari: okNoktalari, okUcgenleri: okUcgenleri, barajIsit: barajIsit,
     kur: kur, sahneKur: sahneKur, kameraDurus: kameraDurus, kamDurus: function () { return kamDurus; }, kameraKonum: function () { return kam ? kam.C.slice() : null; }, ciz: ciz, _tribunKatman: function () { return tribunTuval; }, _tribunSinir: tribunSinir, ekranToKale: ekranToKale, izdus: izdus,
     boyut: function () { return { w: W, h: H }; },
     kareOlc: kareOlc, dprSiniri: function () { return dprSiniri; },

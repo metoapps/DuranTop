@@ -40,5 +40,28 @@ assert.equal(fark(null).n,0,'yol yoksa ok yok');
    assert(Math.abs(ham)>.03&&Math.abs(ham)<.2,pos.ad+': gerçek sapma küçük ('+(ham*100).toFixed(1)+' cm), ok büyütür');assert(ham*sapma(nk)>0,pos.ad+': gösterilen eğri gerçek sapmayla aynı yönde');}}
  // çizimde: falsolu okun ekrandaki yatay yayılımı falsosuz okunkinden belirgin büyük
  const pp=F[1];D.cizim.sahneKur(pp,0);const dz=fark(yol(pp,{x:1,y:1.4},{x:0,y:0})),fs_=fark(yol(pp,{x:1,y:1.4},{x:.8,y:0}));assert(fs_.gen>dz.gen+10,'ekranda falsolu ok daha geniş yayılır '+dz.gen+' → '+fs_.gen);}
+// 3B ok: yolun etrafında kalınlığı olan bir bant (üst + iki yan yüz) ve uçta dört yüzlü ok başı (2B şerit değil)
+{const pts=[];for(let i=0;i<=12;i++)pts.push({x:0,y:.11,z:.7+i*.3});   // düz, yatay, +z yönünde 3,6 m
+ const tri=D.cizim.okUcgenleri(pts,1),tur=t=>tri.filter(x=>x.tur===t);
+ assert(tri.length>=60&&tri.length<=140,'üçgen sayısı makul: '+tri.length);
+ for(const t of ['ust','yan','alt','kapak','bas','bas-ust','bas-yan','bas-alt'])assert(tur(t).length>0,t+' yüzleri var');
+ // üst yüz yukarı bakar, yan yüzler yatay bakar ve iki yana ters yönde
+ assert(tur('ust').every(t=>Math.abs(t.n[1])>.99),'üst yüz yukarı bakar');assert(tur('yan').every(t=>Math.abs(t.n[1])<.05&&Math.abs(t.n[0])>.99),'yan yüzler yatay');
+ assert(tur('yan').some(t=>t.v[0][0]>0)&&tur('yan').some(t=>t.v[0][0]<0),'iki yan yüz var (sağ ve sol)');
+ // kalınlık: üst ve alt yüzler arası ≈0,12 m; genişlik 0,24 (kuyruk) → 0,40 m (uç)
+ const ustY=tur('ust')[0].v[0][1],altY=tur('alt')[0].v[0][1];assert(Math.abs((ustY-altY)-.12)<1e-9,'kalınlık 0,12 m: '+(ustY-altY));
+ const xs=tri.filter(t=>t.tur==='ust').flatMap(t=>t.v.map(v=>Math.abs(v[0])));assert(Math.abs(Math.max(...xs)-.20)<1e-9&&Math.abs(Math.min(...xs)-.12)<1e-9,'gövde konik: yarı genişlik 0,12 → 0,20');
+ // ok başı gövdeden belirgin geniş (kulakçık) ve uç, yolun devamında (1,15 m ileride)
+ const bas=tur('bas')[0].v.map(v=>Math.abs(v[0]));assert(Math.max(...bas)>=.55&&Math.max(...bas)>Math.max(...xs)*2.5,'ok başı kulakçıklı: '+Math.max(...bas));
+ const uc=tri.filter(t=>t.tur==='bas-ust')[0].v[2];assert(Math.abs(uc[2]-(pts[12].z+1.15))<1e-9&&Math.abs(uc[0])<1e-9,'uç noktası yolun devamında');
+ // eğik yolda (havalanan ok) kalınlık yolun normali yönünde: üst yüz normali yukarıya yakın kalır, yol yükselir
+ const yuk=[];for(let i=0;i<=12;i++)yuk.push({x:i*.05,y:.11+i*.12,z:.7+i*.3});const t2=D.cizim.okUcgenleri(yuk,1);assert(t2.filter(t=>t.tur==='ust').every(t=>t.n[1]>.8),'havalanan okta üst yüz hâlâ yukarı bakar');
+ // ölçek çarpanı boyutu büyütür
+ const b1=D.cizim.okUcgenleri(pts,1.9),xs2=b1.filter(t=>t.tur==='ust').flatMap(t=>t.v.map(v=>Math.abs(v[0])));assert(Math.abs(Math.max(...xs2)-.38)<1e-9,'ölçek çarpanı: '+Math.max(...xs2));
+ // çizim: ışıklı yüzler farklı tonda (üst açık, yan koyu, baş en parlak): ok piksellerinde en az 3 farklı parlaklık kümesi + yerde gölge
+ const pp=F[1];D.cizim.sahneKur(pp,0);const yl=yol(pp,{x:1,y:1.4},{x:0,y:0}),kr=kare(yl),lum=[];let golge=0;
+ for(let i=0;i<kr.length;i+=4){const dr=Math.abs(kr[i]-bos[i])+Math.abs(kr[i+1]-bos[i+1])+Math.abs(kr[i+2]-bos[i+2]);if(dr>60){if(kr[i]>kr[i+2]+40)lum.push(kr[i]);}else{const sk=(kr[i]+kr[i+1]+kr[i+2]),sb=(bos[i]+bos[i+1]+bos[i+2]);if(sb-sk>15&&sb-sk<60&&Math.abs(kr[i]-kr[i+2])<20)golge++;}}
+ const kume=new Set(lum.map(v=>Math.floor(v/22)));let dolu=0;const sayac={};lum.forEach(v=>{const k=Math.floor(v/22);sayac[k]=(sayac[k]||0)+1;});for(const k in sayac)if(sayac[k]>=lum.length*.06)dolu++;
+ assert(lum.length>800,'ok görünür '+lum.length);assert(dolu>=3,'ışık/gölgeleme: en az 3 belirgin parlaklık kümesi (üst, yan, baş): '+dolu);assert(golge>150,'ok yerde gölge düşürür: '+golge+' piksel');}
 const oyun=fs.readFileSync(__dirname+'/../js/cizim.js','utf8');assert(/if \(fifa\) return;/.test(oyun),'hedef halkası frikikte çizilmez');
-console.log('PASS FIFA yer oku: kısa ok, falso görünür biçimde iki yana eğer (gösterimde büyütülür), alt temas yükseltir, üst temas yerde, ok görünür ('+duz.n+' px değişti), halka yok');
+console.log('PASS FIFA yer oku (3B bant + piramit ok başı, ışık, gölge): kısa ok, falso görünür biçimde iki yana eğer (gösterimde büyütülür), alt temas yükseltir, üst temas yerde, ok görünür ('+duz.n+' px değişti), halka yok');

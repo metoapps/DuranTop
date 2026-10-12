@@ -366,3 +366,17 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 #fifaNisan .yon-satir { justify-content:flex-start; gap:6px; margin:4px 0; }
 .yon-tamam-genis { width:100%; height:44px; margin-top:6px; }
 @media (max-height:700px){ #fifaNisan .yon-ok{height:40px;} .yon-tamam-genis{height:38px;} }
+
+/* Kumanda (20261010g): açıklamasız, yalnız ok tuşları. Solda nişan (artı düzeni), sağda Tamam ve vücut dönüşü. Panel yok, oyun alanını kapatmaz. */
+#oyun .kumanda { position:absolute; left:0; right:0; bottom:max(10px, env(safe-area-inset-bottom, 0px)); z-index:20; display:flex; justify-content:space-between; align-items:flex-end;
+  padding:0 max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px)); background:none; border:0; pointer-events:none; }
+#oyun .kumanda[hidden] { display:none; }
+#oyun .kumanda button { pointer-events:auto; }
+.kumanda-sol { display:grid; grid-template-columns:repeat(3, 54px); grid-template-rows:repeat(2, 54px); gap:6px; }
+.kumanda-sol .k-yukari { grid-column:2; grid-row:1; } .kumanda-sol .k-sol { grid-column:1; grid-row:2; } .kumanda-sol .k-asagi { grid-column:2; grid-row:2; } .kumanda-sol .k-sag { grid-column:3; grid-row:2; }
+.kumanda-sag { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+.kumanda-vucut { display:flex; gap:6px; }
+#oyun .kumanda .yon-ok { flex:none; width:54px; height:54px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(10,10,10,.55); color:#fff; font-size:22px; padding:0; line-height:1; }
+#oyun .kumanda .yon-ok.basili { background:rgba(60,120,60,.75); border-color:#8d8; }
+#oyun .kumanda .kumanda-tamam { width:122px; min-height:46px; height:46px; font-size:19px; padding:0 10px; border-radius:23px; }
+@media (max-height:700px) { .kumanda-sol { grid-template-columns:repeat(3, 46px); grid-template-rows:repeat(2, 46px); } #oyun .kumanda .yon-ok { width:46px; height:46px; font-size:19px; } #oyun .kumanda .kumanda-tamam { height:40px; min-height:40px; width:108px; } }

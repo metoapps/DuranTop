@@ -489,7 +489,7 @@
    * Nişan okları topun hedefini değiştirir; vücut yönünü değiştirmez. Duruş yalnız görüntü ve kameradır: fizik ve puan değişmez
    * (sunucuya en yakın eski duruş -1/0/1 gider). Kamera, vücut oku bırakılınca bir kez yeni açıya geçer. */
   var YON_HIZ = 0.9;
-  function yonYaz() { var el = $('yonAci'); if (!el) return; var a = Math.round((d.durus || 0) * 23); el.textContent = (a === 0 ? 'Düz' : a < 0 ? 'Sola' : 'Sağa') + ' · ' + Math.abs(a) + '°'; }
+  function yonYaz() { /* gösterge kaldırıldı: kumandada yalnız ok tuşları var */ }
   function kameraGuncelle() {
     if (Math.abs((d.durus || 0) - (d.kamDurus || 0)) < 0.01) return;
     d.kamDurus = d.durus || 0; DT.cizim.kameraDurus(d.durus || 0);
