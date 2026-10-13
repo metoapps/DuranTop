@@ -1,23 +1,30 @@
-# Duran Top — 20261011b: akıcılık (frikikte takılma) ve penaltıda "ortaya + falso" dengesi
+# Duran Top — 20261011b: koşarak vuruş, yavaş çekim, gol tezahüratı
 
-Esas: 20261011a. Kupa (rules 9), sunucu ve Edge değişmez; rules 9 hesabı bayt bayt aynı (1800 vuruşluk SHA-256 karşılaştırması: önce ve sonra aynı özet). Yeni davranış yalnız `kural10` (antrenman ve hedef ağı).
+Esas: 20261011a. Fizik, sunucu ve kupa hesabı değişmez; yalnız görüntü, zamanlama ve ses. Edge'e dokunulmaz.
 
-## 1. Oyun akıcılığı (frikikte kare kare takılma)
-Ölçüm (Node + Skia CPU tuvali; telefon GPU'su farklı, göreli karşılaştırma): kare süresi önce ≈ 54-56 ms (bekleme) / 70-82 ms (koşu ve uçuş); sonra ≈ 28-35 ms / 45-60 ms. Üç neden bulundu:
-- **Tribün her karede baştan çiziliyordu** (kalabalık şeritleri, atmosfer, bayrak bezi = kare süresinin ~%30'u). Artık ayrı bir tuvalde her 2. karede (en geç 100 ms'de bir) çizilir, aradaki karelerde tek `drawImage` ile konur. Tuval yalnız ekranın üst bölgesi kadar (tribün bölgesi, `tribunSinir`). Sahne, boyut, destekçi, gol heyecanı ve alay açılıp kapanınca hemen yenilenir. (`js/cizim.js`)
-- **Kaleci ve oyuncu ağı ekrandaki boyuna göre sadeleşir:** uzak frikikte kaleci/oyuncu birkaç on piksel; ~1000-1200 üçgen çizmek boşuna. 140 px altı, 80 px altı iki kademe; yakın (penaltı) görünüm değişmez. (`js/kaleci3d.js`, `js/futbolcu3d.js`)
-- **Top fiziği ön izleme ve vuruş hesabı ~2,2 kat hızlandı** (`acceleration` yeniden yazıldı: `apply/map/slice/concat` yok; işlemler ve sıra aynı → sonuç bayt bayt aynı). 28 m frikik: ok ön izlemesi 7,4 → 3,2 ms, vuruş hesabı 10 → 4,8 ms (tarayıcıya yakın Node, vm dışı). Frikik penaltının ~2 katı pahalıydı. (`js/ucus.js`)
+## 1. Koşarak vuruş (`js/futbolcu3d.js`)
+- Eskiden oyuncu topun ~1 m arkasından 6 küçük adımla yürüyüp vuruyordu. Şimdi gerçek bir koşu:
+  1. **Geri adım** (süreçin %0–34'ü): duruş noktasından, topun arkasındaki ve yanındaki koşu başlangıcına (en çok 1,5 m) topa bakarak geri çekilir.
+  2. **Dönüş** (%34–40): koşu yönüne döner.
+  3. **Koşu** (%40–82): kavisli bir yayla soldan-arkadan topa; 4 adım (sağ, sol, sağ, sol=basma ayağı), ivmelenip basma ayağında biter. Yüksek diz, dik gövde eğimi (öne), kollar bükük ve ayakla ters sallanır, her adımda hafif zıplama.
+  4. **Basma ayağı** topun yanına konur, **vuruş** (%82–100), vuruş sonrası gövde ≈25 cm ileri süzülür.
+- Koşu başlangıcı: penaltıda topun 2,0 m, frikikte 2,4 m gerisi. Sol duruşta ya da sola atışta koşu soldan açılmaz (ekranın soluna taşmasın). Gerçek kamerayla taradım: dikey ekranda oyuncu hep ekran içinde (en alt %79); soldan en çok kenara kadar iner.
+- **Temas tipine göre bacak/ayak/gövde yatar:** alt temasta gövde geriye yaslanır ve ayak yassı (altına girer), üst temasta gövde öne eğilir ve ayak burnu aşağı; falsoda basma ayağı daha geniş basar, vuruş bacağı gövdenin önünden iki yana ters yönde geçer, ayak dışa/içe döner ve yatar (krampon artık dönük çizilir).
+- Süre: basıştan temasa penaltıda 1,5 sn, frikikte 1,7 sn, hedef ağında 1,5 sn (`AYAR.kosuSure`; önceden 0,85). Kısaltmak istersen bu sayılar ayarlanır.
+- Kaleci rutini artık koşu boyunca sürer ve temastan hemen önce söner.
 
-## 2. Penaltıda "ortaya nişan + falso = her seferinde gol"
-- Neden: rules 9'da kaleci vuruştan önce yön seçer (%43 sol, %43 sağ, %14 yerinde) ve dalış hep ±2,2 m; falsolu ortaya şut ±0,6-1,4 m bandına düşer, hiçbir kaleci konumunun menzilinde değil → ölçüm: 100/100 gol.
-- Kural 10 (antrenman/hedef) kaleci: %24 yerinde, %38 sol, %38 sağ; dalışlar %55 tam (2,2 m), %45 kısa (1,0-1,9 m); yerinde kalan kaleci topu gördükten sonra yana kayar (en çok ±0,9 m). Ölçüm (100 tohum): ortaya düz %78, ortaya+falso %66-68 gol (önce 100), köşe %58-77 (önce %49-63). `js/kaleci.js` penaltiPlan, `js/fizik.js` (ek tohum).
-- **Resmi kupa (rules 9) bu açığı hâlâ taşıyor** (ortaya + falso = %100). Kapatmak için yeni kural sürümü (rules 10) ve Edge yüklemesi gerekir; karar kullanıcıda. Kupa şu an kapalı.
-- Frikikte ortaya falsolu şutlar zaten barajda kalıyor (ölçüm: ≤%5 gol), orada sömürü yok.
+## 2. Yavaş çekim (`js/oyun.js`)
+- Gol, kurtarış ve direkten dönüşte olaydan 0,45 sn önce başlayıp 0,25 sn sonra biter; hız 0,4 kat (`AYAR.yavasCekim`). Kısa uçuşlarda (penaltı) pencere olaya kadar kısalır.
+- Top, kaleci, şutçu ve olay sesleri aynı zaman haritasından geçer; yalnız gerçek süre uzar (≈+1 sn). Kaçan şutlarda (aut, kısa, baraj) yok. Sonuç ve sıra aynı.
+- Kapatmak için `AYAR.yavasCekim.acik=false`.
 
-## Dosyalar
-`js/cizim.js`, `js/kaleci3d.js`, `js/futbolcu3d.js`, `js/ucus.js`, `js/fizik.js`, `js/kaleci.js`, `index.html` (etiketler 20261011b), yeni `tests/kaleci-merkez.cjs`, `tests/tribun-katman.cjs`.
+## 3. Gol tezahüratı (`js/tezahurat.js`, `js/cizim.js`)
+- Gol olunca tribünde sarı balonlar çıkar (3,4 sn) ve kalabalık tam coşar. Sözler: "Golllaazzzooooooooooo!", "Koçum benim!", "Senin yarrağını yiyeyim!", "Gel bir kere de bana koy öyle!" (ilk dördü sık çıkar) ve yedekler ("Efsane!", "Bu ne vuruş be!", "Yaşa kral!", "Allah Allah!"). Liste `js/tezahurat.js` içinde `GOL_SOZ`'de, serbestçe düzenlenir.
+- Ses (üç kademe): 1) `assets/ses/tez-1..tez-6.(mp3|ogg|wav|m4a)` gerçek kayıtlar varsa onlar çalar; 2) yoksa tarayıcının Türkçe konuşma sentezi iki sözü okur (**robotik olabilir**, kayıt yoksa gerçek kalabalık gibi olmaz; `AYAR.tezTTS=false` ile kapanır); 3) ikisi de yoksa yalnız balonlar. iPhone için konuşma sentezi, sesi açtığın ilk dokunuşta sessizce kilit açılır.
 
 ## Testler
-- `kaleci-merkez.cjs`: kural 9 ortaya+falso ≥%95 (aynı), kural 10 %45-85.
-- `tribun-katman.cjs`: katman üst bölge kadar, içerik sınırın içinde (3 ekran, 10 pozisyon, 5 destekçi), 4 karede ≤2 yeniden çizim.
-- Denenmedi: gerçek telefon (kare hızı kazancı yalnız CPU tuvalinde ölçüldü), kalabalığın ~30 Hz hareketinin gözle kabul edilebilirliği.
+- Yeni: `kosu.cjs` (zaman çizelgesi, hızlar, ışınlanma yok, faz geçişleri, ayak/diz kemik boyları, yer altı yok, temas tipine göre eğim ve ayak yatışı), `yavas-cekim.cjs`, `gol-tezahurat.cjs`. Güncellenen: `takip-fizigi`, `alay-akis`, `direk-sonuc`.
+- Linux'ta 60/60 + e2e. Denenmedi: gerçek telefonda hareketin doğal görünmesi (yalnız karelere baktım), konuşma sentezinin iPhone'daki sesi.
+
+## Yayın
+Yalnız site. Etiketler 20261011b (`ayar.js`, `futbolcu3d.js`, `oyun.js`, `cizim.js`, `tezahurat.js`).

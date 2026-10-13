@@ -15,7 +15,7 @@ for(const [sonuc,alayBeklenen] of Object.entries(tablo)){
  hedefSonuc=sonuc;alayN=0;uhN=0;
  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});
  await flush();assert.equal(d.faz,'vurus',sonuc);time+=15000;root.frame();assert.equal(d.faz,'sonuc',sonuc);
- assert.equal(alayN,alayBeklenen?1:0,sonuc+': alay '+(alayBeklenen?'var':'yok'));assert.equal(!!d.alayT0,alayBeklenen,sonuc+': alay balonları '+(alayBeklenen?'var':'yok'));
+ assert.equal(alayN,alayBeklenen?1:0,sonuc+': alay '+(alayBeklenen?'var':'yok'));if(sonuc==='gol'||sonuc==='direk_gol'){assert(d.alayT0&&d.alayTur==='gol',sonuc+': gol balonları (tezahürat) var');}else assert.equal(!!d.alayT0,alayBeklenen,sonuc+': alay balonları '+(alayBeklenen?'var':'yok'));
  if(alayBeklenen)assert.equal(d.alayTur,sonuc);
  // sonuç ekranında alay süresi ilerler ve yeni pozisyonda sıfırlanır
  time+=500;root.frame();fire('devamBtn','click');assert.equal(d.alayT0,null,'yeni vuruşta alay sıfırlandı');

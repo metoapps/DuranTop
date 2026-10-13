@@ -164,8 +164,8 @@
   }
   var ALAY = { aut: ['Yuh!', 'Senin ayağının dümenini skeyim', 'Nereye vuruyon?', 'Ebenin amk yayım ya!', 'Kaleyi göremedin mi?'], kisa: ['Yuh!', 'Çekeceğin şutun anasını avradını skeyim', 'Kısa kaldı!', 'Ebenin amk yayım ya!', 'Topa kuvvet!'], kurtaris: ['Kaleci aldı!', 'Senin ayağının dümenini skeyim', 'Yuhhh!', 'Çekeceğin şutun anasını avradını skeyim', 'Bu muydu?'], baraj: ['Baraj yedi!', 'Ebenin amk yayım ya!', 'Hahaha!', 'Senin ayağının dümenini skeyim', 'Çekeceğin şutun anasını avradını skeyim'], ag: ['Delik orada!', 'Çekeceğin şutun anasını avradını skeyim', 'Hahaha!', 'Ebenin amk yayım ya!', 'Nişan nerede?'], halka: ['Delik orada!', 'Senin ayağının dümenini skeyim', 'Hahaha!', 'Çekeceğin şutun anasını avradını skeyim', 'Nişan nerede?'] };
   /* Alay balonları: kaçan şutta tribünden 5 yorum yükselip kaybolur. Konumlar sonuç türünden türetilir (deterministik). */
-  function alayBalon(g, s, tur) {
-    var metin = ALAY[tur] || ALAY.aut, K = kalabalik, ust = 52, alt = Math.max(ust + 40, K.alt - 20);
+  function alayBalon(g, s, tur, tohum) {
+    var gol = tur === 'gol', metin = gol ? (DT.tezahurat && DT.tezahurat.golMetinleri ? DT.tezahurat.golMetinleri(tohum).map(function (x) { return x.m; }) : ['Golllaazzzooooooooooo!', 'Koçum benim!', 'Efsane!']) : (ALAY[tur] || ALAY.aut), K = kalabalik, ust = 52, alt = Math.max(ust + 40, K.alt - 20);
     g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + Math.round(Math.max(11, Math.min(15, W / 28))) + 'px Arial';
     for (var i = 0; i < metin.length; i++) {
       var t0 = 0.12 * i + 0.05 * ((i * 3) % 2), u = (s - t0) / 2.6; if (u <= 0 || u >= 1) continue;
@@ -173,10 +173,10 @@
       var tw = g.measureText(metin[i]).width; if (tw > W - 28) { fs = Math.max(8, Math.floor(fs * (W - 28) / tw)); g.font = 'bold ' + fs + 'px Arial'; }   // uzun yorum ekrana sığsın
       var a = u < 0.12 ? u / 0.12 : u > 0.75 ? (1 - u) / 0.25 : 1, w = g.measureText(metin[i]).width + 16, h = 21;
       var x = Math.max(w / 2 + 4, Math.min(W - w / 2 - 4, W * (0.14 + 0.72 * (((i * 37 + 11) % 100) / 100)))), y = alt - (alt - ust) * (((i * 53 + 7) % 100) / 100) - u * 18;
-      g.globalAlpha = a * 0.95; g.fillStyle = '#fff6df'; g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1;
+      g.globalAlpha = a * 0.95; g.fillStyle = gol ? '#fff0a0' : '#fff6df'; g.strokeStyle = gol ? 'rgba(120,90,0,.65)' : 'rgba(0,0,0,.45)'; g.lineWidth = 1;
       g.beginPath(); if (g.roundRect) g.roundRect(x - w / 2, y - h / 2, w, h, 9); else g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.stroke();
       g.beginPath(); g.moveTo(x - 4, y + h / 2 - 1); g.lineTo(x + 2, y + h / 2 + 6); g.lineTo(x + 5, y + h / 2 - 1); g.closePath(); g.fill();
-      g.fillStyle = '#2a1a10'; g.fillText(metin[i], x, y + 1);
+      g.fillStyle = gol ? '#3a2a00' : '#2a1a10'; g.fillText(metin[i], x, y + 1);
     }
     g.restore();
   }
@@ -186,7 +186,7 @@
   function kalabalikCiz(g, t, heyecan, alay, alayTur) {
     var K = kalabalik; if (!K) return;
     if (A.hareket === false) { t = 0; heyecan = 0; alay = -1; }
-    var Q = DT.perf ? DT.perf.kalite() : 0, seg = Q >= 1 ? 44 : 22, tw = t % 7, onde = tw < 3.2 ? (tw / 3.2) * (W + 300) - 150 : -1e9, alayda = alay >= 0 && alay < 3.4, alayYog = alayda ? Math.min(1, alay / 0.25) * (alay > 2.8 ? (3.4 - alay) / 0.6 : 1) : 0;
+    var Q = DT.perf ? DT.perf.kalite() : 0, seg = Q >= 1 ? 44 : 22, tw = t % 7, onde = tw < 3.2 ? (tw / 3.2) * (W + 300) - 150 : -1e9, alayda = alay >= 0 && alay < 3.4 && alayTur !== 'gol', alayYog = alayda ? Math.min(1, alay / 0.25) * (alay > 2.8 ? (3.4 - alay) / 0.6 : 1) : 0;
     g.save(); g.beginPath(); g.rect(0, 30, W, Math.max(0, K.alt - 30)); g.clip();
     K.satirlar.forEach(function (r, ri) {
       if (Q >= 2 && !(alayYog > 0.05)) { g.drawImage(r.A, 0, 0, r.A.width, r.A.height, 0, r.y0, W, r.h); return; }   // kademe 2: kalabalık durgun, sıra başına tek çizim
@@ -205,7 +205,7 @@
     g.restore();
   }
   // Balonlar bayrakların ve pankartın üstünde görünsün diye ayrı çağrılır (atmosfer çiziminden sonra).
-  function alayCiz(g, alay, tur) { if (A.hareket === false || !kalabalik || !(alay >= 0 && alay < 3.4)) return; alayBalon(g, alay, tur); }
+  function alayCiz(g, alay, tur, tohum) { if (A.hareket === false || !kalabalik || !(alay >= 0 && alay < 3.4)) return; alayBalon(g, alay, tur, tohum); }
   function arkaPlanCiz() {
     var c = yerelCanvas(Math.round(W * dpr), Math.round(H * dpr));
     var g = c.getContext('2d');
@@ -448,7 +448,7 @@
       var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
       var shadow=izdus(rootX,0,rootZ);g.save();g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(shadow.x,shadow.y,.28*shadow.olcek,.09*shadow.olcek,0,0,Math.PI*2);g.fill();g.restore();
       DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
-        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,
+        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,drift:placement.drift,
         viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),shot:shot,ball:ballLayer});
       return;
     }
@@ -738,7 +738,7 @@
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     tribunKatmaniCiz(g, d, supporter);   // kalabalık + atmosfer + bayrak/pankart: en çok ~30 Hz yenilenen önbellekli katman
     if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
-    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur);
+    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0);
 
     kaleArka(g);
     agGuncelle(d);

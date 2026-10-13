@@ -272,9 +272,10 @@
     // A resolved post miss must not wait for the rolling ball's entire path.
     // Keep the authoritative trajectory/result; this is only presentation timing.
     var lastT=r.yol[r.yol.length-1].t,postMiss=r.sonuc==='direk_disari'&&r.direkTemas;
-    d.an = { t0: now, on: .85, vurdu: false, olay: false, olayT:postMiss?r.direkTemas.t:r.olayT,
+    d.an = { t0: now, on: (A.kosuSure&&A.kosuSure[d.pos.tip])||.85, vurdu: false, olay: false, olayT:postMiss?r.direkTemas.t:r.olayT,
       sonucT:postMiss?Math.min(lastT+.3,r.direkTemas.t+1.4):lastT+.3,
       file:false, fileT:r.fileT===undefined?(netPoint?netPoint.t:Infinity):(r.fileT===null?Infinity:r.fileT), bitti: false };
+    d.an.yavas = yavasPlan(r, d.an.olayT);
     $('alt').hidden = true;
     if (d.mod === 'resmi') {          // vuruş açıldığı anda sayılır; yenileme ya da kopma sonucu değiştirmez
       var k = oku(ANAHTAR.resmi, null);
@@ -293,6 +294,19 @@
 
   var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
+  /* Yavaş çekim: gol, kurtarış ve direkten dönüşte olaydan A.yavasCekim.once sn önce başlar, .sonra sn sonra biter (sim zamanında), hız .hiz kat.
+   * Dünya zamanı (top, kaleci, şutçu, sesler, olaylar) aynı haritadan geçer; yalnız gerçek zaman uzar. Kaçan şutlarda (aut, kısa, baraj) yok. */
+  function yavasPlan(r, olayT) {
+    var Y = A.yavasCekim; if (!Y || Y.acik === false) return null;
+    var tur = r.sonuc; if (!(tur === 'gol' || tur === 'direk_gol' || tur === 'kurtaris' || tur === 'direk_disari' || (d.pos && d.pos.tip === 'hedef' && r.delik))) return null;
+    return { a: Math.max(0, olayT - Y.once), b: olayT + Y.sonra, k: Y.hiz };
+  }
+  function simSure(e, y) {   // temastan beri gerçek süre → simülasyon süresi
+    if (!y || e <= y.a) return e;
+    var pencere = (y.b - y.a) / y.k;
+    if (e < y.a + pencere) return y.a + (e - y.a) * y.k;
+    return y.b + (e - y.a - pencere);
+  }
   function cizimDurumu(now) {
     yonIlerle(now); nisanIlerle(now);
     var R = A.kale.topYaricap, pos = d.pos;
@@ -305,9 +319,9 @@
     if (d.faz === 'nisan') {
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: (d.temasHazir&&!fifaMod())?d.onizleme:null, fifa: fifaMod(), fifaYol: fifaMod()?fifaOnizleme(now):null };
     } else if (d.faz === 'vurus' && d.an) {
-      var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el - an.on;
+      var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el < an.on ? el - an.on : simSure(el - an.on, an.yavas); an.simT = simT;
       out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
-      out.oyuncu.sure=el;out.oyuncu.on=an.on;
+      out.oyuncu.sure=el < an.on ? el : an.on + simT;out.oyuncu.on=an.on;   // şutçunun vuruş sonrası hareketi de yavaş çekimde
       out.oyuncu.temas = an.on / (an.on + 0.40);
       out.oyuncu.yol = r.yol; out.oyuncu.guide=r.ucusYol;out.oyuncu.contact=r.contact||null;
       out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
@@ -325,7 +339,7 @@
           if (!an.olay) {
             an.olay = true;
             var ses = SONUC_SES[r.sonuc]; if (ses && !(an.direk&&ses==='direk')) DT.ses.cal(ses,{hiz:r.speed});
-            if (r.sonuc === 'gol' || r.sonuc === 'direk_gol') DT.ses.cal('gol');
+            if (r.sonuc === 'gol' || r.sonuc === 'direk_gol') { DT.ses.cal('gol'); d.alayT0 = now; d.alayTur = 'gol'; d.alayTohum = (Math.floor(now) ^ (d.idx || 0)) & 0xffff; if (DT.tezahurat && DT.tezahurat.golSes) DT.tezahurat.golSes(d.alayTohum); }   // gol: tribün bağırır (balonlar + ses)
             if (!(r.sonuc === 'gol' || r.sonuc === 'direk_gol' || r.sonuc === 'direk_disari')) { var alayCaldi = DT.tezahurat && DT.tezahurat.alay(); d.alayT0 = now; d.alayTur = r.sonuc; if (r.sonuc !== 'aut' && !alayCaldi) DT.ses.cal('ah'); }   // kaçan şut: tribün alay eder (ses + balonlar)
             else if (r.sonuc === 'direk_disari' && !an.uh) DT.ses.cal('ah');
           }
@@ -340,13 +354,13 @@
       out.oyuncu = null;
       out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
     }
-    if(d.pos&&d.pos.tip==='hedef'&&gecerliSonuc&&gecerliSonuc.r.delik&&(d.faz==='sonuc'||d.faz==='vurus'&&d.an&&(now-d.an.t0)/1000-d.an.on>=gecerliSonuc.r.olayT))out.hedefVurulan=gecerliSonuc.r.delik.i;
+    if(d.pos&&d.pos.tip==='hedef'&&gecerliSonuc&&gecerliSonuc.r.delik&&(d.faz==='sonuc'||d.faz==='vurus'&&d.an&&(d.an.simT===undefined?(now-d.an.t0)/1000-d.an.on:d.an.simT)>=gecerliSonuc.r.olayT))out.hedefVurulan=gecerliSonuc.r.delik.i;
     if(d.pos&&d.pos.tip==='hedef'&&d.aim&&DT.hedef&&d.faz==='nisan'){var yb=-1,yd=1e9;DT.hedef.delikler.forEach(function(h,i){var u=Math.hypot(d.aim.x-h.x,d.aim.y-h.y);if(u<yd){yd=u;yb=i;}});out.hedefSecili=yb;}   // oka en yakın delik sarı yanar
     // Görsel kaleci (kaleci3d): vuruşa göre zaman ve penaltı öncesi hareketin sönümü. Sonuç hesabına girmez.
-    if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?gk-d.an.on:99;
-      out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:gk<.55?now/1000:undefined,gestureW:Math.max(0,1-gk/.55)});}
-    out.alay = d.alayT0 ? (now - d.alayT0) / 1000 : -1; out.alayTur = d.alayTur;
-    out.heyecan = d.faz === 'sonuc' && gecerliSonuc ? (gecerliSonuc.p && gecerliSonuc.p.gol ? 1 : 0.15) : d.faz === 'vurus' ? 0.35 : 0;   // tribün: gol olunca herkes zıplar
+    if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?(d.an.simT===undefined?gk-d.an.on:d.an.simT):99;
+      out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:(d.faz==='vurus'&&gk<d.an.on-.1)?now/1000:undefined,gestureW:d.faz==='vurus'?Math.max(0,Math.min(1,(d.an.on-.1-gk)/.45)):0});}   // kaleci rutini koşu boyunca sürer, temastan hemen önce söner
+    out.alay = d.alayT0 ? (now - d.alayT0) / 1000 : -1; out.alayTur = d.alayTur; out.alayTohum = d.alayTohum || 0;
+    out.heyecan = (d.alayTur === 'gol' && d.alayT0) ? 1 : d.faz === 'sonuc' && gecerliSonuc ? (gecerliSonuc.p && gecerliSonuc.p.gol ? 1 : 0.15) : d.faz === 'vurus' ? 0.35 : 0;   // tribün: gol olunca herkes zıplar
     return out;
   }
 
