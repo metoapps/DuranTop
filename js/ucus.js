@@ -21,16 +21,17 @@ function accel6(vx,vy,vz,ox,oy,oz,t,out,o){var P=A.aerodinamik,R=A.kale.topYaric
 /* Kural 10 hızlı yolu (yalnız antrenman/hedef; HIZLI bayrağı energyLaunch ile açılır): Math.hypot yerine sqrt, üstel terim adım başına bir kez hesaplanır,
  * nişan çözümünde adım 1/60 sn. Sonuçlar 1e-9 göreli düzeyde aynıdır ama bit düzeyinde değil; bu yüzden eski kurallar ve kupa bu yolu KULLANMAZ. */
 var HIZLI=false;
-function accelF(vx,vy,vz,ox,oy,oz,ex,out){var P=A.aerodinamik,R=A.kale.topYaricap,speed=Math.sqrt(vx*vx+vy*vy+vz*vz),q=.5*P.havaYogunlugu*Math.PI*R*R/P.kutle;
- var c0=oy*vz-oz*vy,c1=oz*vx-ox*vz,c2=ox*vy-oy*vx,cm=Math.sqrt(c0*c0+c1*c1+c2*c2),sp=R*cm/Math.max(speed*speed,1e-9)*ex;
+var RZ=[0,0];   // rüzgâr [x, z] m/sn (yalnız kural 10 hızlı yolu; havadaki top için)
+function accelF(vx,vy,vz,ox,oy,oz,ex,out,wx,wz){var P=A.aerodinamik,R=A.kale.topYaricap,rx=vx-wx,rz=vz-wz,speed=Math.sqrt(rx*rx+vy*vy+rz*rz),q=.5*P.havaYogunlugu*Math.PI*R*R/P.kutle;   // sürtünme ve Magnus havaya göre bağıl hızla
+ var c0=oy*rz-oz*vy,c1=oz*rx-ox*rz,c2=ox*vy-oy*rx,cm=Math.sqrt(c0*c0+c1*c1+c2*c2),sp=R*cm/Math.max(speed*speed,1e-9)*ex;
  var cl=Math.min(P.clTavan,P.clEgilim*sp),lift=q*speed*speed*cl,kd=-q*P.cd*speed,lm=cm>1e-9?lift/cm:0;
- out[0]=vx;out[1]=vy;out[2]=vz;out[3]=kd*vx+lm*c0;out[4]=kd*vy+lm*c1-A.yercekimi;out[5]=kd*vz+lm*c2;}
+ out[0]=vx;out[1]=vy;out[2]=vz;out[3]=kd*rx+lm*c0;out[4]=kd*vy+lm*c1-A.yercekimi;out[5]=kd*rz+lm*c2;}
 var F1=new Float64Array(6),F2=new Float64Array(6),F3=new Float64Array(6),F4=new Float64Array(6);
-function stepF(s,omega,t,h){var ox=omega[0],oy=omega[1],oz=omega[2],h2=h/2,k=A.aerodinamik.spinSonumu,e0=Math.exp(-k*t),e1=Math.exp(-k*(t+h2)),e2=Math.exp(-k*(t+h));
- accelF(s[3],s[4],s[5],ox,oy,oz,e0,F1);
- accelF(s[3]+h2*F1[3],s[4]+h2*F1[4],s[5]+h2*F1[5],ox,oy,oz,e1,F2);
- accelF(s[3]+h2*F2[3],s[4]+h2*F2[4],s[5]+h2*F2[5],ox,oy,oz,e1,F3);
- accelF(s[3]+h*F3[3],s[4]+h*F3[4],s[5]+h*F3[5],ox,oy,oz,e2,F4);
+function stepF(s,omega,t,h){var ox=omega[0],oy=omega[1],oz=omega[2],h2=h/2,k=A.aerodinamik.spinSonumu,e0=Math.exp(-k*t),e1=Math.exp(-k*(t+h2)),e2=Math.exp(-k*(t+h)),hava=s[1]>.25,wx=hava?RZ[0]:0,wz=hava?RZ[1]:0;   // yerde yuvarlanırken rüzgâr etkisi yok
+ accelF(s[3],s[4],s[5],ox,oy,oz,e0,F1,wx,wz);
+ accelF(s[3]+h2*F1[3],s[4]+h2*F1[4],s[5]+h2*F1[5],ox,oy,oz,e1,F2,wx,wz);
+ accelF(s[3]+h2*F2[3],s[4]+h2*F2[4],s[5]+h2*F2[5],ox,oy,oz,e1,F3,wx,wz);
+ accelF(s[3]+h*F3[3],s[4]+h*F3[4],s[5]+h*F3[5],ox,oy,oz,e2,F4,wx,wz);
  var h6=h/6;return [s[0]+h6*(F1[0]+2*F2[0]+2*F3[0]+F4[0]),s[1]+h6*(F1[1]+2*F2[1]+2*F3[1]+F4[1]),s[2]+h6*(F1[2]+2*F2[2]+2*F3[2]+F4[2]),
   s[3]+h6*(F1[3]+2*F2[3]+2*F3[3]+F4[3]),s[4]+h6*(F1[4]+2*F2[4]+2*F3[4]+F4[4]),s[5]+h6*(F1[5]+2*F2[5]+2*F3[5]+F4[5])];}
 function stepSec(s,omega,t,h){return HIZLI?stepF(s,omega,t,h):step(s,omega,t,h);}
@@ -48,7 +49,7 @@ function groundImpulse(velocity,omega,normalImpulse){
  var impulse=Math.min(.4*m*speed,.25*Math.max(0,normalImpulse)),j=slip.map(v=>-impulse*v/Math.max(speed,1e-12));
  return {velocity:[velocity[0]+j[0]/m,velocity[1],velocity[2]+j[1]/m],spin:[omega[0]-R*j[1]/I,omega[1],omega[2]+R*j[0]/I]};
 }
-function integrate(pos,velocity,omega,options){options=options||{};var rulo=options.rulo===undefined?.055:options.rulo,ruloV=options.ruloV||0,minVaris=options.minVaris||0,dt=options.dt||1/120,R=A.kale.topYaricap,t=options.startTime||0,s=(options.initialPosition||[pos.bx,R,0]).concat(velocity),path=[{t:t,x:s[0],y:s[1],z:s[2]}];
+function integrate(pos,velocity,omega,options){options=options||{};RZ=options.ruzgar||[0,0];var rulo=options.rulo===undefined?.055:options.rulo,ruloV=options.ruloV||0,minVaris=options.minVaris||0,dt=options.dt||1/120,R=A.kale.topYaricap,t=options.startTime||0,s=(options.initialPosition||[pos.bx,R,0]).concat(velocity),path=[{t:t,x:s[0],y:s[1],z:s[2]}];
  omega=omega.slice();
  for(var i=0;i<Math.ceil(8/dt);i++){
   var next=stepSec(s,omega,t,dt),h=dt;
@@ -163,7 +164,7 @@ function energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10){
  var budget=.5*m*nominal*nominal*Math.pow(.72+.28*quality,2)*(1-.45*r*r);
  var speed=Math.sqrt(2*budget/(m+inertia*Math.pow(Math.hypot.apply(null,spinPerSpeed),2)));
  var v=direction.map(function(a){return a*speed;}),omega=spinPerSpeed.map(function(a){return a*speed;});
- var flight=integrate({bx:pos.bx,D:pos.D+R,tip:pos.tip},v,omega,{groundSpin:true,rulo:k10?A.aerodinamik.ruloK10:undefined,ruloV:k10?A.aerodinamik.ruloVK10:0,minVaris:k10?A.aerodinamik.minVarisK10:0});   // kural 10: gerçek çimde yuvarlanma sürtünmesi (yavaş top kaleye varamadan durur)
+ var flight=integrate({bx:pos.bx,D:pos.D+R,tip:pos.tip},v,omega,{groundSpin:true,rulo:k10?A.aerodinamik.ruloK10:undefined,ruloV:k10?A.aerodinamik.ruloVK10:0,minVaris:k10?A.aerodinamik.minVarisK10:0,ruzgar:k10&&k10.ruzgar?k10.ruzgar:undefined});   // kural 10: gerçek çimde yuvarlanma sürtünmesi (yavaş top kaleye varamadan durur)
  flight.initialVelocity=v;flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=speed;flight.contact={x:x,y:y};
  flight.energy={available:budget,translation:.5*m*speed*speed,rotation:.5*inertia*Math.pow(Math.hypot.apply(null,omega),2),nominalSpeed:nominal};return flight;
 }

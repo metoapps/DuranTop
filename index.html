@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261011c">
+  <link rel="stylesheet" href="css/stil.css?v=20261012a">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -37,6 +37,7 @@
         <div id="kupaTablo"><p>Giriş yapınca sıralama burada görünür.</p></div>
         <p id="canliDurum" role="status">Bağlanılıyor…</p>
       </div>
+      <details class="menu-detay"><summary>Rozetler ve istatistikler</summary><div id="rozetListe"></div></details>
       <details class="menu-detay"><summary>Toplam gol sıralaması</summary><div id="genelTablo"></div></details>
       <details class="menu-detay"><summary>Nasıl oynanır?</summary>
         <ul class="oyun-kurallari">
@@ -132,6 +133,7 @@
       <div class="sonuc-ust"><div class="sonuc-baslik" id="sonucBaslik">GOL</div><div class="sonuc-puan" id="sonucPuan">+100</div></div>
       <div class="sonuc-detay" id="sonucDetay"></div>
       <div class="sonuc-neden" id="sonucNeden"></div>
+      <div class="sonuc-yorum" id="sonucYorum"></div>
       <div class="sonuc-dugmeler"><button class="btn" id="tekrarBtn" type="button">↺ Tekrar</button><button class="btn ana" id="devamBtn" type="button">Devam</button></div>
     </div>
     <div class="tekrar-etiket" id="tekrarEtiket" hidden>● TEKRAR</div>
@@ -151,27 +153,34 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261011c"></script>
+  <script src="js/ayar.js?v=20261012a"></script>
   <script src="js/perf.js?v=20261011a"></script>
+  <script src="js/ruzgar.js?v=20261012a"></script>
+  <script src="js/bonus.js?v=20261012a"></script>
+  <script src="js/yorum.js?v=20261012a"></script>
+  <script src="js/rozet.js?v=20261012a"></script>
   <script src="js/veri.js?v=20261005ab"></script>
   <script src="js/baraj.js?v=20261010e"></script>
   <script src="js/model3d.js?v=20261005ae"></script>
   <script src="js/kaleci3d.js?v=20261010f"></script>
   <script src="js/baraj3d.js?v=20261010e"></script>
   <script src="js/kaleci.js?v=20261010f"></script>
-  <script src="js/ucus.js?v=20261010f"></script>
-  <script src="js/fizik.js?v=20261011b"></script>
-  <script src="js/hedef.js?v=20261010b"></script>
+  <script src="js/ucus.js?v=20261012a"></script>
+  <script src="js/fizik.js?v=20261012a"></script>
+  <script src="js/hedef.js?v=20261012a"></script>
   <script src="js/ag.js?v=20261010b"></script>
   <script src="js/puan.js?v=20261005ab"></script>
   <script src="js/ses.js?v=20261006a"></script>
   <script src="js/tezahurat.js?v=20261011b"></script>
   <script src="js/futbolcu3d.js?v=20261011b"></script>
   <script src="js/sevinc.js?v=20261010b"></script>
-  <script src="js/tribun.js?v=20261011a"></script>
-  <script src="js/cizim.js?v=20261011c"></script>
+  <script src="js/tribun.js?v=20261012a"></script>
+  <script src="js/cizim.js?v=20261012a"></script>
   <script src="js/canli.js?v=20261006f"></script>
-  <script src="js/oyun.js?v=20261011c"></script>
+  <script src="js/oyun.js?v=20261012a"></script>
+  <div id="seriKutu" class="seri-kutu" hidden>🔥 ×1.5</div>
+  <div id="rozetToast" class="rozet-toast" hidden></div>
+  <div id="ruzgarKutu" class="ruzgar-kutu" hidden><span id="ruzgarOk" class="ruzgar-ok">➤</span><span id="ruzgarYaz" class="ruzgar-yaz">0</span></div>
   <div id="perfKutu" class="perf-kutu" hidden></div>
   <textarea id="perfRapor" class="perf-rapor" hidden readonly aria-label="Performans raporu"></textarea>
 </body>

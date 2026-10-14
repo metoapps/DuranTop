@@ -390,3 +390,18 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 .sonuc-dugmeler { display:flex; gap:10px; margin-top:10px; } .sonuc-dugmeler .btn { flex:1; } #tekrarBtn { flex:0 0 38%; }
 .tekrar-etiket { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 64px); left:50%; transform:translateX(-50%); z-index:30; font:700 15px/1 'Barlow Condensed', Arial, sans-serif; letter-spacing:.12em; color:#fff; background:rgba(200,30,30,.88); padding:6px 14px; border-radius:14px; pointer-events:none; }
 .tekrar-etiket[hidden] { display:none; }
+
+/* Rüzgâr göstergesi: yalnız ok ve hız (açıklama yok). Ok yukarı = kaleye doğru esiyor. */
+.ruzgar-kutu { position:fixed; top:calc(env(safe-area-inset-top, 0px) + 58px); right:8px; z-index:25; display:flex; align-items:center; gap:5px; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.25); border-radius:16px; padding:3px 9px 3px 6px; color:#fff; font:700 14px/1 'Barlow Condensed', Arial, sans-serif; pointer-events:none; }
+.ruzgar-kutu[hidden] { display:none; }
+.ruzgar-ok { display:inline-block; font-size:17px; transform:rotate(-90deg); transition:transform .25s; color:#bfe4ff; }
+.ruzgar-kutu.sert .ruzgar-ok { color:#ffb36b; } .ruzgar-kutu.sert { border-color:#ffb36b; }
+.ruzgar-kutu.durgun { opacity:.55; }
+
+/* Bonus: seri göstergesi, rozet bildirimi, yorum bandı, rozet listesi */
+.seri-kutu { position:fixed; top:calc(env(safe-area-inset-top, 0px) + 58px); left:8px; z-index:25; background:rgba(0,0,0,.55); border:1px solid #ffb36b; color:#ffd9a8; border-radius:16px; padding:3px 10px; font:700 15px/1 'Barlow Condensed', Arial, sans-serif; pointer-events:none; }
+.seri-kutu[hidden], .rozet-toast[hidden] { display:none; }
+.rozet-toast { position:fixed; left:50%; top:calc(env(safe-area-inset-top, 0px) + 100px); transform:translateX(-50%); z-index:40; background:linear-gradient(135deg,#ffd35a,#ff9f1c); color:#2b1800; border-radius:20px; padding:8px 16px; font:700 16px/1.1 'Barlow Condensed', Arial, sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.45); pointer-events:none; white-space:nowrap; }
+.sonuc-yorum { margin-top:8px; font-style:italic; opacity:.92; font-size:15px; }
+.rozet-ist { font-size:13px; opacity:.85; margin:6px 0 8px; } .rozet-izgara { display:flex; flex-direction:column; gap:5px; }
+.rozet { padding:6px 10px; border-radius:10px; font-size:14px; } .rozet.var { background:rgba(255,200,60,.18); border:1px solid rgba(255,200,60,.55); } .rozet.yok { opacity:.45; border:1px dashed rgba(255,255,255,.25); }

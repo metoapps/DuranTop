@@ -142,7 +142,7 @@
     return root.__yapCanvas(w, h);
   }
 
-  var kalabalik = null, kamSurum = 0, kareNo = 0, zoomOdak = null;   // kamSurum: kamera/sahne değişince artar; baraj önbelleği buna bağlı
+  var kalabalik = null, kamSurum = 0, kareNo = 0, zoomOdak = null, izTop = [];   // kamSurum: kamera/sahne değişince artar; baraj önbelleği buna bağlı
   var KTEN = ['#cdc6b2', '#af8d75', '#d6ad8a', '#adada8'], KFORMA = ['#e1e0d8', '#08090b', '#b3262f', '#d7b33a', '#1d3f86', '#e1e0d8', '#08090b', '#7d1d24'];
   /* Bir sıra seyirci: A = normal, B = kollar havada, C = alay (kollar aşağıda dışa açık, "yuh"). Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
   function kalabalikSerit(kisiler, sy, sc) {
@@ -346,6 +346,50 @@
       for(j=0;j<=layers;j++){pts=[];for(i=0;i<=cols;i++)pts.push(roof(-w+2*w*i/cols,j/layers));kaleCizgi(ag,pts,'rgba(226,241,235,.3)',line);}
     });
     kaleArkaCache={canvas:c,x:left,y:top,w:c.width/dpr,h:c.height/dpr,faces:faces,sallanan:false};g.drawImage(c,left,top,c.width/dpr,c.height/dpr);
+  }
+  /* Top izi: eski konumlardan şimdiki konuma yuvarlak uçlu, giderek incelen ve sönen şerit. */
+  function izCiz(g, tNow) {
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    for (var i = 1; i < izTop.length; i++) {
+      var a = izTop[i - 1], b = izTop[i], yas = Math.min(1, (tNow - b.t) / 260), al = (1 - yas) * 0.42; if (al <= 0.01) continue;
+      g.strokeStyle = 'rgba(235,245,255,' + al.toFixed(3) + ')'; g.lineWidth = Math.max(1, b.r * 1.5 * (1 - 0.6 * yas));
+      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+    }
+    g.restore();
+  }
+  /* Hız balonu: vuruş anında topun hızı ("118 km/sa") büyük yazı olarak belirir, yükselip söner. b = { km, t (sn) } */
+  function hizBalonCiz(g, b) {
+    if (!(b.t >= 0 && b.t < 1.6)) return;
+    var pop = b.t < 0.18 ? 1.35 - 0.35 * (b.t / 0.18) : 1, al = b.t < 1.0 ? 1 : Math.max(0, 1 - (b.t - 1.0) / 0.6), renk = b.km >= 120 ? '#ff6a3d' : b.km >= 100 ? '#ffb347' : b.km >= 70 ? '#ffe27a' : '#ffffff';
+    g.save(); g.globalAlpha = al; g.textAlign = 'center'; g.textBaseline = 'middle'; g.translate(W / 2, H * 0.30 - b.t * 16); g.scale(pop, pop);
+    var boy = Math.round(Math.max(30, Math.min(46, W / 9)));
+    g.font = '900 ' + boy + "px 'Barlow Condensed', Arial, sans-serif"; g.lineWidth = Math.max(4, boy * 0.16); g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineJoin = 'round'; g.strokeText(b.km + ' km/sa', 0, 0); g.fillStyle = renk; g.fillText(b.km + ' km/sa', 0, 0);
+    g.restore();
+  }
+  /* Konfeti: gol sonrası ekranın üstünden dökülen renkli parçalar (tohumdan deterministik; kademe 1'de yarı, kademe 2'de yok). k = { t (sn), tohum } */
+  var KONFETI = ['#ffd23f', '#ef476f', '#06d6a0', '#118ab2', '#ffffff', '#ff9f1c'];
+  function konfetiCiz(g, k, Q) {
+    if (Q >= 2 || !(k.t >= 0 && k.t < 4.5)) return;
+    var N = Q >= 1 ? 70 : 150, al = k.t > 3.8 ? Math.max(0, (4.5 - k.t) / 0.7) : 1, x = ((k.tohum | 0) ^ 0x2f6b) >>> 0 || 1;
+    function r() { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return (x % 100000) / 100000; }
+    g.save(); g.globalAlpha = al;
+    for (var i = 0; i < N; i++) {
+      var x0 = r() * W, gec = r() * 0.9, vy = 110 + r() * 130, sal = 14 + r() * 22, salF = 2 + r() * 3, rot0 = r() * 6.28, rotV = (r() - 0.5) * 10, w = 5 + r() * 4, h = w * (0.5 + r() * 0.7), c = KONFETI[(r() * KONFETI.length) | 0];
+      if (k.t < gec) continue; var tt = k.t - gec, y = -20 + vy * tt; if (y > H + 20) continue;
+      g.save(); g.translate(x0 + Math.sin(tt * salF + i) * sal, y); g.rotate(rot0 + rotV * tt); g.fillStyle = c; g.fillRect(-w / 2, -h / 2, w, h); g.restore();
+    }
+    g.restore();
+  }
+  /* Altın bölge: kale düzleminde yarı saydam altın dikdörtgen + kesik çizgili çerçeve + "★ +bonus". Yalnız görüntü. */
+  function altinCiz(g, b) {
+    var p = [izdus(b.x1, b.y1, pos.D), izdus(b.x2, b.y1, pos.D), izdus(b.x2, b.y2, pos.D), izdus(b.x1, b.y2, pos.D)]; if (p.some(function (q) { return !q; })) return;
+    var t = (root.performance ? root.performance.now() : Date.now()) / 1000, pr = A.hareket === false ? 0.5 : 0.5 + 0.5 * Math.sin(t * 3.2);
+    g.save(); g.beginPath(); g.moveTo(p[0].x, p[0].y); for (var i = 1; i < 4; i++) g.lineTo(p[i].x, p[i].y); g.closePath();
+    g.fillStyle = 'rgba(255,208,64,' + (0.16 + 0.10 * pr).toFixed(3) + ')'; g.fill();
+    g.strokeStyle = 'rgba(255,224,110,' + (0.55 + 0.30 * pr).toFixed(3) + ')'; g.lineWidth = 1.6; g.setLineDash([5, 4]); g.stroke(); g.setLineDash([]);
+    var cx = (p[0].x + p[1].x + p[2].x + p[3].x) / 4, cy = (p[0].y + p[1].y + p[2].y + p[3].y) / 4;
+    g.fillStyle = '#ffe28a'; g.font = 'bold ' + Math.round(Math.max(11, Math.min(15, Math.abs(p[1].x - p[0].x) * 0.16))) + 'px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★ +' + b.bonus, cx, cy);
+    g.restore();
   }
   function kaleOn(g) {
     var D=pos.D,w=A.kale.genislik/2+A.kale.direk/2,h=A.kale.yukseklik+A.kale.direk/2;
@@ -701,7 +745,7 @@
   function tribunDogrudan(g, d, supporter, saniye) {
     kalabalikCiz(g, saniye, d.heyecan || 0, d.alay === undefined ? -1 : d.alay, d.alayTur);
     var kalite = DT.perf ? DT.perf.kalite() : 0;
-    if (DT.tribun && DT.tribun.atmosfer) DT.tribun.atmosfer(g, { W: W, ust: 35, alt: izdus(0, A.kale.yukseklik, pos.D).y + 14, time: saniye, makeCanvas: yerelCanvas, kalite: kalite });
+    if (DT.tribun && DT.tribun.atmosfer) DT.tribun.atmosfer(g, { W: W, ust: 35, alt: izdus(0, A.kale.yukseklik, pos.D).y + 14, time: saniye, makeCanvas: yerelCanvas, kalite: kalite, ruzgar: d.ruzgar || null });
     if (supporter && DT.tribun && !(kalite >= 2)) { DT.tribun.draw(g, { kalite: kalite, id: supporter, D: pos.D, time: saniye, project: izdus, makeCanvas: yerelCanvas, image: gorseller['_menu_' + supporter + '_bekle'] || sprite(supporter, 'bekle') }); }
     else if (supporter) pankartCiz(g, supporter);
   }
@@ -755,6 +799,7 @@
     var kd = izdus(0, 1, D + 0.25);
     if (d.kaleci && pos.tip !== 'hedef') liste.push({ z: kd ? kd.d : 1e9, ciz: function () { kaleciCiz(g, d.kaleci, d.baraj); } });
     // Hedef ağı: kale ağzına gerili delikli ağ; derinliğe göre topla sıralanır (delikten geçen top arkasında kalır).
+    if (d.altin && pos.tip !== 'hedef') { var ad = izdus(0, 1.2, pos.D); liste.push({ z: ad ? ad.d + 0.005 : 1e9, ciz: function () { altinCiz(g, d.altin); } }); }   // altın bölge (antrenman)
     if (pos.tip === 'hedef' && DT.hedef) { var hd = izdus(0, 1.2, pos.D); liste.push({ z: hd ? hd.d : 1e9, ciz: function () { DT.hedef.ciz(g, izdus, pos.D, d.hedefVurulan, d.hedefSecili); } }); }
     var fd = izdus(0, 1, D);
     liste.push({ z: fd ? fd.d + 0.01 : 1e9, ciz: function () { kaleOn(g); } });
@@ -780,6 +825,14 @@
       var td = izdus(d.top.x, d.top.y, d.top.z);
       liste.push({ z: td ? td.d : 0, ciz: function () { topCiz(g, d.top, d.topAci); } });
     }
+    // Top izi: hızlı topun arkasında sönen şerit (kademe 2'de yok)
+    var Qi = DT.perf ? DT.perf.kalite() : 0, tNow = root.performance ? root.performance.now() : Date.now();
+    if (d.top && !actorBall && Qi < 2 && A.topIzi !== false && d.zaman > 0.02) {
+      var qi = izdus(d.top.x, d.top.y, d.top.z);
+      if (qi) { var sonIz = izTop[izTop.length - 1]; if (!sonIz || Math.hypot(qi.x - sonIz.x, qi.y - sonIz.y) > 1.5) izTop.push({ x: qi.x, y: qi.y, r: Math.max(1.5, qi.olcek * A.kale.topYaricap), t: tNow }); }
+      while (izTop.length && tNow - izTop[0].t > 260) izTop.shift();
+      if (izTop.length > 1 && qi) liste.push({ z: qi.d + 0.002, ciz: function () { izCiz(g, tNow); } });
+    } else izTop.length = 0;
     liste.sort(function (a, b) { return b.z - a.z; });
     liste.forEach(function (o) { o.ciz(); });
 
@@ -795,6 +848,8 @@
     }
     if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme, d.nisan.fifa);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
+    if (d.konfeti) konfetiCiz(g, d.konfeti, Qi);
+    if (d.hizBalon) hizBalonCiz(g, d.hizBalon);
   }
 
   /* Çözünürlük sınırı: varsayılan 2 (3 değil). Karakterler 900 px'lik görsellerden küçültüldüğü için 3x piksel fark yaratmaz ama

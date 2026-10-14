@@ -1,0 +1,30 @@
+(async()=>{
+const vm=require('vm'),fs=require('fs'),assert=require('assert'),C=require('/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/@napi-rs/canvas'),elements={};
+function el(id){return elements[id]||(elements[id]={hidden:false,style:{},classList:{toggle(){}},events:{},children:[],appendChild(c){this.children.push(c)},getAttribute(){return 0},getContext(){return C.createCanvas(220,220).getContext('2d')},addEventListener(k,v){(this.events[k]||=[]).push(v)},getBoundingClientRect(){return {left:5,top:10,width:195,height:422}},setPointerCapture(){}})}
+const doc={readyState:'loading',getElementById:el,createElement:()=>el(Math.random()),querySelectorAll:()=>[],addEventListener(){}};let time=0,ready=true,shots=0;const memory={};const root={document:doc,URLSearchParams,performance:{now:()=>time},navigator:{},location:{search:'',reload(){}},localStorage:{getItem:k=>memory[k]||null,setItem:(k,v)=>memory[k]=v,removeItem:k=>delete memory[k]},requestAnimationFrame(f){root.frame=f},alert(){}};vm.createContext(root);for(const n of ['ayar','veri','model3d','baraj','kaleci','ucus','fizik','hedef','puan','sevinc'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),root);const D=root.DT;D.cizim={ciz(){},kur(){},sahneKur(){},kameraDurus(){},kamDurus:()=>0,hazir:()=>ready,boyut:()=>({w:390,h:844}),ekranToKale:(x,y)=>({x:x/100,y:y/100})};D.ses={ayarla(){},cal(){}};
+let callback,state={room:{id:'test',code:'ABC123'},players:[]};function records(){let r={};state.players.forEach(p=>r[p.player]={id:p.player,idx:p.idx,puan:p.entries.reduce((a,e)=>a+e.puan,0),gol:p.entries.filter(e=>e.gol).length,yesil:p.entries.filter(e=>e.yesil).length});return r;}
+D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Promise.resolve(state)},ensure:()=>Promise.resolve(state),current:()=>state.players[0],allowed:()=>true,getState:()=>state,records,async join(player){if(!state.players[0])state.players=[{player,idx:0,entries:[],mine:true}];return state.players[0]},async shot(player,idx,input){shots++;const p=D.puan.puanla(input.pos,D.fizik.hesapla(input));const physics=D.fizik.hesapla(input);const entry={ad:input.pos.ad,sonuc:physics.sonuc,puan:D.puan.puanla(input.pos.tip,physics).puan,gol:['gol','direk_gol'].includes(physics.sonuc),yesil:physics.bandaGirdi,input:{...input,rules:9}};state.players[0].entries.push(entry);state.players[0].idx++;callback(state);return entry},create:()=>Promise.resolve(state),link:()=>''};
+vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
+
+
+// Hedef ağı: delikten geçen top GOL gibi karşılanır (sevinç, tribün bağırışı, ağ sesi, flaş); halkaya ve ağa çarpan top alayla karşılanır, tezahüratla değil.
+let sonCizim=null,golSes=0,alayN=0,sesler=[];D.cizim.ciz=function(x){sonCizim=x;};D.tezahurat={alay(){alayN++;return true;},uh(){return true;},golSes(){golSes++;return'konusma';},golMetinleri(){return[{m:'x'}];},ayarla(){},ortam(){}};D.ses.cal=function(a){sesler.push(a);};
+const eskiH=D.hedef.hesapla;let senaryo=null;D.hedef.hesapla=g=>eskiH(Object.assign({},g,senaryo?{aim:senaryo.aim,zaman:.5,contact:{x:0,y:0},guc:senaryo.guc||.9}:{}));
+async function tur(senaryolar){await flush();fire('btnAntrenman','click');await flush();const sonuclar=[];
+ for(let i=0;i<10;i++){const hedefMi=d.pos.tip==='hedef';senaryo=hedefMi?senaryolar.shift():null;golSes=0;alayN=0;sesler.length=0;
+  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus');
+  let k=0,flas=0;while(d.faz==='vurus'&&k++<4000){time+=16;root.frame();if(sonCizim&&sonCizim.flas)flas=Math.max(flas,sonCizim.flas);}assert.equal(d.faz,'sonuc');
+  if(hedefMi){const r=d.sonuclar[d.sonuclar.length-1];time+=300;root.frame();sonuclar.push({sonuc:gecerli(),golSes,alayN,sesler:sesler.slice(),flas,kart:el('sonuc').className,baslik:el('sonucBaslik').textContent,sevinc:sonCizim&&sonCizim.onKarakter&&sonCizim.onKarakter.poz,heyecan:sonCizim&&sonCizim.heyecan,alayTur:d.alayTur,alayT0:!!d.alayT0});}
+  fire('devamBtn','click');}
+ return sonuclar;}
+function gecerli(){return D.oyun._durum._son||null;}
+// Delikler: ilk delikten (yüksek puanlı) ve alt delikten geçiş, halkaya çarpma, ağa çarpma
+const DL=D.hedef.delikler,delik=(i)=>({aim:{x:DL[i].x,y:DL[i].y}}),halka=(i)=>({aim:{x:DL[i].x+DL[i].r*.95,y:DL[i].y}}),ag=()=>({aim:{x:(DL[0].x+DL[1].x)/2,y:(DL[0].y+DL[1].y)/2+.02}});
+const sonucAdi=()=>el('sonucBaslik').textContent;
+const t1=await tur([delik(2),delik(7)]);
+for(const s of t1){assert.equal(s.baslik,'DELİKTEN!','delikten geçti: '+s.baslik);assert.equal(s.kart,'sonuc gol','kart gol rengi: '+s.kart);assert.equal(s.golSes,1,'delikten geçen şutta tribün bağırır');assert.equal(s.alayN,0,'delikten geçen şutta ALAY YOK');assert.equal(s.alayTur,'gol','gol balonları');assert(s.sesler.includes('gol')&&s.sesler.includes('file'),'gol uğultusu ve ağ sesi: '+s.sesler.join());assert(!s.sesler.includes('ah'),'hayal kırıklığı sesi yok');assert(s.flas>0,'gol flaşı');assert.equal(s.sevinc,'sevinc','şutçu sevinir: '+s.sevinc);assert.equal(s.heyecan,1,'tribün tam coşar');}
+const t2=await tur([halka(2),ag()]);
+for(const s of t2){assert(['HALKAYA ÇARPTI','AĞDAN DÖNDÜ'].includes(s.baslik),'halka/ağ: '+s.baslik);assert.equal(s.kart,'sonuc kacti');assert.equal(s.golSes,0,'halka/ağda gol tezahüratı yok');assert.equal(s.alayN,1,'halka/ağda tribün alay eder');assert(!s.sesler.includes('gol')&&!s.sesler.includes('file'),'gol sesi yok: '+s.sesler.join());assert.equal(s.flas,0);assert.equal(s.sevinc,'kacirma');}
+D.hedef.hesapla=eskiH;
+console.log('PASS hedef ağı: delikten geçen top gol gibi karşılanır (sevinç, tribün bağırışı, ağ sesi, flaş, alay yok); halka ve ağ alayla karşılanır');
+})().catch(e=>{console.error(e);process.exit(1)});
