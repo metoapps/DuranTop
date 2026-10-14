@@ -1,0 +1,45 @@
+(async()=>{
+const vm=require('vm'),fs=require('fs'),assert=require('assert'),C=require('/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/@napi-rs/canvas'),elements={};
+function el(id){return elements[id]||(elements[id]={hidden:false,style:{},classList:{toggle(){}},events:{},children:[],appendChild(c){this.children.push(c)},getAttribute(){return 0},getContext(){return C.createCanvas(220,220).getContext('2d')},addEventListener(k,v){(this.events[k]||=[]).push(v)},getBoundingClientRect(){return {left:5,top:10,width:195,height:422}},setPointerCapture(){}})}
+const doc={readyState:'loading',getElementById:el,createElement:()=>el(Math.random()),querySelectorAll:()=>[],addEventListener(){}};let time=0,ready=true,shots=0;const memory={};const root={document:doc,URLSearchParams,performance:{now:()=>time},navigator:{},location:{search:'',reload(){}},localStorage:{getItem:k=>memory[k]||null,setItem:(k,v)=>memory[k]=v,removeItem:k=>delete memory[k]},requestAnimationFrame(f){root.frame=f},alert(){}};vm.createContext(root);for(const n of ['ayar','ruzgar','bonus','yorum','rozet','modlar','veri','model3d','baraj','kaleci','ucus','fizik','hedef','puan','sevinc'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),root);const D=root.DT;D.cizim={ciz(){},kur(){},sahneKur(){},kameraDurus(){},kamDurus:()=>0,hazir:()=>ready,boyut:()=>({w:390,h:844}),ekranToKale:(x,y)=>({x:x/100,y:y/100})};D.ses={ayarla(){},cal(){}};
+let callback,state={room:{id:'test',code:'ABC123'},players:[]};function records(){let r={};state.players.forEach(p=>r[p.player]={id:p.player,idx:p.idx,puan:p.entries.reduce((a,e)=>a+e.puan,0),gol:p.entries.filter(e=>e.gol).length,yesil:p.entries.filter(e=>e.yesil).length});return r;}
+D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Promise.resolve(state)},ensure:()=>Promise.resolve(state),current:()=>state.players[0],allowed:()=>true,getState:()=>state,records,async join(player){if(!state.players[0])state.players=[{player,idx:0,entries:[],mine:true}];return state.players[0]},async shot(player,idx,input){shots++;const p=D.puan.puanla(input.pos,D.fizik.hesapla(input));const physics=D.fizik.hesapla(input);const entry={ad:input.pos.ad,sonuc:physics.sonuc,puan:D.puan.puanla(input.pos.tip,physics).puan,gol:['gol','direk_gol'].includes(physics.sonuc),yesil:physics.bandaGirdi,input:{...input,rules:9}};state.players[0].entries.push(entry);state.players[0].idx++;callback(state);return entry},create:()=>Promise.resolve(state),link:()=>''};
+vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
+
+
+
+
+// Hayatta kal ve günlük meydan okuma: oyun akışı (pozisyon, tohum, zorluk, HUD, tur sonu, kayıt, paylaşım).
+root.setTimeout=setTimeout;D.cizim.ciz=function(x){};const M=D.modlar;D.rozet.sifirla();
+const girdiler=[];const eski=D.fizik.hesapla,eskiH=D.hedef.hesapla;let zorla=null;
+D.fizik.hesapla=g=>{girdiler.push(g);const r=eski(g);if(zorla){r.sonuc=zorla.sonuc;r.gecis={x:zorla.x||0,y:zorla.y||1};}return r;};D.hedef.hesapla=g=>{girdiler.push(g);const r=eskiH(g);if(zorla){r.sonuc=zorla.sonuc==='gol'?'delik':zorla.sonuc;r.delik=r.delik||D.hedef.delikler[0];r.gecis={x:zorla.x||0,y:zorla.y||1};}return r;};
+D.puan.puanla=(tip,r)=>({puan:r.sonuc==='gol'?5:0,taban:5,zaman:0,zor:0,gol:r.sonuc==='gol'});const hp=D.hedef.puanla;D.hedef.puanla=r=>r.sonuc==='delik'?{puan:5,taban:5,zaman:0,zor:0,gol:true}:{puan:0,taban:0,zaman:0,zor:0,gol:false};
+async function at(sonuc){zorla={sonuc};girdiler.length=0;fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();let k=0;while(d.faz==='vurus'&&k++<4000){time+=16;root.frame();}assert.equal(d.faz,'sonuc');time+=16;root.frame();
+ const o={girdi:girdiler.find(g=>g.pos),hud:el('hudVurus').textContent,devam:el('devamBtn').textContent,pos:d.pos,ruzgar:d.ruzgar,seed:d.seed};fire('devamBtn','click');return o;}
+// ---------- HAYATTA KAL ----------
+await flush();fire('btnHayat','click');await flush();assert.equal(d.mod,'hayat');assert.equal(el('hudVurus').textContent,'Seri 0 · Rekor 0','hud: seri ve rekor');
+{const adimlar=[];for(const s of ['gol','gol','gol','aut']){adimlar.push(await at(s));if(s!=='aut')assert.equal(d.faz,'nisan','seri sürer: sıradaki vuruş hazır');}
+ assert.deepEqual(adimlar.map(a=>a.hud),['Seri 0 · Rekor 0','Seri 1 · Rekor 1','Seri 2 · Rekor 2','Seri 3 · Rekor 3'],'HUD seri ve rekor');
+ assert.deepEqual(adimlar.map(a=>a.devam),['Sıradaki vuruş','Sıradaki vuruş','Sıradaki vuruş','Sonuçları gör'],'kaçırınca düğme "Sonuçları gör"');
+ // zorluk: seviye her golle artar, rüzgâr ölçeklenir
+ const sv=adimlar.map(a=>a.girdi.seviye);assert.deepEqual(sv,[0,1,2,3].map(g=>M.hayatZorluk(g).seviye),'kaleci seviyesi girdiye girer');assert(sv[3]>sv[2]&&sv[2]>sv[1]&&sv[1]>sv[0]);
+ adimlar.forEach((a,i)=>{const maks=6.5*M.hayatZorluk(i).ruzgarOlcek+.15;assert(a.ruzgar.hiz<=maks,'rüzgâr seviyeye göre ölçeklenir: '+a.ruzgar.hiz+' ≤ '+maks.toFixed(2));});
+ assert.equal(d.ekran,'tursonu','kaçırınca tur biter');assert.equal(el('turBaslik').textContent,'Seri bitti: 3 gol');assert(/Yeni rekor/.test(el('turNot').textContent),el('turNot').textContent);assert.deepEqual(M.hayatDurum(),{rekor:3,oyun:1,toplamGol:3});assert(/3 gol üst üste/.test(d.sonPaylas)&&/yeni rekor/.test(d.sonPaylas)&&/sen kaç atarsın/.test(d.sonPaylas),d.sonPaylas);
+ // ikinci oyun: daha düşük, rekor korunur
+ fire('turTekrar','click');assert.equal(d.ekran,'secim');}
+// menüden yeniden başla (seçim ekranı yerine doğrudan)
+fire('turMenu','click');await flush();fire('btnHayat','click');await flush();assert.equal(d.hayatGol,0,'yeni oyun sıfırdan');{await at('gol');await at('aut');assert.equal(el('turBaslik').textContent,'Seri bitti: 1 gol');assert(/Rekorun: 3 gol. 2 gol daha atsan geçerdin/.test(el('turNot').textContent),el('turNot').textContent);assert.deepEqual(M.hayatDurum(),{rekor:3,oyun:2,toplamGol:4});}
+// ---------- GÜNLÜK ----------
+fire('turMenu','click');await flush();fire('btnGunluk','click');await flush();assert.equal(d.mod,'gunluk');const gun=d.gun,beklenen=M.gunPozisyonlar(gun,D.AYAR.pozisyonlar,D.hedef.pozisyonlar);
+{const a=[];for(let i=0;i<3;i++){assert.equal(d.pos.ad,beklenen[i].ad,'günlük pozisyon '+i);assert.equal(d.seed,M.gunSeed(gun,i),'günlük tohum '+i);assert.equal(el('hudVurus').textContent,'Günlük #'+M.gunSira(gun)+' · '+(i+1)+'/3');a.push(await at(i===1?'aut':'gol'));}
+ assert.deepEqual(a.map(x=>x.devam),['Sıradaki vuruş','Sıradaki vuruş','Turu bitir']);assert.deepEqual(a.map(x=>x.pos.tip),['penalti','frikik','hedef']);
+ const rz=a.map(x=>JSON.stringify(x.ruzgar));assert.deepEqual(rz,[0,1,2].map(i=>JSON.stringify(D.ruzgar.uret(M.gunSeed(gun,i)^0x9e37))),'rüzgâr günlük tohumdan');assert(a.every(x=>x.girdi.seviye===undefined),'günlükte kaleci seviyesi yok');
+ assert.equal(d.ekran,'tursonu');assert.equal(el('turBaslik').textContent,'Günlük #'+M.gunSira(gun)+': 2/3 gol');const du=M.gunlukDurum(gun);assert(du.oynadi&&du.deneme===1&&du.seri===1);assert(/kaydedildi/.test(el('turNot').textContent),el('turNot').textContent);assert(new RegExp('Günlük #'+M.gunSira(gun)+': '+du.puan+' puan \\(2/3 gol\\)').test(d.sonPaylas),d.sonPaylas);const ilk=du.puan;
+ // ikinci deneme: aynı vuruşlar (deterministik), kayda geçmez
+ fire('turMenu','click');await flush();assert(/bugün \d+ puan/.test(el('gunlukDurum').textContent),'menüde bugünkü sonuç: '+el('gunlukDurum').textContent);fire('btnGunluk','click');await flush();assert.equal(d.pos.ad,beklenen[0].ad,'ikinci denemede aynı pozisyon');assert.equal(d.seed,M.gunSeed(gun,0),'aynı tohum');
+ for(let i=0;i<3;i++)await at('gol');assert.equal(M.gunlukDurum(gun).puan,ilk,'ilk deneme sayılır');assert.equal(M.gunlukDurum(gun).deneme,2);assert(/Bu bir deneme: bugünkü ilk denemen \(\d+ puan\) sayılır/.test(el('turNot').textContent),el('turNot').textContent);}
+fire('turMenu','click');await flush();assert(/rekor 3 gol/.test(el('hayatDurum').textContent),el('hayatDurum').textContent);
+// kupa (resmi) bu modlardan etkilenmez: kaynakta ayrı dal
+const kaynak=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/d\.mod === 'gunluk' \? DT\.modlar\.gunSeed/.test(kaynak)&&/d\.mod === 'hayat' \? DT\.modlar\.hayatPoz/.test(kaynak));
+console.log('PASS yeni modlar: hayatta kal (seri, rekor, zorluk, tur sonu, paylaşım) ve günlük (3 sabit vuruş, aynı tohum ve rüzgâr, ilk deneme sayılır, günlük seri, menü durumu)');
+})().catch(e=>{console.error(e);process.exit(1)});

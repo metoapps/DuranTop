@@ -16,7 +16,7 @@ function yanKayma(pos,ux,uz,px,pz,mesafe){var bx=pos.bx||0;if(Math.abs(bx)<.3)re
  return lN-yan*(yari-.2);}
 function kur(pos,opts){
  if(opts&&opts.kural10){var n=sayi(pos),rp=rnd(posTohum(pos)),rs=rnd(opts.seed),say=0,orta=(n-1)/2;
-  var l10=[];for(var i=0;i<n;i++){var h=BOYLAR[Math.floor(rp()*BOYLAR.length)],jit=(rp()-.5)*.07,merkez=Math.abs(i-orta)<=1,jump=rs()<(merkez?.92:.60),v=2.25+rs()*.55,start=.24+Math.abs(i-orta)*.03+rs()*.07;if(jump)say++;
+  var zr=Math.max(0,Math.min(1,opts.zorluk||0)),l10=[];for(var i=0;i<n;i++){var h=BOYLAR[Math.floor(rp()*BOYLAR.length)],jit=(rp()-.5)*.07,merkez=Math.abs(i-orta)<=1,jump=rs()<(merkez?.92+.08*zr:.60+.35*zr),v=2.25+rs()*.55,start=.24-.05*zr+Math.abs(i-orta)*.03+rs()*.07;if(jump)say++;   // hayatta kal: baraj daha çok ve daha erken zıplar
    l10.push({boy:h,off:(i-orta)*SP10+jit,jump:jump,v:v,start:start});}
   if(say<2)l10.map(function(q,i){return i;}).sort(function(a,b){return Math.abs(a-orta)-Math.abs(b-orta);}).slice(0,2).forEach(function(i){l10[i].jump=true;});   // en az iki zıplayan: ortadaki iki oyuncu
   return l10;}

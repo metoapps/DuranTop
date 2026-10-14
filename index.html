@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261012a">
+  <link rel="stylesheet" href="css/stil.css?v=20261013a">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -30,6 +30,8 @@
         <button class="btn ana" id="btnResmi" type="button">Kupaya katıl</button>
         <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
         <button class="btn ikinci" id="btnHedef" type="button">Hedef ağı</button>
+        <button class="btn ikinci" id="btnGunluk" type="button">Günün meydan okuması<small id="gunlukDurum"></small></button>
+        <button class="btn ikinci" id="btnHayat" type="button">Hayatta kal<small id="hayatDurum"></small></button>
       </div>
       <div class="kupa-kutu">
         <div class="kupa-baslik"><strong>Haftanın gol yarışı</strong><button id="kupaPaylas" class="ayar" type="button">Gruba paylaş</button></div>
@@ -50,6 +52,7 @@
       </details>
       <details class="menu-detay"><summary>Ayarlar</summary><div class="ayarlar">
         <button class="ayar" id="btnSes" type="button">Ses: kapalı</button>
+        <button class="ayar" id="btnMuzik" type="button">Müzik: açık</button>
         <button class="ayar" id="btnCubuk" type="button">Antrenman çubuğu: açık</button>
         <button id="yeniKupa" class="ayar" type="button">Bağlantıyı yenile</button>
       </div></details>
@@ -153,20 +156,22 @@
     </div>
   </section>
 
-  <script src="js/ayar.js?v=20261012a"></script>
+  <script src="js/ayar.js?v=20261013a"></script>
   <script src="js/perf.js?v=20261011a"></script>
-  <script src="js/ruzgar.js?v=20261012a"></script>
+  <script src="js/ruzgar.js?v=20261013a"></script>
   <script src="js/bonus.js?v=20261012a"></script>
   <script src="js/yorum.js?v=20261012a"></script>
   <script src="js/rozet.js?v=20261012a"></script>
+  <script src="js/modlar.js?v=20261013a"></script>
+  <script src="js/muzik.js?v=20261013a"></script>
   <script src="js/veri.js?v=20261005ab"></script>
-  <script src="js/baraj.js?v=20261010e"></script>
+  <script src="js/baraj.js?v=20261013a"></script>
   <script src="js/model3d.js?v=20261005ae"></script>
   <script src="js/kaleci3d.js?v=20261010f"></script>
   <script src="js/baraj3d.js?v=20261010e"></script>
-  <script src="js/kaleci.js?v=20261010f"></script>
+  <script src="js/kaleci.js?v=20261013a"></script>
   <script src="js/ucus.js?v=20261012a"></script>
-  <script src="js/fizik.js?v=20261012a"></script>
+  <script src="js/fizik.js?v=20261013a"></script>
   <script src="js/hedef.js?v=20261012a"></script>
   <script src="js/ag.js?v=20261010b"></script>
   <script src="js/puan.js?v=20261005ab"></script>
@@ -175,9 +180,9 @@
   <script src="js/futbolcu3d.js?v=20261011b"></script>
   <script src="js/sevinc.js?v=20261010b"></script>
   <script src="js/tribun.js?v=20261012a"></script>
-  <script src="js/cizim.js?v=20261012a"></script>
+  <script src="js/cizim.js?v=20261013a"></script>
   <script src="js/canli.js?v=20261006f"></script>
-  <script src="js/oyun.js?v=20261012a"></script>
+  <script src="js/oyun.js?v=20261013a"></script>
   <div id="seriKutu" class="seri-kutu" hidden>🔥 ×1.5</div>
   <div id="rozetToast" class="rozet-toast" hidden></div>
   <div id="ruzgarKutu" class="ruzgar-kutu" hidden><span id="ruzgarOk" class="ruzgar-ok">➤</span><span id="ruzgarYaz" class="ruzgar-yaz">0</span></div>

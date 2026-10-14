@@ -93,7 +93,7 @@
       var mesafe = A.baraj.mesafe;
       var kay = girdi.kural10 === true ? DT.baraj.yanKayma(pos, ux, uz, px, pz, mesafe) : 0;   // kural 10: baraj yakın direğe giden hattı örter
       baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe + px * kay, merkezZ: uz * mesafe + pz * kay };
-      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0,kural10:true}:null);
+      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0,kural10:true,zorluk:girdi.seviye}:null);
       var hit=DT.baraj.ilkTemas(baraj,ornekler,R);
       if(hit){sonuc='baraj';olayIndex=hit.index;baraj.temas=hit;}
 
@@ -103,7 +103,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,preExtent:(girdi.kural10===true&&girdi.penaltiTahmin)?mulberry32((girdi.seed|0)^0x7A3C15E9)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,kural10:girdi.kural10===true,D:D});
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{seviye:girdi.seviye,hedefX:gecis.x,decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,preExtent:(girdi.kural10===true&&girdi.penaltiTahmin)?mulberry32((girdi.seed|0)^0x7A3C15E9)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,kural10:girdi.kural10===true,D:D});
     plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;

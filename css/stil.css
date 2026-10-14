@@ -405,3 +405,6 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 .sonuc-yorum { margin-top:8px; font-style:italic; opacity:.92; font-size:15px; }
 .rozet-ist { font-size:13px; opacity:.85; margin:6px 0 8px; } .rozet-izgara { display:flex; flex-direction:column; gap:5px; }
 .rozet { padding:6px 10px; border-radius:10px; font-size:14px; } .rozet.var { background:rgba(255,200,60,.18); border:1px solid rgba(255,200,60,.55); } .rozet.yok { opacity:.45; border:1px dashed rgba(255,255,255,.25); }
+
+/* Yeni modlar: menü düğmelerinin alt satırı */
+.menu-oyna .btn small { display:block; font-size:12px; font-weight:400; opacity:.75; margin-top:2px; letter-spacing:0; text-transform:none; }

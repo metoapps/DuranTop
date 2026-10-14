@@ -8,5 +8,7 @@ function uret(tohum){var r=rastgele(tohum);r();r();var u=r(),hiz=u<.20?r()*1.0:(
 function seviye(w){return w.hiz<1?'durgun':w.hiz<4.2?'orta':'sert';}
 /* Ekranda gösterge oku: yukarı = kaleye doğru (arka rüzgâr). Derece, saat yönü. */
 function okAcisi(w){return Math.round(Math.atan2(w.vx,w.vz)*180/Math.PI);}
-DT.ruzgar={uret:uret,seviye:seviye,okAcisi:okAcisi};
+/* olcekle: rüzgârı k kat güçlendirir/zayıflatır (hayatta kal zorluğu); açı korunur. */
+function olcekle(w,k){var h=Math.round(Math.min(6.5*k,w.hiz*k)*10)/10;return{vx:Math.round(w.vx*k*10)/10,vz:Math.round(w.vz*k*10)/10,hiz:Math.round(w.hiz*k*10)/10,aci:w.aci};}
+DT.ruzgar={uret:uret,olcekle:olcekle,seviye:seviye,okAcisi:okAcisi};
 })(typeof globalThis!=='undefined'?globalThis:window);
