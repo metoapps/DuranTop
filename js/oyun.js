@@ -130,7 +130,7 @@
     if (DT.cizim.barajIsit) DT.cizim.barajIsit(d.barajGeo);   // baraj oyuncularının sprite'ları pozisyon açılırken hazırlanır
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = (Math.random() * 2147483647) | 0;   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
-    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.kamDurus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=true;d.alayT0=null;panelKonumu();
+    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.kamDurus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=true;d.alayT0=null;d.tekrar=null;panelKonumu();
     $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('fifaNisan').hidden=true;$('fifaKutu').hidden=true;d.fifa={faz:null};d.nisanHiz=null;$('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
@@ -307,6 +307,41 @@
     if (e < y.a + pencere) return y.a + (e - y.a) * y.k;
     return y.b + (e - y.a - pencere);
   }
+  /* Tekrar: sonuç kartındaki "Tekrar" düğmesi atışı yeniden oynatır: koşunun son anı, vuruş ve sonuç yarı hızda; kamera (cizim.js zoom) topu izler.
+   * Sonucu, puanı ve kayıtları etkilemez; ekrana dokunmak ya da süre dolması tekrarı bitirir. Tezahürat/alay tekrarlanmaz. */
+  function tekrarBaslat() {
+    if (d.faz !== 'sonuc' || !gecerliSonuc || !d.an || d.tekrar) return;
+    d.tekrar = { t0: simdi(), sim: (A.tekrar || {}).baslangic || -0.55, vurdu: false, olay: false, file: false, direk: false };
+    $('sonuc').hidden = true; if ($('tekrarEtiket')) $('tekrarEtiket').hidden = false;
+    if (DT.ag && d.pos) DT.ag.sifirla(d.pos);   // ağ durgun başlar
+  }
+  function tekrarBitir() {
+    if (!d.tekrar) return;
+    d.tekrar = null; if ($('tekrarEtiket')) $('tekrarEtiket').hidden = true; if (d.faz === 'sonuc') $('sonuc').hidden = false;
+  }
+  function tekrarKare(out, now) {
+    var T = d.tekrar, H = A.tekrar || {}, r = gecerliSonuc.r, an = d.an, on = an.on, sim = (H.baslangic === undefined ? -0.55 : H.baslangic) + (now - T.t0) / 1000 * (H.hiz || 0.5);
+    if (sim >= r.olayT + (H.sonra === undefined ? 1.0 : H.sonra)) { tekrarBitir(); return false; }
+    T.sim = sim;
+    var oyuncu = out.oyuncu; oyuncu.sure = on + sim; oyuncu.on = on; oyuncu.ilerleme = Math.max(0, Math.min(1, (on + sim) / (on + 0.40))); oyuncu.temas = on / (on + 0.40);
+    oyuncu.yol = r.yol; oyuncu.guide = r.ucusYol; oyuncu.contact = r.contact || null; oyuncu.poz = sim < 0 ? 'vurus1' : (sim < 0.10 ? 'vurus2' : 'vurus3');
+    out.zaman = Math.max(0, sim);
+    if (r.kaleci.onKarar) out.kaleci = r.kaleci.cizimKonum(sim);
+    if (sim > 0) {
+      if (!T.vurdu) { T.vurdu = true; if (H.ses !== false) DT.ses.cal('vurus'); }
+      var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(sim, sonT);
+      out.top = yolOrnek(r.yol, tt); out.topAci = sim * ((r.spin && (r.spin[1] - 0.5 * r.spin[0])) || 0);
+      out.kaleci = (!r.kaleci.onKarar && (r.sonuc === 'baraj' || r.sonuc === 'kisa')) ? { x: 0, y: 1, poz: 'bekle', yon: 0, ilerleme: 0 } : r.kaleci.cizimKonum(sim, r.olayT);
+      var olayT = an.olayT;
+      if (r.direkTemas && !T.direk && sim >= r.direkTemas.t) { T.direk = true; if (H.ses !== false) DT.ses.cal('direk', { hiz: r.speed }); }
+      if (!T.file && (r.sonuc === 'gol' || r.sonuc === 'direk_gol') && sim >= an.fileT) { T.file = true; if (H.ses !== false) DT.ses.cal('file', { hiz: r.speed }); }
+      if (sim >= olayT) { out.kaleci.saved = r.tuttu; if (!T.olay) { T.olay = true; var ses = SONUC_SES[r.sonuc]; if (H.ses !== false && ses && !(T.direk && ses === 'direk')) DT.ses.cal(ses, { hiz: r.speed }); } }
+    }
+    var rel = Math.max(0, sim - (H.baslangic === undefined ? -0.55 : H.baslangic)), girdi = Math.min(1, rel / 0.6), cikis = Math.min(1, (r.olayT + (H.sonra === undefined ? 1.0 : H.sonra) - sim) / 0.5);   // yakınlaşma içeri ve dışarı yumuşak
+    out.zoom = { s: 1 + ((H.zum || 1.5) - 1) * (girdi * girdi * (3 - 2 * girdi)) * Math.max(0, Math.min(1, cikis)), ilk: rel < 0.05 };
+    out.heyecan = (r.sonuc === 'gol' || r.sonuc === 'direk_gol') && sim >= an.olayT ? 1 : 0.35;
+    return true;
+  }
   function cizimDurumu(now) {
     yonIlerle(now); nisanIlerle(now);
     var R = A.kale.topYaricap, pos = d.pos;
@@ -348,6 +383,8 @@
         }
         if (simT >= an.sonucT && !an.bitti) { an.bitti = true; d.son = { top: out.top, kaleci: out.kaleci, zaman:simT }; sonucGoster(); }
       }
+    } else if (d.faz === 'sonuc' && d.tekrar && gecerliSonuc && tekrarKare(out, now)) {
+      // tekrar: tekrarKare doldurdu
     } else if (d.faz === 'sonuc' && d.son) {
       out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.top=gecerliSonuc.r.sonuc==='direk_disari'?yolOrnek(gecerliSonuc.r.yol,out.zaman):d.son.top;out.kaleci=(!gecerliSonuc.r.kaleci.onKarar&&(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa'))?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
       var gol = gecerliSonuc.r.sonuc === 'gol' || gecerliSonuc.r.sonuc === 'direk_gol';
@@ -357,7 +394,7 @@
     if(d.pos&&d.pos.tip==='hedef'&&gecerliSonuc&&gecerliSonuc.r.delik&&(d.faz==='sonuc'||d.faz==='vurus'&&d.an&&(d.an.simT===undefined?(now-d.an.t0)/1000-d.an.on:d.an.simT)>=gecerliSonuc.r.olayT))out.hedefVurulan=gecerliSonuc.r.delik.i;
     if(d.pos&&d.pos.tip==='hedef'&&d.aim&&DT.hedef&&d.faz==='nisan'){var yb=-1,yd=1e9;DT.hedef.delikler.forEach(function(h,i){var u=Math.hypot(d.aim.x-h.x,d.aim.y-h.y);if(u<yd){yd=u;yb=i;}});out.hedefSecili=yb;}   // oka en yakın delik sarı yanar
     // Görsel kaleci (kaleci3d): vuruşa göre zaman ve penaltı öncesi hareketin sönümü. Sonuç hesabına girmez.
-    if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?(d.an.simT===undefined?gk-d.an.on:d.an.simT):99;
+    if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?(d.an.simT===undefined?gk-d.an.on:d.an.simT):(d.tekrar?d.tekrar.sim:99);
       out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:(d.faz==='vurus'&&gk<d.an.on-.1)?now/1000:undefined,gestureW:d.faz==='vurus'?Math.max(0,Math.min(1,(d.an.on-.1-gk)/.45)):0});}   // kaleci rutini koşu boyunca sürer, temastan hemen önce söner
     out.alay = d.alayT0 ? (now - d.alayT0) / 1000 : -1; out.alayTur = d.alayTur; out.alayTohum = d.alayTohum || 0;
     out.heyecan = (d.alayTur === 'gol' && d.alayT0) ? 1 : d.faz === 'sonuc' && gecerliSonuc ? (gecerliSonuc.p && gecerliSonuc.p.gol ? 1 : 0.15) : d.faz === 'vurus' ? 0.35 : 0;   // tribün: gol olunca herkes zıplar
@@ -682,7 +719,9 @@
     $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas(); return; } vur(); });
     $('cubukYol').addEventListener('pointerdown', vur);
     $('duzeltBtn').addEventListener('click', duzelt);
-    $('devamBtn').addEventListener('click', devam);
+    $('devamBtn').addEventListener('click', function () { tekrarBitir(); devam(); });
+    $('tekrarBtn').addEventListener('click', tekrarBaslat);
+    $('sahne').addEventListener('pointerdown', function () { if (d.tekrar) tekrarBitir(); });   // tekrarı ekrana dokunarak bitir
     Array.prototype.forEach.call(doc.querySelectorAll('#falsoKutu button'), function (b) {
       b.addEventListener('click', function () { falsoSec(Number(b.getAttribute('data-falso'))); });
     });
@@ -692,6 +731,6 @@
     root.requestAnimationFrame(dongu);
   }
 
-  DT.oyun = { baslat: baslat, _durum: d, _vur: vur, _devam: devam, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
+  DT.oyun = { baslat: baslat, _durum: d, _vur: vur, _devam: devam, _tekrar: tekrarBaslat, _tekrarBitir: tekrarBitir, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', baslat); else baslat();
 })(typeof globalThis !== 'undefined' ? globalThis : window);

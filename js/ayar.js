@@ -55,6 +55,7 @@
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
 
     zamanCubuguSuresi: 0.80,  // çubuğun bir yönde gidiş süresi (s)
+    tekrar: { baslangic: -0.55, hiz: 0.5, sonra: 1.0, zum: 1.5, ses: true },   // tekrar: temastan 0,55 sn önce başlar, olaydan 1 sn sonra biter; yarı hızda; kamera topu 1,5 kat yakınlaşıp izler
     yavasCekim: { once: 0.45, sonra: 0.25, hiz: 0.40 },    // gol, kurtarış ve direkten dönüşte olaydan 0,45 sn önce başlayıp 0,25 sn sonra biten yavaş çekim (hız çarpanı)
     tezTTS: true,                                           // gol tezahüratı kayıt yoksa tarayıcının Türkçe konuşma sentezini kullanır
     kosuSure: { penalti: 1.5, frikik: 1.7, hedef: 1.5 },   // basıştan vuruş temasına kadar koşu süresi (sn)

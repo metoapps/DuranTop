@@ -142,7 +142,7 @@
     return root.__yapCanvas(w, h);
   }
 
-  var kalabalik = null, kamSurum = 0, kareNo = 0;   // kamSurum: kamera/sahne değişince artar; baraj önbelleği buna bağlı
+  var kalabalik = null, kamSurum = 0, kareNo = 0, zoomOdak = null;   // kamSurum: kamera/sahne değişince artar; baraj önbelleği buna bağlı
   var KTEN = ['#cdc6b2', '#af8d75', '#d6ad8a', '#adada8'], KFORMA = ['#e1e0d8', '#08090b', '#b3262f', '#d7b33a', '#1d3f86', '#e1e0d8', '#08090b', '#7d1d24'];
   /* Bir sıra seyirci: A = normal, B = kollar havada, C = alay (kollar aşağıda dışa açık, "yuh"). Aynı kişiler, aynı konumlar; kareler arasında yalnız kollar değişir. */
   function kalabalikSerit(kisiler, sy, sc) {
@@ -734,6 +734,11 @@
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     if (d.sarsinti) g.translate((Math.random() - 0.5) * d.sarsinti, (Math.random() - 0.5) * d.sarsinti);
+    if (d.zoom && d.zoom.s > 1.001 && d.top) {   // tekrar kamerası: sabit nokta olarak topu izler (ölçek sabit noktadan yapıldığı için kenarlarda boşluk açılmaz)
+      var hedef = izdus(d.top.x, d.top.y + 0.35, d.top.z);
+      if (hedef) { if (!zoomOdak || d.zoom.ilk) zoomOdak = { x: hedef.x, y: hedef.y }; else { zoomOdak.x += (hedef.x - zoomOdak.x) * 0.14; zoomOdak.y += (hedef.y - zoomOdak.y) * 0.14; } }
+      if (zoomOdak) { g.translate(zoomOdak.x, zoomOdak.y); g.scale(d.zoom.s, d.zoom.s); g.translate(-zoomOdak.x, -zoomOdak.y); }
+    } else zoomOdak = null;
     g.drawImage(arka, 0, 0, W, H);
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     tribunKatmaniCiz(g, d, supporter);   // kalabalık + atmosfer + bayrak/pankart: en çok ~30 Hz yenilenen önbellekli katman
