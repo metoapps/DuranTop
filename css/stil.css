@@ -408,3 +408,13 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 
 /* Yeni modlar: menü düğmelerinin alt satırı */
 .menu-oyna .btn small { display:block; font-size:12px; font-weight:400; opacity:.75; margin-top:2px; letter-spacing:0; text-transform:none; }
+
+/* Ses testi paneli (?sestest=1) */
+.ses-test { position:fixed; inset:10px; z-index:2000; overflow:auto; background:rgba(10,14,12,.96); border:1px solid #6a8; border-radius:14px; padding:12px; color:#eee; font:14px/1.4 Arial, sans-serif; }
+.ses-test-baslik { margin:12px 0 6px; font-weight:700; color:#9fd; } .ses-test-btn { margin:3px 4px 3px 0; padding:9px 12px; border-radius:10px; border:1px solid #888; background:#223; color:#fff; font-size:14px; }
+.ses-test-durum, .ses-test-kayit { margin-top:12px; white-space:pre-wrap; font:12px/1.4 ui-monospace, Menlo, monospace; color:#cfe; }
+
+/* Erişilebilirlik: sol el modu (kumanda yer değiştirir), büyük düğmeler */
+#oyun.sol-el .kumanda { flex-direction:row-reverse; } #oyun.sol-el .kumanda-sag { align-items:flex-start; } #oyun.sol-el .kumanda-vucut { flex-direction:row-reverse; }
+#oyun.buyuk .kumanda-sol { grid-template-columns:repeat(3, 64px); grid-template-rows:repeat(2, 64px); }
+#oyun.buyuk .kumanda .yon-ok { width:64px; height:64px; font-size:26px; } #oyun.buyuk .kumanda .kumanda-tamam { width:150px; height:56px; min-height:56px; font-size:21px; border-radius:28px; }

@@ -229,14 +229,23 @@
     });
 
     // çim
-    g.fillStyle = '#16201a'; g.fillRect(0, uy, W, H - uy);
+    g.fillStyle = '#1a3324'; g.fillRect(0, uy, W, H - uy);
     var z0 = -kam.C[2] * 0 - 12;
     for (var z = z0, n = 0; z < D + 25; z += 3, n++) {
       var a1 = izdus(-45, 0, z), a2 = izdus(45, 0, z), b1 = izdus(-45, 0, z + 3), b2 = izdus(45, 0, z + 3);
       if (!a1 || !a2 || !b1 || !b2) continue;
-      g.fillStyle = (n % 2) ? '#1c2a21' : '#16201a';
+      g.fillStyle = (n % 2) ? '#244632' : '#1a3324';   // biçilmiş çim şeritleri: daha canlı yeşil, belirgin kontrast
       g.beginPath(); g.moveTo(a1.x, a1.y); g.lineTo(a2.x, a2.y); g.lineTo(b2.x, b2.y); g.lineTo(b1.x, b1.y); g.closePath(); g.fill();
     }
+    // çim dokusu: derinliğe göre boyutlanan, yarı saydam açık/koyu kısa çizgiler (arka plana bir kez çizilir)
+    (function () { var r2 = rng(311), alt = H - uy, say = 1900; g.lineWidth = 1; g.lineCap = 'round';
+      for (var gi = 0; gi < say; gi++) { var ty = uy + 4 + Math.pow(r2(), 1.6) * (alt - 4), t = (ty - uy) / alt, gx = r2() * W, boy = 1.2 + t * 6, acik = r2() < 0.45;
+        g.strokeStyle = acik ? 'rgba(120,190,120,' + (0.05 + t * 0.07).toFixed(3) + ')' : 'rgba(5,20,10,' + (0.07 + t * 0.09).toFixed(3) + ')';
+        g.beginPath(); g.moveTo(gx, ty); g.lineTo(gx + (r2() - 0.5) * 2, ty - boy); g.stroke(); } })();
+    // projektör ışık havuzu: kale önünde sıcak, geniş bir parlama (yassı ışığı kırar)
+    (function () { var kp = izdus(0, 0, D * 0.6) || { x: W / 2, y: uy + 80 }; g.save(); g.translate(kp.x, kp.y); g.scale(1, 0.42);
+      var lg = g.createRadialGradient(0, 0, 0, 0, 0, W * 0.95); lg.addColorStop(0, 'rgba(255,246,210,0.16)'); lg.addColorStop(0.55, 'rgba(255,246,210,0.05)'); lg.addColorStop(1, 'rgba(255,246,210,0)');
+      g.fillStyle = lg; g.fillRect(-W, -W, W * 2, W * 2); g.restore(); })();
     var sis = g.createLinearGradient(0, uy - 6, 0, uy + 70);
     sis.addColorStop(0, 'rgba(180,185,190,0.18)'); sis.addColorStop(1, 'rgba(180,185,190,0)');
     g.fillStyle = sis; g.fillRect(0, uy - 6, W, 76);

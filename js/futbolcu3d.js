@@ -43,7 +43,7 @@ function kosuAyak(y,o,tb,point,yaw,launch,W){
  // kök sıçraması: ayak basışları arasında yükselir (uçuş), basışta alçalır
  var tp=[TB_KOS].concat(tj),ph=0;for(var q=0;q<tp.length-1;q++)if(tb>=tp[q]&&tb<tp[q+1]){ph=(tb-tp[q])/(tp[q+1]-tp[q]);}
  var amp=1+.6*hiz;
- return{kosu:true,feetLocal:[yerel(sol.p,sol.l),yerel(sag.p,sag.l)],lift:-Math.sin(Math.PI*ph)*8*hiz,lean:46*hiz,arm:Math.sin(Math.PI*m)*(34+18*hiz)*amp/1.6,armBlend:ease(clamp(tau/.18,0,1)),hiz:hiz,steps:M,u:tau};
+ return{kosu:true,feetLocal:[yerel(sol.p,sol.l),yerel(sag.p,sag.l)],lift:-Math.sin(Math.PI*ph)*8*hiz,sway:Math.sin(Math.PI*m)*10*hiz,roll:Math.sin(Math.PI*m)*6*hiz,lean:46*hiz,arm:Math.sin(Math.PI*m)*(34+18*hiz)*amp/1.6,armBlend:ease(clamp(tau/.18,0,1)),hiz:hiz,steps:M,u:tau};
 }
 function placement(pos,o){
  var w=o.walk,turn=w?mix(w.from,w.to,ease(w.u)):o.direction||0,base=Math.atan2(-pos.bx,pos.D);
@@ -129,7 +129,9 @@ function rig(o){
    ['el','er','hl','hr'].forEach(function(k){nodes[k]=ka[k].map(function(v,i){return mix(ra[k][i],v,bl);});});}
   else{nodes.el=ka.el;nodes.er=ka.er;nodes.hl=ka.hl;nodes.hr=ka.hr;}
  }else if(kosu){
-  var g=o.gait,L=g.lean,a=g.arm;nodes.chest[2]=L;nodes.neck[2]=L*1.4;nodes.head[2]=L*1.3;nodes.sl[2]=L*.8;nodes.sr[2]=L*.8;
+  var g=o.gait,L=g.lean,a=g.arm,sw=g.sway||0,rl=g.roll||0;nodes.chest[2]=L;nodes.neck[2]=L*1.4;nodes.head[2]=L*1.3;nodes.sl[2]=L*.8;nodes.sr[2]=L*.8;
+  // Koşuda gövde her adımda basan ayağa doğru yana sallanır, omuzlar hafifçe yalpalar (baş gövdeden az sallanır: gözler topta kalır)
+  nodes.chest[0]+=sw*.6;nodes.neck[0]+=sw*.5;nodes.head[0]+=sw*.3;nodes.sl[0]+=sw*.6;nodes.sr[0]+=sw*.6;nodes.sl[1]+=rl;nodes.sr[1]-=rl;
   // Koşu kolları: dirsekler bükük, eller göğüs hizasında, ayakla ters yönde sallanır
   var ab=g.armBlend==null?1:g.armBlend,run={el:[-66,205,-a*.5],er:[66,205,a*.5],hl:[-60,212,a*1.2+28],hr:[60,212,-a*1.2+28]},dur={el:[-65,196,0],er:[65,196,0],hl:[-64,143,0],hr:[64,143,0]};   // dururken kollar aşağıda: koşunun ilk %18'inde kaldırılır
   ['el','er','hl','hr'].forEach(function(k){nodes[k]=run[k].map(function(v,i){return mix(dur[k][i],v,ab);});});
