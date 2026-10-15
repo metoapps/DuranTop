@@ -24,3 +24,5 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261017c | Yayın düzeltmesi: zıplayan barajda eller baş üstünde; eski tribün testi yeni sisteme uyarlandı |
 
 | 20261018a | Falso hız dengesi (rules 11), daha iyi frikik okuması, Neuer dokusu ve beş oyuncunun gövde oranları |
+
+| 20261018b | Basılı tutma iptal güvenliği, gövdeye bağlı forma UV, önde çizilen tribün metinleri, dönüş/sürtünmeli direk darbesi (rules 12), öne alınan gol kaydı |

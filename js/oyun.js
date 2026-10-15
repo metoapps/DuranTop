@@ -148,7 +148,7 @@
     d.pos = d.mod === 'hayat' ? DT.modlar.hayatPoz(d.idx, d.hayatSeed, d.hayatGol, A.pozisyonlar, DT.hedef.pozisyonlar) : pozlar()[d.idx];
     DT.cizim.sahneKur(d.pos, 0);
     // baraj konumu nişandan bağımsız; önizleme hesabından alınır
-    var ornek = hesap({ pos: d.pos, aim: { x: 0, y: 1.2 }, falso: 0, zaman: 0.5, seed: 1, antrenman: true, falsoDenge:true,akilliFrikik:true,kural10: d.mod !== 'resmi' });   // önizleme barajı vuruştakiyle aynı kurulum
+    var ornek = hesap({ pos: d.pos, aim: { x: 0, y: 1.2 }, falso: 0, zaman: 0.5, seed: 1, antrenman: true, falsoDenge:true,akilliFrikik:true,direkFizigi:true,kural10: d.mod !== 'resmi' });   // önizleme barajı vuruştakiyle aynı kurulum
     d.barajGeo = ornek.baraj;
     if (DT.cizim.barajIsit) DT.cizim.barajIsit(d.barajGeo);   // baraj oyuncularının sprite'ları pozisyon açılırken hazırlanır
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
@@ -206,7 +206,7 @@
   function onizlemeHesapla() {
     // FIFA akışında kesik çizgili tahmini uçuş yok (yer oku ayrı hesaplanır): bu pahalı tam hesap (parmak hareketi başına ≈14 ms, telefonda daha fazla) boşuna çalışmasın.
     if (fifaMod() || !d.aim) { d.onizleme = null; return; }
-    var r = hesap({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, guc:d.guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: true,falsoDenge:true,akilliFrikik:true,kural10:d.mod!=="resmi" });
+    var r = hesap({ pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: cubukAktif() ? 0.5 : null, seed: 1, guc:d.guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: true,falsoDenge:true,akilliFrikik:true,direkFizigi:true,kural10:d.mod!=="resmi" });
     d.onizleme = (!r.kaleci.onKarar&&(r.sonuc === 'baraj'||r.sonuc === 'kisa')) ? r.ucusYol.filter(function(o){return o.t <= r.olayT;}) : r.ucusYol;
   }
 
@@ -308,14 +308,14 @@
     var zaman = typeof zamanVerilen === 'number' ? zamanVerilen : (zamanVerilen === null ? null : (cubukAktif() ? cubukDegeri(now) : null));
     if (fifaMod() && !(d.fifa && d.fifa.atis)) return;   // FIFA frikikte yalnız sayaç vurdurur
     d.fifa = { faz: null };
-    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
       d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
       DT.live.shot(d.karakter,d.idx,girdi).then(function(entry){
         if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
-        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;girdi.direkFizigi=actual.rules>=12;
         vurusUygula(girdi,entry);
       }).catch(function(e){if(e&&e.code==='CLOSED'){root.alert(e.message);menuGoster();return;}d.faz='nisan';$('vurBtn').disabled=false;if(e&&e.code==='CLIENT_VERSION'){d.guncelle=true;$('vurBtn').textContent='Oyunu güncelle';$('ucusDurum').textContent=e.message;return;}$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
@@ -716,6 +716,8 @@
     if (!d.fifa || !d.fifa.faz) { d.fifa = { faz: 'guc', t0: now }; fifaYaz(); return; }
     if (d.fifa.faz === 'isabet') fifaAt(fifaIsabet(now));
   }
+  var fifaPointer = null;
+  function fifaIptal() { fifaPointer=null;if(d.fifa&&d.fifa.faz){d.fifa={faz:null};fifaYaz();} }
   function fifaBirak() {
     if (!d.fifa || d.fifa.faz !== 'guc') return;
     var now = simdi(); d.guc = fifaGuc(now); bantGuncelle(); acikKaydet();
@@ -813,9 +815,13 @@
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
     $('turTekrar').addEventListener('click', function () { secimGoster(d.mod); });
-    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); try { this.setPointerCapture(e.pointerId); } catch (x) {} fifaBas(); return; } vur(); });
-    ['pointerup','pointercancel'].forEach(function(t){$('vurBtn').addEventListener(t,function(){ if (fifaMod()) fifaBirak(); });});
-    $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas(); return; } vur(); });
+    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); if(fifaPointer!==null)return;fifaBas();if(d.fifa&&d.fifa.faz==='guc'){fifaPointer=e.pointerId;try { this.setPointerCapture(e.pointerId); } catch (x) {}} return; } vur(); });
+    $('vurBtn').addEventListener('pointerup',function(e){if(fifaPointer!==null&&e.pointerId!==fifaPointer)return;fifaPointer=null;if(fifaMod())fifaBirak();});
+    ['pointercancel','lostpointercapture'].forEach(function(t){$('vurBtn').addEventListener(t,function(e){if(fifaPointer!==null&&(e.pointerId===fifaPointer||e.pointerId===undefined))fifaIptal();});});
+    $('vurBtn').addEventListener('contextmenu',function(e){e.preventDefault();});
+    if(root.addEventListener)root.addEventListener('blur',fifaIptal);
+    doc.addEventListener('visibilitychange',function(){if(doc.hidden)fifaIptal();});
+    $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0||fifaPointer!==null) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas(); return; } vur(); });
     $('cubukYol').addEventListener('pointerdown', vur);
     $('duzeltBtn').addEventListener('click', duzelt);
     $('devamBtn').addEventListener('click', function () { tekrarBitir(); devam(); });

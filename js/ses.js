@@ -77,7 +77,7 @@
     var t = ctx.currentTime, source = ctx.createBufferSource(), gain = ctx.createGain();
     source.buffer = kayit[ad]; if (perde) source.playbackRate.value = .97 + .06 * Math.random();
     gain.gain.value = kazanc; source.connect(gain); gain.connect(ana); source.start(t);
-    var kayitli = { source: source, gain: gain };
+    var kayitli = { source: source, gain: gain, level: kazanc };
     if (uzun) calanUzun.push(kayitli);
     source.onended = function () { source.disconnect(); gain.disconnect(); calanUzun = calanUzun.filter(function (x) { return x !== kayitli; }); };
   }
@@ -86,7 +86,7 @@
     var t = ctx.currentTime;
     calanUzun.forEach(function (x) {
       try {
-        if (x.gain.gain.setValueAtTime && x.gain.gain.linearRampToValueAtTime) { x.gain.gain.setValueAtTime(x.gain.gain.value, t); x.gain.gain.linearRampToValueAtTime(0.0001, t + 0.3); }
+        if (x.gain.gain.setValueAtTime && x.gain.gain.linearRampToValueAtTime) { if(x.gain.gain.cancelScheduledValues)x.gain.gain.cancelScheduledValues(t); x.gain.gain.setValueAtTime(x.gain.gain.value, t); x.gain.gain.linearRampToValueAtTime(0.0001, t + 0.3); }
         x.source.stop(t + 0.32);
       } catch (e) { /* zaten durmuş */ }
     });
@@ -131,6 +131,10 @@
       acik = !!v;
       if (acik && baslat() && ctx.state === 'suspended') ctx.resume();
       if (acik) kayitlariYukle(); else sustur();
+    },
+    spikerOncelik: function (sure) {
+      if(!ctx)return;var t=ctx.currentTime,d=Math.max(.1,Math.min(8,sure||4));
+      calanUzun.forEach(function(x){var p=x.gain.gain;if(p.cancelScheduledValues)p.cancelScheduledValues(t);p.setValueAtTime(p.value,t);p.linearRampToValueAtTime(x.level*.18,t+.04);p.setValueAtTime(x.level*.18,t+d);p.linearRampToValueAtTime(x.level,t+d+.35);});
     },
     sustur: sustur,                              // bir sonraki vuruşa geçerken uzun sesleri (gol uğultusu) keser
     cal: function (ad,options) {

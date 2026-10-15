@@ -8,7 +8,7 @@
  *   2) assets/ses/gol.(mp3|ogg|wav|m4a) ← gol uğultusu kaydı, yavaşlatılıp kısılarak "hayal kırıklığı" uğultusuna çevrilir
  * İkisi de yoksa uh() false döner ve oyun eski kısa "ah" sesini kullanır. Ses kapalıyken hiçbir şey çalmaz. */
 (function(root){'use strict';var DT=root.DT=root.DT||{};
-var ctx=null,ana=null,acik=false,ah=null,yuh=null,gol=null,yukleniyor=false,UZANTI=['mp3','ogg','wav','m4a'],SPIKER={gol:[],gollazo:[]},spikerYuk=false;
+var ctx=null,ana=null,acik=false,ah=null,yuh=null,gol=null,yukleniyor=false,UZANTI=['mp3','ogg','wav','m4a'],SPIKER={gol:[],gollazo:[]},spikerYuk=false,spikerAktif=null;
 /* ---- SENİN CÜMLELERİN (listeyi serbestçe düzenleyebilirsin) ---- */
 var GOL_SOZ=['Golllaazzzooooooooooo!','Koçum benim!','Senin yarrağını yiyeyim!','Gel bir kere de bana koy öyle!'];
 var GENEL_OLUMSUZ=['Senin ayağının dümenini sikeyim','Kazma herif','Ya bi siktir git amk ya','Seni bu takıma alan hocanın anasını avradını sikeyim'];
@@ -40,12 +40,12 @@ function cal(buf,oran,kesim,ses,sure){var t=ctx.currentTime+.02,s=ctx.createBuff
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(ses,t+.18);g.gain.exponentialRampToValueAtTime(.0001,t+sure);
  s.connect(f);f.connect(g);g.connect(ana);s.start(t,0,sure*oran+.2);s.stop(t+sure+.05);}
 var api={
- ayarla:function(v){acik=!!v;if(acik&&kur()){if(ctx.state==='suspended'&&ctx.resume)ctx.resume();yukle();}},
+ ayarla:function(v){acik=!!v;if(!acik&&spikerAktif){try{spikerAktif.stop();}catch(e){}spikerAktif=null;}if(acik&&kur()){if(ctx.state==='suspended'&&ctx.resume)ctx.resume();yukle();}},
  golMetinleri:golMetinleri,
  /* golSes: spiker bağırışı. c = bağlam {altin, direk, falso, kose, sert, uzak, seri, tip}; büyük gollerde "gollazo" grubu. Dosya yoksa ses yok ('yok' döner). */
  golSes:function(seed,c){if(!sesAcik()||!kur())return null;c=c||{};var buyuk=!!(c.altin||c.direk||c.falso||c.kose||c.sert||c.uzak||c.seri>=3),ilk=buyuk?'gollazo':'gol',yedek=buyuk?'gol':'gollazo',liste=SPIKER[ilk].length?SPIKER[ilk]:SPIKER[yedek];
   if(!liste.length)return null;var b=liste[((seed|0)%liste.length+liste.length)%liste.length],t=ctx.currentTime+.02,s=ctx.createBufferSource(),g=ctx.createGain(),d=Math.min(b.duration||4,8);
-  s.buffer=b;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(1,t+.03);g.gain.setValueAtTime(1,t+Math.max(.1,d-.4));g.gain.linearRampToValueAtTime(.0001,t+d);s.connect(g);g.connect(ana);s.start(t);s.stop(t+d+.05);return'spiker';},
+  if(spikerAktif){try{spikerAktif.stop();}catch(e){}}spikerAktif=s;s.onended=function(){s.disconnect();g.disconnect();if(spikerAktif===s)spikerAktif=null;};if(DT.ses&&DT.ses.spikerOncelik)DT.ses.spikerOncelik(d);s.buffer=b;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(1,t+.03);g.gain.setValueAtTime(1,t+Math.max(.1,d-.4));g.gain.linearRampToValueAtTime(.0001,t+d);s.connect(g);g.connect(ana);s.start(t);s.stop(t+d+.05);return'spiker';},
  alayMetinleri:alayMetinleri,GOL_SOZ:GOL_SOZ,GENEL_OLUMSUZ:GENEL_OLUMSUZ,OZEL_OLUMSUZ:OZEL_OLUMSUZ,
  ortam:function(){},            // eski sentez uğultusu kaldırıldı (düşük kalite); uyumluluk için boş
  tezahurat:function(){},        // eski sentez alkış/koro kaldırıldı

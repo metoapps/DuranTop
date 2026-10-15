@@ -808,7 +808,7 @@
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     tribunKatmaniCiz(g, d, supporter);   // kalabalık + atmosfer + bayrak/pankart: en çok ~30 Hz yenilenen önbellekli katman
     if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
-    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0, d.alayKisi || null);
+
 
     kaleArka(g);
     agGuncelle(d);
@@ -870,6 +870,8 @@
     if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme, d.nisan.fifa);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
     if (d.konfeti) konfetiCiz(g, d.konfeti, Qi);
+    // Screen-space captions are composited after the complete 3D scene.
+    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0, d.alayKisi || null);
     if (d.hizBalon) hizBalonCiz(g, d.hizBalon);
   }
 

@@ -110,7 +110,7 @@
 
     // Continuous swept sphere/cylinder contact, rules 5 only. Never award a
     // post goal from its incoming position: reflect, then check the full crossing.
-    function ilkDirek(path) {
+    function ilkDirek(path,spinBase) {
       var first=null;
       for(var i=1;i<path.length;i++){
         var p=path[i-1],q=path[i],delta={x:q.x-p.x,y:q.y-p.y,z:q.z-p.z};
@@ -122,8 +122,12 @@
           if(axis==='y'&&(at.y<0||at.y>H+(girdi.takipFizigi?A.kale.direk/2:0)))return;if(axis==='x'&&Math.abs(at.x)>yari+(girdi.takipFizigi?A.kale.direk/2:0))return;
           var n=[0,0,at.z-D];n[k==='x'?0:1]=at[k]-center;var len=Math.hypot.apply(null,n);n=n.map(v=>v/Math.max(len,1e-9));
           var v=[delta.x,delta.y,delta.z].map(v=>v/(q.t-p.t));var dot=v.reduce((sum,v,j)=>sum+v*n[j],0);
-          if(dot>=0)return;v=v.map((v,j)=>v-1.55*dot*n[j]);
-          if(!first||at.t<first.at.t)first={at:at,index:i,label:label,velocity:v,normal:n};
+          if(dot>=0)return;var changedSpin=null;
+          if(girdi.direkFizigi===true){
+            if(i>=2){var prev=path[i-2],d0=p.t-prev.t,d1=q.t-p.t;if(d0>1e-9&&d1>1e-9)v=v.map((x,j)=>x+((x-(p[['x','y','z'][j]]-prev[['x','y','z'][j]])/d0)/((d0+d1)/2))*(u-.5)*d1);}
+            var decay=Math.exp(-A.aerodinamik.spinSonumu*at.t),response=DT.ucus.postImpact(v,(spinBase||flight.spin).map(x=>x*decay),n);v=response.velocity;changedSpin=response.spin.map(x=>x/decay);
+          }else v=v.map((v,j)=>v-1.55*dot*n[j]);
+          if(!first||at.t<first.at.t)first={at:at,index:i,label:label,velocity:v,normal:n,...(changedSpin?{spin:changedSpin}:{})};
         }
         var offset=girdi.takipFizigi?A.kale.direk/2:0;
         cylinder('y',-yari-offset,'yan');cylinder('y',yari+offset,'yan');cylinder('x',H+offset,'ust');
@@ -151,9 +155,15 @@
         olayIndex = temas;
       } else if(pole){
         physicalRebound=true;direkYeri=pole.label;
-        var p0=pole.at,n=pole.normal,reb=DT.ucus.integrate({bx:bx,D:D+R},pole.velocity,flight.spin,
-          {initialPosition:[p0.x+n[0]*.00001,p0.y+n[1]*.00001,p0.z+n[2]*.00001],startTime:p0.t,groundSpin:true});
-        ornekler=ornekler.slice(0,pole.index).concat(reb.yol);olayIndex=ornekler.length-1;flight.reached=reb.reached;T=reb.T;
+        var hit=pole,reb,contacts=[];
+        for(var bounce=0;bounce<(girdi.direkFizigi===true?6:1)&&hit;bounce++){
+          var p0=hit.at,n=hit.normal,spin=hit.spin||flight.spin,prefix=ornekler.slice(0,hit.index);contacts.push(p0);
+          reb=DT.ucus.integrate({bx:bx,D:D+R},hit.velocity,spin,
+            {initialPosition:[p0.x+n[0]*.00001,p0.y+n[1]*.00001,p0.z+n[2]*.00001],startTime:p0.t,groundSpin:true,...(girdi.direkFizigi===true&&girdi.kural10===true?{rulo:A.aerodinamik.ruloK10,ruloV:A.aerodinamik.ruloVK10,minVaris:A.aerodinamik.minVarisK10,ruzgar:girdi.ruzgar}: {})});
+          ornekler=prefix.concat(reb.yol);
+          hit=girdi.direkFizigi===true?ilkDirek(reb.yol,spin):null;if(hit)hit.index+=prefix.length;
+        }
+        olayIndex=ornekler.length-1;flight.reached=reb.reached;T=reb.T;
         var afterSave=kaleciDegdi();
         if(afterSave>=0){sonuc='kurtaris';olayIndex=afterSave;}
         else {gecis={x:reb.son.x,y:reb.son.y};sonuc=(girdi.golGeometrisi?golGecisi(ornekler,D):reb.reached&&Math.abs(gecis.x)<yari-R&&gecis.y<H-R)?'direk_gol':'direk_disari';}
@@ -230,6 +240,7 @@
       sonuc: sonuc,                 // gol | kurtaris | direk_gol | direk_disari | baraj | aut
       yol: yol, olayT: e.t, ucusT: T,
       gecis: gecis, kose: kose, bandaGirdi: bandaGirdi, hata: hata,
+      ...(girdi.direkFizigi?{direkTemaslar:typeof contacts!=='undefined'?contacts:[]}:{}),
       ...(girdi.enerjiFizigi?{direkTemas:pole?pole.at:null}:{}),direkYeri: direkYeri, baraj: baraj, kaleci: plan, nokta: { x: ax, y: ay }
     };
   }

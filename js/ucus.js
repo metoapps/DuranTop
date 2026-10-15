@@ -171,5 +171,13 @@ function energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falso
  flight.energy={available:budget,translation:.5*m*speed*speed,rotation:.5*inertia*Math.pow(Math.hypot.apply(null,omega),2),nominalSpeed:nominal};return flight;
 }
 function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falsoDenge){var eski=HIZLI;HIZLI=!!k10;try{return energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falsoDenge);}finally{HIZLI=eski;}}
-DT.ucus={groundImpulse:groundImpulse,energyLaunch:energyLaunch,fixedDirection:fixedDirection,hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
+// Fixed round post: normal restitution plus Coulomb-limited contact friction.
+// Angular velocity is instantaneous; hollow-shell inertia I=2/3 mR².
+function postImpact(v,w,n){var R=A.kale.topYaricap,m=A.aerodinamik.kutle,I=2*m*R*R/3,e=.72,mu=.16;
+ var un=v.reduce((a,x,i)=>a+x*n[i],0);if(un>=0)return{velocity:v.slice(),spin:w.slice()};
+ var arm=n.map(x=>-R*x),surface=cross(w,arm).map((x,i)=>x+v[i]),slip=surface.map((x,i)=>x-un*n[i]),sn=Math.hypot.apply(null,slip),jn=-(1+e)*m*un;
+ var amount=Math.min(sn/(1/m+R*R/I),mu*jn),jt=slip.map(x=>-x*amount/Math.max(sn,1e-12));
+ return{velocity:v.map((x,i)=>x+(jn*n[i]+jt[i])/m),spin:cross(arm,jt).map((x,i)=>w[i]+x/I)};
+}
+DT.ucus={postImpact:postImpact,groundImpulse:groundImpulse,energyLaunch:energyLaunch,fixedDirection:fixedDirection,hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);
