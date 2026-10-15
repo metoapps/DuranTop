@@ -2,14 +2,14 @@
 (function (root) {
   'use strict';
   var DT = (root.DT = root.DT || {});
-  var ctx = null, acik = false, ana = null;
+  var ctx = null, acik = false, ana = null, carpan = 1;   // carpan: kullanıcının efekt ses düzeyi (0..1)
 
   function baslat() {
     if (ctx) return true;
     var AC = root.AudioContext || root.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
-    ana = ctx.createGain(); ana.gain.value = 0.8; ana.connect(ctx.destination);
+    ana = ctx.createGain(); ana.gain.value = 0.8 * carpan; ana.connect(ctx.destination);
     return true;
   }
   function gurultu(sure) {
@@ -127,6 +127,7 @@
 
   DT.ses = {
     ornekUret:ornekUret,acikMi: function () { return acik; },kayitVarMi: function (ad) { return !!kayit[ad]; },
+    seviyeAyarla: function (v) { carpan = Math.max(0, Math.min(1, +v || 0)); if (ana) ana.gain.value = 0.8 * carpan; },   // efektler (vuruş, direk, ağ, düdük, gol uğultusu) ses düzeyi
     ayarla: function (v) {                       // kullanıcı dokunuşuyla çağrılmalı
       acik = !!v;
       if (acik && baslat() && ctx.state === 'suspended') ctx.resume();

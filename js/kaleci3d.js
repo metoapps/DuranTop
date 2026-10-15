@@ -129,7 +129,7 @@ function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.ol
   silindir(add(n.hip,[0,.07,0]),n.chest,.20*K,renk.shirt,.235*K);silindir(n.sl,n.sr,.07*K,renk.shirt);kure(n.sl,[.092*K,.092*K,.092*K],renk.shirt);kure(n.sr,[.092*K,.092*K,.092*K],renk.shirt);silindir(n.chest,n.neck,.07*K,renk.skin);
   silindir(add(n.hip,[0,-.13,0]),add(n.hip,[0,.09,0]),.205*K,renk.shorts,.215*K);
  }else{
-  silindir(n.hip,n.chest,.20*K,renk.shirt,.26*K);silindir(n.sl,n.sr,.085*K,renk.shirt);silindir(n.chest,n.neck,.078*K,renk.skin);   // gövde: bele doğru daralan V
+  silindir(n.hip,n.chest,.20*K,renk.shirt,.26*K);silindir(n.sl,n.sr,.085*K,renk.shirt);var yaka=add(n.chest,mul(sub(n.neck,n.chest),.70));silindir(n.chest,yaka,.105*K,renk.shirt,.092*K);silindir(yaka,n.neck,.068*K,renk.skin);   // gövde: bele doğru daralan V; yüksek yaka: görünen boyun kısa (fizik gövdesi ve konumlar DEĞİŞMEDİ)
   if(DET>=1){kure(n.sl,[.118*K,.108*K,.112*K],renk.shirt);kure(n.sr,[.118*K,.108*K,.112*K],renk.shirt);silindir(add(n.neck,[0,-.025*K,0]),n.sl,.058*K,renk.shirt,.085*K,3);silindir(add(n.neck,[0,-.025*K,0]),n.sr,.058*K,renk.shirt,.085*K,3);}   // deltoid ve trapez: omuzlar yuvarlak, boyundan omuza doğal eğim
   silindir(n.hip,add(n.hip,[0,-.10,0]),.22*K,renk.shorts);
  }

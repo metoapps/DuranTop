@@ -17,8 +17,8 @@ for(const ad of ['menu','mac']){const p=M.PARCALAR[ad],uz=M.bolumMs(ad),olay=M.o
  for(let b=0;b<8;b++){const ak=p.akor[b],tri=M.AKOR[ak],o=olay.filter(e=>e.t>=b*16*adim-1e-9&&e.t<(b+1)*16*adim-1e-9);
   const bas=o.filter(e=>e.tur===(ad==='mac'?'basM':'bas'));assert(bas.length>=3&&bas.every(e=>e.midi===M.KOK[ak]),ad+' ölçü '+b+': bas kökü '+ak);
   assert.equal(o.filter(e=>e.tur==='kick').length,ad==='mac'?4:2,ad+': kick sayısı');
-  if(ad==='menu'){const pad=o.filter(e=>e.tur==='pad').map(e=>e.midi).sort();assert.deepEqual(pad,tri.slice().sort(),'pad = akor '+ak);o.filter(e=>e.tur==='lead').forEach(e=>{assert(A_HARM.has(e.midi%12),'lead nota la minör ölçüsünde: '+e.midi);assert(e.midi>=69&&e.midi<=84,'lead aralığı');});
-   const ld=o.filter(e=>e.tur==='lead');assert(ld.length>=4&&ld.length<=5);}
+  if(ad==='menu'){const pad=o.filter(e=>e.tur==='pad').map(e=>e.midi).sort();assert.deepEqual(pad,tri.slice().sort(),'pad = akor '+ak);o.filter(e=>e.tur===p.melodi).forEach(e=>{assert(A_HARM.has(e.midi%12),'lead nota la minör ölçüsünde: '+e.midi);assert(e.midi>=69&&e.midi<=84,'lead aralığı');});
+   const ld=o.filter(e=>e.tur===p.melodi);assert(ld.length>=4&&ld.length<=5);}
   else{const arp=o.filter(e=>e.tur==='arp');assert.equal(arp.length,16,'16\'lık arpej');arp.forEach(e=>{assert(tri.map(m=>(m+12)%12).includes(e.midi%12),'arp akor sesi: '+ak+' '+e.midi);});assert.equal(o.filter(e=>e.tur==='snare').length,2);assert.equal(o.filter(e=>e.tur==='hat').length,4);}}
  // yoğunluk: saniyede aşırı olay yok
  const sn=[];for(let t=0;t<uz;t+=1)sn.push(olay.filter(e=>e.t>=t&&e.t<t+1).length);assert(Math.max(...sn)<=32,ad+': saniyedeki olay sayısı makul '+Math.max(...sn));}
