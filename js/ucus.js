@@ -139,7 +139,7 @@ function fixedDirection(pos,aim,speed,tracked){
  }
  var answer=vector(best.p);if(energyAimCache.size>=128)energyAimCache.clear();energyAimCache.set(key,answer);return answer.slice();
 }
-function energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10){
+function energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falsoDenge){
  var power=typeof guc==='number'?Math.max(.3,Math.min(1,guc)):1;
  /* Kural 10 (k10, şimdilik yalnız antrenman/hedef): sert vuruş gerçekten hızlı (her iki vuruşta %100 = 36 m/sn ≈130 km/sa, %30'da 9 m/sn);
   * temas yüksekliği atış açısını belirler (alt: yükselir, orta: nişan yüksekliği, üst: yerden); yeşilden çok uzak + sert vuruş: top savrulur. */
@@ -160,14 +160,16 @@ function energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10){
  var offset=direction.map(function(a,i){return -Math.sqrt(1-r*r)*a+x*right[i]+y*up[i];});
  // J=m*v, I*w=eta*(r x J). Allocate one finite energy budget to
 // translation AND rotation rather than adding spin energy to a full-speed kick.
- var eta=A.aerodinamik.spinAktarimi,spinPerSpeed=cross(offset,direction).map(function(a){return 1.5*eta*a/R;});
- var budget=.5*m*nominal*nominal*Math.pow(.72+.28*quality,2)*(1-.45*r*r);
+ // Rules 11: calibrated oblique-contact efficiency, not an aerodynamic speed penalty.
+ // The finite budget still pays for both translation and spin (I=2/3 mR²).
+ var eta=falsoDenge?.18:A.aerodinamik.spinAktarimi,spinPerSpeed=cross(offset,direction).map(function(a){return 1.5*eta*a/R;});
+ var budget=.5*m*nominal*nominal*Math.pow(.72+.28*quality,2)*(1-(falsoDenge?.08:.45)*r*r);
  var speed=Math.sqrt(2*budget/(m+inertia*Math.pow(Math.hypot.apply(null,spinPerSpeed),2)));
  var v=direction.map(function(a){return a*speed;}),omega=spinPerSpeed.map(function(a){return a*speed;});
  var flight=integrate({bx:pos.bx,D:pos.D+R,tip:pos.tip},v,omega,{groundSpin:true,rulo:k10?A.aerodinamik.ruloK10:undefined,ruloV:k10?A.aerodinamik.ruloVK10:0,minVaris:k10?A.aerodinamik.minVarisK10:0,ruzgar:k10&&k10.ruzgar?k10.ruzgar:undefined});   // kural 10: gerçek çimde yuvarlanma sürtünmesi (yavaş top kaleye varamadan durur)
  flight.initialVelocity=v;flight.spin=omega;flight.spinRps=Math.hypot.apply(null,omega)/(2*Math.PI);flight.speed=speed;flight.contact={x:x,y:y};
  flight.energy={available:budget,translation:.5*m*speed*speed,rotation:.5*inertia*Math.pow(Math.hypot.apply(null,omega),2),nominalSpeed:nominal};return flight;
 }
-function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked,k10){var eski=HIZLI;HIZLI=!!k10;try{return energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10);}finally{HIZLI=eski;}}
+function energyLaunch(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falsoDenge){var eski=HIZLI;HIZLI=!!k10;try{return energyLaunchIc(pos,aim,contact,hata,quality,noise,guc,tracked,k10,falsoDenge);}finally{HIZLI=eski;}}
 DT.ucus={groundImpulse:groundImpulse,energyLaunch:energyLaunch,fixedDirection:fixedDirection,hedefliLaunch:hedefliLaunch,acceleration:acceleration,integrate:integrate,launch:launch,temizHiz:temizHiz};
 })(typeof globalThis!=='undefined'?globalThis:window);

@@ -96,7 +96,7 @@
   }
   function spriteleriYukle() {
     DT.KARAKTER.forEach(function(k){gorselYukle('_menu_'+k.id+'_bekle','assets/menu/'+k.id+'_bekle.webp');});
-    gorselYukle('_kaleci-yuz','assets/kaleci-neuer-face.webp');
+    gorselYukle('_kaleci-yuz','assets/kaleci-neuer-face.webp?v=20261018a');
   }
   var VURUS_POZ = ['vurus1','vurus2','vurus3','bekle'];
   function karakterHazir(id) {return VURUS_POZ.every(function(p){return !!gorseller[id+'_'+p];});}

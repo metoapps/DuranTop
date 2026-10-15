@@ -22,3 +22,5 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261017b | Balonlar yalnız aut ve direkte; tüm kumanda sağ altta (ok artısı, ↺ ↻, Tamam), yönerge bandı kumandanın üstünde |
 
 | 20261017c | Yayın düzeltmesi: zıplayan barajda eller baş üstünde; eski tribün testi yeni sisteme uyarlandı |
+
+| 20261018a | Falso hız dengesi (rules 11), daha iyi frikik okuması, Neuer dokusu ve beş oyuncunun gövde oranları |

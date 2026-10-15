@@ -20,6 +20,7 @@ function planla(target,tip,practice,noise,T,options){
   if(options.kural10===true){var yavas=gozlem(options.yol||[],.13+(practice?.025:0),options.D,true);if(yavas&&yavas.arrival>.9)return takipPlan(tip,practice,noise,Object.assign({},options,{decision:1}));}
   return penaltiPlan(practice,noise,options);
  }
+ if(options&&options.akilliFrikik&&tip==='frikik')return takipPlan(tip,practice,noise,Object.assign({},options,{kural10:true,frikikAI:true}));
  if(options&&options.takipFizigi)return takipPlan(tip,practice,noise,options);
  var K=A.kaleci,reaction=K.tepki[tip]+(practice?A.antrenman.tepkiEk:0);
  options=options||{};var decision=options.decision===undefined?1:options.decision;
@@ -121,8 +122,8 @@ function penaltiPlan(practice,noise,o){
   gozlemler:reads,konum:konum,cizimKonum:konum};
 }
 function takipPlan(tip,practice,noise,o){
- var K=A.kaleci,sv=o.kural10===true?clamp(o.seviye||0,0,1):0,pYK=K.penaltiYanlisKose*(1-sv*.85),pFM=K.frikikMerkezHatasi*(1-sv*.85),first=K.tepki[tip]+(o.kural10&&tip==='frikik'?.05:K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk*(1-sv):0)-sv*.04;   // seviye: tepki 0,04 sn kısalır, yanlış karar ihtimali %85'e kadar azalır   // kural 10: frikikte okuma 0,30→0,05 sn
- var nx=noise()*K.hedefGurultuX,ny=noise()*K.hedefGurultuY,decision=o.decision===undefined?1:o.decision;
+ var K=A.kaleci,sv=o.kural10===true?clamp(o.seviye||0,0,1):0,pYK=K.penaltiYanlisKose*(1-sv*.85),pFM=K.frikikMerkezHatasi*(1-sv*.85)*(o.frikikAI?.4:1),first=K.tepki[tip]+(o.kural10&&tip==='frikik'?(o.frikikAI?.02:.05):K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk*(1-sv):0)-sv*.04;   // seviye: tepki 0,04 sn kısalır, yanlış karar ihtimali %85'e kadar azalır   // kural 10: frikikte okuma 0,30→0,05 sn
+ var nx=noise()*K.hedefGurultuX*(o.frikikAI?.75:1),ny=noise()*K.hedefGurultuY*(o.frikikAI?.75:1),decision=o.decision===undefined?1:o.decision;
  var vmax=(tip==='frikik'?K.frikikHiz:K.penaltiHiz)-(practice?A.antrenman.hizAzalt*(1-sv):0)+sv*1.2;
  var segments=[],wrong=false,lapse=false,chosen=false,reads=[];
  function idle(){return {x:0,y:1,poz:'bekle',yon:0,ilerleme:0,eylem:'bekle',eskiKol:false,low:false,high:false,block:0,landing:false,recovery:0,airborne:false};}
@@ -137,7 +138,7 @@ function takipPlan(tip,practice,noise,o){
    block:tip==='frikik'&&seg.central&&!lapse?(seg.blokT!==undefined?clamp((t-seg.blokT)/.25,0,1):Math.min(1,u*2)):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed,
    yuruyor:!!seg.walk&&u<1,adimFaz:t*2.4};
  }
- for(var t=first;t<=8;t+=.10){
+ for(var t=first;t<=8;t+=(o.frikikAI?.075:.10)){
   var old=segments[segments.length-1],current;
   if(o.kural10===true){while(segments.length&&segments[segments.length-1].at>t)segments.pop();current=konum(t);}   // henüz başlamamış dalış planı yenisiyle değişir
   else current=sample(old,t);

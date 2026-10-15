@@ -113,7 +113,7 @@ function golge(g,project,n,z){var xs=[],ymin=9;Object.keys(n).forEach(function(k
  g.save();g.fillStyle='rgba(0,0,0,'+alfa.toFixed(3)+')';g.beginPath();g.ellipse(c.x,c.y,Math.abs(r.x-l.x)/2,Math.max(1.5,Math.abs(f.y-c.y)*.6),0,0,Math.PI*2);g.fill();g.restore();}
 function ciz(g,project,r,renk){var ucgen=[],n=r.nodes,K=(renk.kalin||1)*(renk.olcek||1),doku0=renk.yuz||yuz;
  /* Ayrıntı düzeyi: 1 = hızlı (kaleci, her karede çizilir: 8 kenarlı uzuvlar, küçük eklem küreleri, 2×2 yüz), 2 = ayrıntılı (baraj; önbelleğe alınıp bir kez çizilir). */
- var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay===undefined?1:renk.detay,NS=DET>1?12:DET===0?6:8,CA=DET>1?4:DET===0?0:3,CB=DET>1?8:5,KA=DET>1?7:DET===0?3:5,KB=DET>1?12:DET===0?6:8,FR=DET>1?4:DET===0?1:2,FC=DET>1?3:DET===0?1:2;   // 0 = çok küçük figür (≤85 px): kapak yok, 6 kenar
+ var HS=renk.basOlcek||1,KH=K*HS,DET=renk.detay===undefined?1:renk.detay,NS=DET>1?12:DET===0?6:8,CA=DET>1?4:DET===0?0:3,CB=DET>1?8:5,KA=DET>1?7:DET===0?3:5,KB=DET>1?12:DET===0?6:8,FR=DET>1?5:DET===0?1:4,FC=DET>1?4:DET===0?1:3;   // 0 = çok küçük figür (≤85 px): kapak yok, 6 kenar
  /* Ekrandaki boya göre ayrıntı: uzak frikikte kaleci birkaç on piksel; 1000+ üçgen çizmek boşuna (her karede path+fill+stroke). Yalnız hızlı (DET=1) kaleci/oyuncu; önbellekli baraj (DET>1) ve yakın kaleci aynı. */
  if(DET===1){var tepe=project(n.head[0],n.head[1],n.head[2]),taban=project(n.fl[0],n.fl[1],n.fl[2]);
   if(tepe&&taban){var boyPx=Math.abs(taban.y-tepe.y);if(boyPx<46){NS=5;CA=2;CB=3;KA=3;KB=5;}else if(boyPx<90){NS=6;CA=2;CB=4;KA=4;KB=6;}}}
