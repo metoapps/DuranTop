@@ -54,9 +54,9 @@ function wav(veri,rate){var buf=Buffer.alloc(44+veri.length*2),pk=0;for(var i=0;
  buf.write('RIFF',0);buf.writeUInt32LE(36+veri.length*2,4);buf.write('WAVEfmt ',8);buf.writeUInt32LE(16,16);buf.writeUInt16LE(1,20);buf.writeUInt16LE(1,22);buf.writeUInt32LE(rate,24);buf.writeUInt32LE(rate*2,28);buf.writeUInt16LE(2,32);buf.writeUInt16LE(16,34);buf.write('data',36);buf.writeUInt32LE(veri.length*2,40);
  for(var j=0;j<veri.length;j++)buf.writeInt16LE(Math.max(-32768,Math.min(32767,Math.round(veri[j]*g*32767))),44+j*2);return buf;}
 /* ---- WebAudio çalıcı ---- */
-var ctx=null,ana=null,duck=null,acik=false,muzikAcik=true,sahneAd=null,parca=null,timer=null,kayit={},kayitDenendi=false,seviye=.55;
+var ctx=null,ana=null,duck=null,acik=false,muzikAcik=true,sahneAd=null,parca=null,timer=null,carpan=1,kayit={},kayitDenendi=false,seviye=.55;
 function genelAcik(){return acik&&(!DT.ses||!DT.ses.acikMi||DT.ses.acikMi());}
-function kur(){if(ctx)return true;var AC=root.AudioContext||root.webkitAudioContext;if(!AC)return false;ctx=new AC();ana=ctx.createGain();ana.gain.value=seviye;duck=ctx.createGain();duck.gain.value=1;ana.connect(duck);duck.connect(ctx.destination);return true;}
+function kur(){if(ctx)return true;var AC=root.AudioContext||root.webkitAudioContext;if(!AC)return false;ctx=new AC();ana=ctx.createGain();ana.gain.value=seviye*carpan;duck=ctx.createGain();duck.gain.value=1;ana.connect(duck);duck.connect(ctx.destination);return true;}
 function gurultu(sure){var n=Math.floor(ctx.sampleRate*sure),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(var i=0;i<n;i++)d[i]=Math.random()*2-1;var s=ctx.createBufferSource();s.buffer=b;return s;}
 function cal(e,t,cikis){var k=SES[e.tur],g=ctx.createGain();g.connect(cikis);
  if(k.dalga==='kick'){var o=ctx.createOscillator();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);g.gain.setValueAtTime(e.ses*1.6,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);o.start(t);o.stop(t+.2);return;}
@@ -77,6 +77,7 @@ function sahne(ad){if(!PARCALAR[ad]&&ad!==null&&ad!=='sessiz')return;var hedef=P
 function baslat(){if(!kur())return;if(ctx.state==='suspended'&&ctx.resume)ctx.resume();kayitYukle();if(!timer&&root.setInterval)timer=root.setInterval(adim,25);if(sahneAd&&!parca&&genelAcik()&&muzikAcik)parca=parcaBaslat(sahneAd);}
 function durdur(){if(parca){parca.bitti=true;try{parca.g.gain.setValueAtTime(0,ctx.currentTime);if(parca.gercek)parca.gercek.stop();}catch(e){}parca=null;}}
 var api={
+ seviyeAyarla:function(v){carpan=Math.max(0,Math.min(1,+v||0));if(ana)ana.gain.value=seviye*carpan;},   // müzik ve müzik efektleri ses düzeyi
  ayarla:function(v){acik=!!v;if(acik)baslat();else durdur();},
  muzikAyarla:function(v){muzikAcik=!!v;if(!muzikAcik)durdur();else if(acik&&ctx)baslat();},
  sahne:sahne,

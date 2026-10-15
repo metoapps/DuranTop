@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/stil.css?v=20261017b">
+  <link rel="stylesheet" href="css/stil.css?v=20261019a">
 </head>
 <body>
   <div id="yukleme" role="status">Görseller yükleniyor…</div>
@@ -28,8 +28,8 @@
       </div>
       <div class="menu-oyna">
         <button class="btn ana" id="btnResmi" type="button">Kupaya katıl</button>
-        <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman</button>
-        <button class="btn ikinci" id="btnHedef" type="button">Hedef ağı</button>
+        <button class="btn ikinci" id="btnAntrenman" type="button">Antrenman<small>10 vuruş · puan yazılmaz</small></button>
+        <button class="btn ikinci" id="btnHedef" type="button">Hedef ağı<small>deliklere nişan al</small></button>
         <button class="btn ikinci" id="btnGunluk" type="button">Günün meydan okuması<small id="gunlukDurum"></small></button>
         <button class="btn ikinci" id="btnHayat" type="button">Hayatta kal<small id="hayatDurum"></small></button>
       </div>
@@ -57,6 +57,11 @@
         <button class="ayar" id="btnBuyuk" type="button">Büyük düğmeler: kapalı</button>
         <button class="ayar" id="btnHareket" type="button">Hareket: tam</button>
         <button class="ayar" id="btnTitresim" type="button">Titreşim: açık</button>
+        <div class="ses-seviye" id="sesSeviye">
+          <label>Müzik <output id="svMuzikYaz">100%</output><input id="svMuzik" type="range" min="0" max="100" step="5" value="100" aria-label="Müzik ses düzeyi"></label>
+          <label>Efektler (vuruş, direk, ağ, düdük, uğultu) <output id="svEfektYaz">100%</output><input id="svEfekt" type="range" min="0" max="100" step="5" value="100" aria-label="Efekt ses düzeyi"></label>
+          <label>Spiker ve tribün <output id="svTribunYaz">100%</output><input id="svTribun" type="range" min="0" max="100" step="5" value="100" aria-label="Spiker ve tribün ses düzeyi"></label>
+        </div>
         <button class="ayar" id="btnCubuk" type="button">Antrenman çubuğu: açık</button>
         <button id="yeniKupa" class="ayar" type="button">Bağlantıyı yenile</button>
       </div></details>
@@ -168,14 +173,14 @@
   <script src="js/yorum.js?v=20261014a"></script>
   <script src="js/rozet.js?v=20261014a"></script>
   <script src="js/modlar.js?v=20261014a"></script>
-  <script src="js/muzik.js?v=20261014a"></script>
+  <script src="js/muzik.js?v=20261019a"></script>
   <script src="js/cihaz.js?v=20261015a"></script>
   <script src="js/kart.js?v=20261015a"></script>
   <script src="js/sestest.js?v=20261017a"></script>
   <script src="js/veri.js?v=20261005ab"></script>
   <script src="js/baraj.js?v=20261016a"></script>
   <script src="js/model3d.js?v=20261005ae"></script>
-  <script src="js/kaleci3d.js?v=20261018a"></script>
+  <script src="js/kaleci3d.js?v=20261019a"></script>
   <script src="js/baraj3d.js?v=20261017c"></script>
   <script src="js/kaleci.js?v=20261018a"></script>
   <script src="js/ucus.js?v=20261018b"></script>
@@ -183,14 +188,14 @@
   <script src="js/hedef.js?v=20261016a"></script>
   <script src="js/ag.js?v=20261010b"></script>
   <script src="js/puan.js?v=20261005ab"></script>
-  <script src="js/ses.js?v=20261018b"></script>
-  <script src="js/tezahurat.js?v=20261018b"></script>
+  <script src="js/ses.js?v=20261019a"></script>
+  <script src="js/tezahurat.js?v=20261019a"></script>
   <script src="js/futbolcu3d.js?v=20261018b"></script>
   <script src="js/sevinc.js?v=20261010b"></script>
   <script src="js/tribun.js?v=20261014a"></script>
   <script src="js/cizim.js?v=20261018b"></script>
   <script src="js/canli.js?v=20261018b"></script>
-  <script src="js/oyun.js?v=20261018b"></script>
+  <script src="js/oyun.js?v=20261019a"></script>
   <div id="seriKutu" class="seri-kutu" hidden>🔥 ×1.5</div>
   <div id="rozetToast" class="rozet-toast" hidden></div>
   <div id="ruzgarKutu" class="ruzgar-kutu" hidden><div class="ruzgar-kadran"><span id="ruzgarOk" class="ruzgar-ok">➤</span></div><div class="ruzgar-metin"><div class="ruzgar-satir"><span id="ruzgarYaz" class="ruzgar-yaz">0</span><span class="ruzgar-birim">m/sn</span></div><span id="ruzgarSev" class="ruzgar-sev">RÜZGÂR</span></div></div>

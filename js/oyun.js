@@ -15,7 +15,15 @@
   function yeniModMu(){return d.mod==='gunluk'||d.mod==='hayat';}
   function hesap(g){return g.pos&&g.pos.tip==='hedef'?DT.hedef.hesapla(g):DT.fizik.hesapla(g);}
 
-  var ayar = { ses: false, cubuk: true, muzik: true, solEl: false, buyuk: false, hareketAz: false, titresim: true }, hareketKapatildi = false;
+  var ayar = { ses: false, cubuk: true, muzik: true, solEl: false, buyuk: false, hareketAz: false, titresim: true, sv: { muzik: 100, efekt: 100, tribun: 100 } }, hareketKapatildi = false;
+  /* Ses düzeyleri (0-100): müzik, efektler, spiker ve tribün ayrı ayrı; telefonda kulakla dengelemek için. */
+  function seviyeUygula() {
+    var sv = ayar.sv || (ayar.sv = { muzik: 100, efekt: 100, tribun: 100 });
+    if (DT.muzik && DT.muzik.seviyeAyarla) DT.muzik.seviyeAyarla(sv.muzik / 100);
+    if (DT.ses && DT.ses.seviyeAyarla) DT.ses.seviyeAyarla(sv.efekt / 100);
+    if (DT.tezahurat && DT.tezahurat.seviyeAyarla) DT.tezahurat.seviyeAyarla(sv.tribun / 100);
+    [['muzik', 'svMuzik', 'svMuzikYaz'], ['efekt', 'svEfekt', 'svEfektYaz'], ['tribun', 'svTribun', 'svTribunYaz']].forEach(function (x) { var g = $(x[1]), y = $(x[2]); if (g && String(g.value) !== String(sv[x[0]])) g.value = sv[x[0]]; if (y) y.textContent = sv[x[0]] + '%'; });
+  }
   /* Titreşim (yalnız destekleyen cihazlar: Android; iPhone Safari desteklemez). Vuruş, gol ve kaçan şutta kısa desenler. */
   function titret(kalip) { if (ayar.titresim && root.navigator && typeof root.navigator.vibrate === 'function') { try { root.navigator.vibrate(kalip); } catch (e) { /* desteklenmiyor */ } } }
   var d = {
@@ -75,6 +83,7 @@
     $('btnSes').classList.toggle('acik', ayar.ses);
     if ($('btnMuzik')) { $('btnMuzik').textContent = 'Müzik: ' + (ayar.muzik ? 'açık' : 'kapalı'); $('btnMuzik').classList.toggle('acik', ayar.muzik); }
     if (DT.muzik) DT.muzik.muzikAyarla(ayar.muzik);
+    seviyeUygula();
     [['btnSolEl', 'Sol el modu', 'solEl'], ['btnBuyuk', 'Büyük düğmeler', 'buyuk'], ['btnTitresim', 'Titreşim', 'titresim']].forEach(function (x) { var b = $(x[0]); if (b) { b.textContent = x[1] + ': ' + (ayar[x[2]] ? 'açık' : 'kapalı'); b.classList.toggle('acik', !!ayar[x[2]]); } });
     if ($('btnHareket')) { $('btnHareket').textContent = 'Hareket: ' + (ayar.hareketAz ? 'az (tribün ve bayraklar durgun)' : 'tam'); $('btnHareket').classList.toggle('acik', ayar.hareketAz); }
     if ($('oyun') && $('oyun').classList) { $('oyun').classList.toggle('sol-el', !!ayar.solEl); $('oyun').classList.toggle('buyuk', !!ayar.buyuk); }
@@ -783,7 +792,7 @@
     if (baslatildi) return;
     baslatildi = true;
     var kayit = oku(ANAHTAR.ayar, null);
-    if (kayit) { ayar.cubuk = kayit.cubuk !== false; ayar.muzik = kayit.muzik !== false; ayar.solEl = !!kayit.solEl; ayar.buyuk = !!kayit.buyuk; ayar.hareketAz = !!kayit.hareketAz; ayar.titresim = kayit.titresim !== false; }
+    if (kayit) { ayar.cubuk = kayit.cubuk !== false; ayar.muzik = kayit.muzik !== false; ayar.solEl = !!kayit.solEl; ayar.buyuk = !!kayit.buyuk; ayar.hareketAz = !!kayit.hareketAz; ayar.titresim = kayit.titresim !== false; if (kayit.sv) ayar.sv = { muzik: +kayit.sv.muzik >= 0 ? Math.min(100, +kayit.sv.muzik) : 100, efekt: +kayit.sv.efekt >= 0 ? Math.min(100, +kayit.sv.efekt) : 100, tribun: +kayit.sv.tribun >= 0 ? Math.min(100, +kayit.sv.tribun) : 100 }; }
     ayar.ses = false;                       // ses her açılışta kapalı başlar
     DT.cizim.kur($('sahne'));
     if (DT.perf) DT.perf.baslat();
@@ -808,6 +817,7 @@
     $('btnSes').addEventListener('click', sesDegistir);
     if ($('kartPaylas')) $('kartPaylas').addEventListener('click', function () { if (DT.kart) DT.kart.paylas(kartVeri()); });
     if ($('btnMuzik')) $('btnMuzik').addEventListener('click', function () { ayar.muzik = !ayar.muzik; ayarGuncelle(); });
+    [['muzik', 'svMuzik'], ['efekt', 'svEfekt'], ['tribun', 'svTribun']].forEach(function (x) { var g = $(x[1]); if (g) g.addEventListener('input', function () { ayar.sv[x[0]] = Math.max(0, Math.min(100, +g.value || 0)); seviyeUygula(); yaz(ANAHTAR.ayar, ayar); }); });
     [['btnSolEl', 'solEl'], ['btnBuyuk', 'buyuk'], ['btnHareket', 'hareketAz'], ['btnTitresim', 'titresim']].forEach(function (x) { if ($(x[0])) $(x[0]).addEventListener('click', function () { ayar[x[1]] = !ayar[x[1]]; ayarGuncelle(); if (x[1] === 'titresim' && ayar.titresim) titret(40); }); });
     $('hudSes').addEventListener('click', sesDegistir);
     $('btnCubuk').addEventListener('click', function () { ayar.cubuk = !ayar.cubuk; ayarGuncelle(); });
