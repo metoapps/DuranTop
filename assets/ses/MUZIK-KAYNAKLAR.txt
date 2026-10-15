@@ -1,0 +1,25 @@
+Duran Top — menü müzikleri (20261019c)
+
+“Eighties Action”, “Kick Shock”, “Funkorama”
+Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Lisans ve üreticinin atıf metni: https://incompetech.com/music/royalty-free/licenses/
+Katalog: https://incompetech.com/music/royalty-free/pieces.json
+
+menu-eighties-20261019c.mp3
+Eser: Eighties Action, ISRC USUAN1100243, 132 BPM.
+Kaynak: https://incompetech.com/music/royalty-free/mp3-royaltyfree/Eighties%20Action.mp3
+Düzenleme: 00:54–02:14 kesiti, 80 saniye.
+
+menu-kickshock-20261019c.mp3
+Eser: Kick Shock, ISRC USUAN1100523, 138 BPM.
+Kaynak: https://incompetech.com/music/royalty-free/mp3-royaltyfree/Kick%20Shock.mp3
+Düzenleme: 00:00–01:02 kesiti, 62 saniye.
+
+menu-funkorama-20261019c.mp3
+Eser: Funkorama, ISRC USUAN1100474, 101 BPM.
+Kaynak: https://incompetech.com/music/royalty-free/mp3-royaltyfree/Funkorama.mp3
+Düzenleme: 00:12–01:32 kesiti, 80 saniye.
+
+Üç dosya da 44,1 kHz stereo MP3, 128 kbit/sn. -16 LUFS hedef, -1,5 dBTP sınır; 80 ms giriş, 800 ms çıkış yumuşatması. Eighties Action MP3 tepe taşması için ayrıca 0,7 dB kısıldı. Yeniden kodlama sonrası gerçek düzeyler ölçülür. Eserler Duran Top'a ait özgün besteler değildir. Atıf oyunun Ayarlar > Müzik kaynakları bölümünde de gösterilir.

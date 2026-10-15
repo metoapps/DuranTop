@@ -15,7 +15,7 @@
   function yeniModMu(){return d.mod==='gunluk'||d.mod==='hayat';}
   function hesap(g){return g.pos&&g.pos.tip==='hedef'?DT.hedef.hesapla(g):DT.fizik.hesapla(g);}
 
-  var ayar = { ses: false, cubuk: true, muzik: true, solEl: false, buyuk: false, hareketAz: false, titresim: true, sv: { muzik: 100, efekt: 100, tribun: 100 } }, hareketKapatildi = false;
+  var ayar = { ses: true, cubuk: true, muzik: true, solEl: false, buyuk: false, hareketAz: false, titresim: true, sv: { muzik: 100, efekt: 100, tribun: 100 } }, hareketKapatildi = false;
   /* Ses düzeyleri (0-100): müzik, efektler, spiker ve tribün ayrı ayrı; telefonda kulakla dengelemek için. */
   function seviyeUygula() {
     var sv = ayar.sv || (ayar.sv = { muzik: 100, efekt: 100, tribun: 100 });
@@ -91,6 +91,7 @@
     $('hudSes').textContent = ayar.ses ? 'Ses açık' : 'Ses kapalı';
     $('btnCubuk').textContent = 'Antrenman çubuğu: ' + (ayar.cubuk ? 'açık' : 'kapalı');
     $('btnCubuk').classList.toggle('acik', ayar.cubuk);
+    ayar.sesPolitika=2;
     yaz(ANAHTAR.ayar, ayar);
   }
   function sesDegistir() { ayar.ses = !ayar.ses; DT.ses.ayarla(ayar.ses);if(DT.tezahurat)DT.tezahurat.ayarla(ayar.ses);if(DT.muzik)DT.muzik.ayarla(ayar.ses); ayarGuncelle(); if (ayar.ses) DT.ses.cal('islik'); }
@@ -793,7 +794,12 @@
     baslatildi = true;
     var kayit = oku(ANAHTAR.ayar, null);
     if (kayit) { ayar.cubuk = kayit.cubuk !== false; ayar.muzik = kayit.muzik !== false; ayar.solEl = !!kayit.solEl; ayar.buyuk = !!kayit.buyuk; ayar.hareketAz = !!kayit.hareketAz; ayar.titresim = kayit.titresim !== false; if (kayit.sv) ayar.sv = { muzik: +kayit.sv.muzik >= 0 ? Math.min(100, +kayit.sv.muzik) : 100, efekt: +kayit.sv.efekt >= 0 ? Math.min(100, +kayit.sv.efekt) : 100, tribun: +kayit.sv.tribun >= 0 ? Math.min(100, +kayit.sv.tribun) : 100 }; }
-    ayar.ses = false;                       // ses her açılışta kapalı başlar
+    // Bu sürümde bir kez ses ve müzik açık başlatılır; sonraki açık/kapalı tercihi korunur.
+    if(kayit&&kayit.sesPolitika===2){ayar.ses=kayit.ses!==false;}else{ayar.ses=true;ayar.muzik=true;if(ayar.sv.muzik===0)ayar.sv.muzik=100;}
+    function sesKilidiAc(){if(!ayar.ses)return;DT.ses.ayarla(true);if(DT.tezahurat)DT.tezahurat.ayarla(true);if(DT.muzik)DT.muzik.ayarla(true);}
+    // Mobil tarayıcılar ses başlangıcını gerçek kullanıcı dokunuşu/tuşu içinde ister.
+    doc.addEventListener('pointerdown',sesKilidiAc,true);
+    doc.addEventListener('keydown',sesKilidiAc,true);
     DT.cizim.kur($('sahne'));
     if (DT.perf) DT.perf.baslat();
     if (DT.sestest) DT.sestest.baslat();   // adreste ?sestest=1 varsa ses test paneli ve cihaz raporu

@@ -1,6 +1,6 @@
 /* Müzik ve efekt sesleri (ayrı modül: ses.js'e dokunmaz). Genel "Ses" düğmesi kapalıyken hiçbir şey çalmaz; ayrıca "Müzik" ayarı vardır.
- * Üç özgün menü parçası (104/84/112 bpm) sırayla, yumuşak geçişle çalar. MAÇ (118 bpm) korunur. Ses dosyası gerekmez; kullanıcı sesi açınca tarayıcıda üretilir.
- * İstersen gerçek parça koy: assets/ses/muzik-menu.(mp3|ogg|wav|m4a) ve assets/ses/muzik-mac.(...) varsa sentez yerine onlar döngüyle çalınır.
+ * Menü: üç lisanslı, tam aranjmanlı rock/elektronik/funk kayıt sırayla çalar. Dosya yüklenemezse mevcut yerel sentez yedektir. MAÇ (118 bpm) korunur.
+ * Menü kayıtları MENU_KAYIT ile eşlenir; yalnız mevcut ve sonraki kayıt hazırlanır. İsteğe bağlı muzik-mac dosyası desteği korunur. Kaynak/lisans: assets/ses/MUZIK-KAYNAKLAR.txt.
  * Efektler (kısa): gol fanfarı, seri, rozet, altın bölge, kaçan şut, tık. Müzik, vuruş ve tezahürat anında kısılır (kis).
  * Parçalar VERİ olarak tanımlıdır (olayUret): aynı olaylardan hem WebAudio çalar hem de render() ile WAV önizlemesi üretilir. */
 (function(root){'use strict';var DT=root.DT=root.DT||{};
@@ -57,6 +57,7 @@ function wav(veri,rate){var buf=Buffer.alloc(44+veri.length*2),pk=0;for(var i=0;
 /* ---- WebAudio çalıcı ---- */
 var ctx=null,ana=null,duck=null,acik=false,muzikAcik=true,sahneAd=null,parca=null,timer=null,carpan=1,kayit={},kayitDenendi=false,seviye=.55,calanlar=[],menuSira=0;
 var MENU=['menu','menu-gece','menu-tribun'];
+var MENU_KAYIT={menu:'assets/ses/menu-eighties-20261019c.mp3','menu-gece':'assets/ses/menu-kickshock-20261019c.mp3','menu-tribun':'assets/ses/menu-funkorama-20261019c.mp3'},menuIstek={};
 function genelAcik(){return acik&&(!DT.ses||!DT.ses.acikMi||DT.ses.acikMi());}
 function kur(){if(ctx)return true;var AC=root.AudioContext||root.webkitAudioContext;if(!AC)return false;ctx=new AC();ana=ctx.createGain();ana.gain.value=seviye*carpan;duck=ctx.createGain();duck.gain.value=1;ana.connect(duck);duck.connect(ctx.destination);return true;}
 function gurultu(sure){var n=Math.floor(ctx.sampleRate*sure),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(var i=0;i<n;i++)d[i]=Math.random()*2-1;var s=ctx.createBufferSource();s.buffer=b;return s;}
@@ -69,7 +70,7 @@ function cal(e,t,cikis,owner){var k=SES[e.tur],g=ctx.createGain();g.connect(ciki
 /* parça çalıcı: ileriye bakan zamanlayıcı (120 ms pencere), döngü */
 function parcaBaslat(ad){var olay=olayUret(ad),uz=bolumMs(ad),g=ctx.createGain();g.gain.value=0;g.connect(ana);var P={ad:ad,olay:olay,uz:uz,g:g,t0:ctx.currentTime+.08,tur:0,idx:0,bitti:false,gercek:null,nodes:[]};calanlar.push(P);
  if(kayit[ad]){var s=ctx.createBufferSource();s.buffer=kayit[ad];s.loop=ad==='mac';s.connect(g);s.start();P.gercek=s;P.nodes.push(s);if(ad!=='mac')P.uz=Math.max(.1,s.buffer.duration);}
- g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+.8);return P;}
+ g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+.8);if(MENU_KAYIT[ad]){menuYukle(ad);menuYukle(MENU[(MENU.indexOf(ad)+1)%MENU.length]);}return P;}
 function ilerle(P){if(!P||P.gercek||P.bitti)return;var son=ctx.currentTime+.14;
  // Background timer stalls must not replay a backlog or scan thousands of notes.
  if(P.t0+P.tur*P.uz+P.olay[P.idx].t<ctx.currentTime-.30){var elapsed=Math.max(0,ctx.currentTime-P.t0);P.tur=Math.floor(elapsed/P.uz);P.idx=0;while(P.idx<P.olay.length-1&&P.t0+P.tur*P.uz+P.olay[P.idx].t<ctx.currentTime-.02)P.idx++;}
@@ -85,7 +86,17 @@ function adim(){if(!ctx)return;calanlar=calanlar.filter(function(P){if(P.bitti&&
  if(!genelAcik()||!muzikAcik||!gorunur())return;
  if(sahneAd==='menu'&&parca&&ctx.currentTime>=parca.t0+parca.uz-.8)degistir(sonrakiMenu());
  ilerle(parca);}
-function kayitYukle(){if(kayitDenendi||!ctx||!root.fetch)return;kayitDenendi=true;['menu','mac'].forEach(function(ad){var denemeler=['mp3','ogg','wav','m4a'],i=0;(function dene(){if(i>=denemeler.length)return;var u='assets/ses/muzik-'+ad+'.'+denemeler[i++];root.fetch(u).then(function(r){return r&&r.ok?r.arrayBuffer():null;}).then(function(b){return b?ctx.decodeAudioData(b):null;}).then(function(buf){if(buf){kayit[ad]=buf;if(parca&&parca.ad===ad&&!parca.gercek&&genelAcik()&&muzikAcik&&gorunur())degistir(ad);}else dene();}).catch(dene);})();});}
+function menuOnbellek(){var current=parca&&parca.ad,next=MENU[(MENU.indexOf(current)+1)%MENU.length];Object.keys(kayit).filter(function(k){return MENU_KAYIT[k]&&k!==current&&k!==next;}).forEach(function(k){delete kayit[k];});}
+function menuYukle(ad){if(!MENU_KAYIT[ad]||!root.fetch||!ctx||kayit[ad]||menuIstek[ad])return;
+ menuIstek[ad]=root.fetch(MENU_KAYIT[ad]).then(function(r){return r&&r.ok?r.arrayBuffer():null;}).then(function(b){return b?ctx.decodeAudioData(b):null;}).then(function(buf){
+  if(!buf)return;menuIstek[ad]=null;kayit[ad]=buf;
+  if(parca&&parca.ad===ad&&!parca.gercek&&genelAcik()&&muzikAcik&&gorunur())degistir(ad);
+  menuOnbellek();
+ }).catch(function(){}); // Yerel sentez, bağlantı hatasında oyunu ve menüyü çalışır tutar.
+}
+function kayitYukle(){if(!ctx||!root.fetch)return;menuYukle(parca&&MENU_KAYIT[parca.ad]?parca.ad:MENU[menuSira%MENU.length]);
+ if(kayitDenendi)return;kayitDenendi=true;var denemeler=['mp3','ogg','wav','m4a'],i=0;(function dene(){if(i>=denemeler.length)return;root.fetch('assets/ses/muzik-mac.'+denemeler[i++]).then(function(r){return r&&r.ok?r.arrayBuffer():null;}).then(function(b){return b?ctx.decodeAudioData(b):null;}).then(function(buf){if(buf){kayit.mac=buf;if(parca&&parca.ad==='mac'&&!parca.gercek&&genelAcik()&&muzikAcik&&gorunur())degistir('mac');}else dene();}).catch(dene);})();
+}
 function sahne(ad){if(ad!=='menu'&&ad!=='mac'&&ad!==null&&ad!=='sessiz')return;var hedef=ad==='menu'||ad==='mac'?ad:null;
  if(hedef===sahneAd&&(hedef===null||parca))return;sahneAd=hedef;
  if(!ctx)return;if(parca){emekli(parca,.8);parca=null;}
@@ -101,7 +112,7 @@ var api={
  /* kis(sure, oran): müziği kısa süre kısar (vuruş ve tezahürat anında) */
  kis:function(sure,oran){if(!ctx||!duck)return;var t=ctx.currentTime;try{duck.gain.cancelScheduledValues(t);duck.gain.setValueAtTime(duck.gain.value,t);duck.gain.linearRampToValueAtTime(oran===undefined?.3:oran,t+.15);duck.gain.linearRampToValueAtTime(1,t+(sure||2));}catch(e){}},
  efekt:function(ad){if(!genelAcik()||!ctx||!EFEKT[ad])return false;var t=ctx.currentTime+.02,out=ctx.createGain();out.gain.value=1;out.connect(ctx.destination);EFEKT[ad].forEach(function(e){cal(e,t+e.t,out);});return true;},
- bolumMs:bolumMs,olayUret:olayUret,render:render,wav:wav,EFEKT:EFEKT,PARCALAR:PARCALAR,AKOR:AKOR,KOK:KOK,SES:SES,
+ MENU_KAYIT:MENU_KAYIT,bolumMs:bolumMs,olayUret:olayUret,render:render,wav:wav,EFEKT:EFEKT,PARCALAR:PARCALAR,AKOR:AKOR,KOK:KOK,SES:SES,
  _durum:function(){return{acik:acik,muzikAcik:muzikAcik,sahne:sahneAd,calan:parca?sahneAd:null,parca:parca?parca.ad:null,gercek:!!(parca&&parca.gercek),kayit:Object.keys(kayit)};}
 };
 if(root.addEventListener)root.addEventListener('pointerdown',function(){if(ctx&&ctx.state==='suspended'&&acik&&ctx.resume)ctx.resume();});
