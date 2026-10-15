@@ -162,21 +162,32 @@
     });
     return { A: kare[0], B: kare[1], C: kare[2], y0: y0, h: h, sc: sc };
   }
-  var ALAY = { aut: ['Yuh!', 'Senin ayağının dümenini skeyim', 'Nereye vuruyon?', 'Ebenin amk yayım ya!', 'Kaleyi göremedin mi?'], kisa: ['Yuh!', 'Çekeceğin şutun anasını avradını skeyim', 'Kısa kaldı!', 'Ebenin amk yayım ya!', 'Topa kuvvet!'], kurtaris: ['Kaleci aldı!', 'Senin ayağının dümenini skeyim', 'Yuhhh!', 'Çekeceğin şutun anasını avradını skeyim', 'Bu muydu?'], baraj: ['Baraj yedi!', 'Ebenin amk yayım ya!', 'Hahaha!', 'Senin ayağının dümenini skeyim', 'Çekeceğin şutun anasını avradını skeyim'], ag: ['Delik orada!', 'Çekeceğin şutun anasını avradını skeyim', 'Hahaha!', 'Ebenin amk yayım ya!', 'Nişan nerede?'], halka: ['Delik orada!', 'Senin ayağının dümenini skeyim', 'Hahaha!', 'Çekeceğin şutun anasını avradını skeyim', 'Nişan nerede?'] };
-  /* Alay balonları: kaçan şutta tribünden 5 yorum yükselip kaybolur. Konumlar sonuç türünden türetilir (deterministik). */
-  function alayBalon(g, s, tur, tohum, ctx) {
-    var gol = tur === 'gol', metin = gol ? (DT.tezahurat && DT.tezahurat.golMetinleri ? DT.tezahurat.golMetinleri(tohum, ctx).map(function (x) { return x.m; }) : ['Golllaazzzooooooooooo!', 'Koçum benim!', 'Efsane!']) : (DT.tezahurat && DT.tezahurat.alayMetinleri ? DT.tezahurat.alayMetinleri(tur, tohum).map(function (x) { return x.m; }) : (ALAY[tur] || ALAY.aut)), K = kalabalik, ust = 52, alt = Math.max(ust + 40, K.alt - 20);
-    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + Math.round(Math.max(11, Math.min(15, W / 28))) + 'px Arial';
-    for (var i = 0; i < metin.length; i++) {
-      var t0 = 0.12 * i + 0.05 * ((i * 3) % 2), u = (s - t0) / 2.6; if (u <= 0 || u >= 1) continue;
-      var fs = Math.round(Math.max(11, Math.min(15, W / 28))); g.font = 'bold ' + fs + 'px Arial';
-      var tw = g.measureText(metin[i]).width; if (tw > W - 28) { fs = Math.max(8, Math.floor(fs * (W - 28) / tw)); g.font = 'bold ' + fs + 'px Arial'; }   // uzun yorum ekrana sığsın
-      var a = u < 0.12 ? u / 0.12 : u > 0.75 ? (1 - u) / 0.25 : 1, w = g.measureText(metin[i]).width + 16, h = 21;
-      var x = Math.max(w / 2 + 4, Math.min(W - w / 2 - 4, W * (0.14 + 0.72 * (((i * 37 + 11) % 100) / 100)))), y = alt - (alt - ust) * (((i * 53 + 7) % 100) / 100) - u * 18;
-      g.globalAlpha = a * 0.95; g.fillStyle = gol ? '#fff0a0' : '#fff6df'; g.strokeStyle = gol ? 'rgba(120,90,0,.65)' : 'rgba(0,0,0,.45)'; g.lineWidth = 1;
+  /* Tribün balonları: gol olunca senin dört cümlenden 3'ü (sarı), kaçan şutta genel olumsuz cümleler (krem) ve top auta gidince oyuncuya özel cümleler (pembe).
+   * Konumlar tohumdan türetilir (deterministik). Her balon 4,2 sn kalır; uzun cümleler iki satıra bölünür (ekrana sığar). */
+  var BALON_OMUR = 4.2, BALON_PENCERE = 5.4;
+  function balonBol(g, t, enGen) {
+    if (g.measureText(t).width <= enGen) return [t];
+    var k = t.split(' '), en = null, ensk = 1e9;
+    for (var i = 1; i < k.length; i++) { var a = k.slice(0, i).join(' '), b = k.slice(i).join(' '), m = Math.max(g.measureText(a).width, g.measureText(b).width); if (m < ensk) { ensk = m; en = [a, b]; } }
+    return en || [t];
+  }
+  function alayBalon(g, s, tur, tohum, kisi) {
+    var gol = tur === 'gol', T = DT.tezahurat, liste = gol ? (T && T.golMetinleri ? T.golMetinleri(tohum) : []) : (T && T.alayMetinleri ? T.alayMetinleri(tur, tohum, kisi) : []), K = kalabalik, ust = 42, alt = Math.max(ust + 60, K.alt - 14), n = liste.length;
+    var fs = Math.round(Math.max(11, Math.min(14, W / 29))), lh = fs + 2;
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + fs + 'px Arial';
+    for (var i = 0; i < liste.length; i++) {
+      var t0 = 0.14 * i + 0.05 * ((i * 3) % 2), u = (s - t0) / BALON_OMUR; if (u <= 0 || u >= 1) continue;
+      var satir = balonBol(g, liste[i].m, W - 36), gen = 0; satir.forEach(function (q) { gen = Math.max(gen, g.measureText(q).width); });
+      var a = u < 0.08 ? u / 0.08 : u > 0.80 ? (1 - u) / 0.20 : 1, w = gen + 14, h = satir.length * lh + 5;
+      // her balon kendi yatay şeridine yerleşir (üst üste binmesin): şerit sırası 0,2,4,1,3 ...; yatay konum şeritle sağ-sol dönüşümlü
+      var sira = (i * 2) % n + ((n % 2 === 0 && i >= n / 2) ? 1 : 0), serit = (alt - ust) / n, yy = ust + serit * (sira + 0.5), xk = (sira % 2 ? 0.66 : 0.34) + (((i * 37 + 11) % 100) / 100 - 0.5) * 0.12;
+      var x = Math.max(w / 2 + 4, Math.min(W - w / 2 - 4, W * xk)), y = yy - u * 10;
+      var ozel = !gol && liste[i].ozel;
+      g.globalAlpha = a * 0.95; g.fillStyle = gol ? '#fff0a0' : ozel ? '#ffd9d2' : '#fff6df'; g.strokeStyle = gol ? 'rgba(120,90,0,.65)' : ozel ? 'rgba(150,40,30,.7)' : 'rgba(0,0,0,.45)'; g.lineWidth = 1;
       g.beginPath(); if (g.roundRect) g.roundRect(x - w / 2, y - h / 2, w, h, 9); else g.rect(x - w / 2, y - h / 2, w, h); g.fill(); g.stroke();
       g.beginPath(); g.moveTo(x - 4, y + h / 2 - 1); g.lineTo(x + 2, y + h / 2 + 6); g.lineTo(x + 5, y + h / 2 - 1); g.closePath(); g.fill();
-      g.fillStyle = gol ? '#3a2a00' : '#2a1a10'; g.fillText(metin[i], x, y + 1);
+      g.fillStyle = gol ? '#3a2a00' : ozel ? '#4a0f08' : '#2a1a10';
+      for (var q = 0; q < satir.length; q++) g.fillText(satir[q], x, y + (q - (satir.length - 1) / 2) * lh + 1);
     }
     g.restore();
   }
@@ -205,7 +216,7 @@
     g.restore();
   }
   // Balonlar bayrakların ve pankartın üstünde görünsün diye ayrı çağrılır (atmosfer çiziminden sonra).
-  function alayCiz(g, alay, tur, tohum, ctx) { if (A.hareket === false || !kalabalik || !(alay >= 0 && alay < 3.4)) return; alayBalon(g, alay, tur, tohum, ctx); }
+  function alayCiz(g, alay, tur, tohum, kisi) { if (A.hareket === false || !kalabalik || !(alay >= 0 && alay < BALON_PENCERE)) return; alayBalon(g, alay, tur, tohum, kisi); }
   function arkaPlanCiz() {
     var c = yerelCanvas(Math.round(W * dpr), Math.round(H * dpr));
     var g = c.getContext('2d');
@@ -797,7 +808,7 @@
     var supporter=d.oyuncu?d.oyuncu.karakter:d.onKarakter?d.onKarakter.karakter:null;
     tribunKatmaniCiz(g, d, supporter);   // kalabalık + atmosfer + bayrak/pankart: en çok ~30 Hz yenilenen önbellekli katman
     if (d.top && DT.ag) { var off = DT.ag.topOfset(d.top); if (off > 0.005) d = Object.assign({}, d, { top: { x: d.top.x, y: d.top.y, z: d.top.z + off } }); }
-    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0, d.alayCtx || null);
+    alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0, d.alayKisi || null);
 
     kaleArka(g);
     agGuncelle(d);

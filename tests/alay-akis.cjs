@@ -6,7 +6,7 @@ let callback,state={room:{id:'test',code:'ABC123'},players:[]};function records(
 D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Promise.resolve(state)},ensure:()=>Promise.resolve(state),current:()=>state.players[0],allowed:()=>true,getState:()=>state,records,async join(player){if(!state.players[0])state.players=[{player,idx:0,entries:[],mine:true}];return state.players[0]},async shot(player,idx,input){shots++;const p=D.puan.puanla(input.pos,D.fizik.hesapla(input));const physics=D.fizik.hesapla(input);const entry={ad:input.pos.ad,sonuc:physics.sonuc,puan:D.puan.puanla(input.pos.tip,physics).puan,gol:['gol','direk_gol'].includes(physics.sonuc),yesil:physics.bandaGirdi,input:{...input,rules:9}};state.players[0].entries.push(entry);state.players[0].idx++;callback(state);return entry},create:()=>Promise.resolve(state),link:()=>''};
 vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
 
-// Kaçan şutta tribün alay eder (aut, kısa, kurtarış, baraj); gol ve direkten dönen toppta alay yok (direkte "ahhh").
+// Kaçan şutta tribün alay eder (aut, kısa, kurtarış, baraj: yuh sesi + balonlar); direkten dönen toppta "ahhh" sesi ve balonlar (yuh yok); golde gol balonları.
 let alayN=0,uhN=0;D.tezahurat={alay(){alayN++;return true;},uh(){uhN++;return true;},ayarla(){},ortam(){}};
 await flush();fire('btnAntrenman','click');await flush();
 const eski=D.fizik.hesapla;let hedefSonuc=null;D.fizik.hesapla=g=>{const r=eski(g);if(hedefSonuc)r.sonuc=hedefSonuc;return r;};
@@ -15,7 +15,7 @@ for(const [sonuc,alayBeklenen] of Object.entries(tablo)){
  hedefSonuc=sonuc;alayN=0;uhN=0;
  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});
  await flush();assert.equal(d.faz,'vurus',sonuc);time+=15000;root.frame();assert.equal(d.faz,'sonuc',sonuc);
- assert.equal(alayN,alayBeklenen?1:0,sonuc+': alay '+(alayBeklenen?'var':'yok'));if(sonuc==='gol'||sonuc==='direk_gol'){assert(d.alayT0&&d.alayTur==='gol',sonuc+': gol balonları (tezahürat) var');}else assert.equal(!!d.alayT0,alayBeklenen,sonuc+': alay balonları '+(alayBeklenen?'var':'yok'));
+ assert.equal(alayN,alayBeklenen?1:0,sonuc+': alay '+(alayBeklenen?'var':'yok'));if(sonuc==='gol'||sonuc==='direk_gol'){assert(d.alayT0&&d.alayTur==='gol',sonuc+': gol balonları (tezahürat) var');}else if(sonuc==='direk_disari'){assert(d.alayT0&&d.alayTur==='direk_disari',sonuc+': direkten dönüşte de genel olumsuz cümleler çıkar');assert.equal(alayN,0,'ama alay (yuh) sesi çalmaz, "ahhh" kullanılır');}else assert.equal(!!d.alayT0,alayBeklenen,sonuc+': alay balonları '+(alayBeklenen?'var':'yok'));
  if(alayBeklenen)assert.equal(d.alayTur,sonuc);
  // sonuç ekranında alay süresi ilerler ve yeni pozisyonda sıfırlanır
  time+=500;root.frame();fire('devamBtn','click');assert.equal(d.alayT0,null,'yeni vuruşta alay sıfırlandı');
