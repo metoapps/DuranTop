@@ -50,7 +50,7 @@ function anahtar(p,i,poz){return i+'|'+Math.round(p.x*100)+','+Math.round(p.z*10
 /* Pozlar: dur (eller önde kenetli), cokus (atıştan hemen önce çömelir, eller aşağıda hazır), havada (diz toplu, kollar başın yanında yukarıda). */
 var POZLAR={dur:{c:.06,h:0,sx:0,kw:0,egil:.035,bas:0,lfl:0,lfr:0,hl:[-.045,-.28,-.215],hr:[.045,-.28,-.215],el:[-.36,-.03,.0],er:[.36,-.03,.0]},
  cokus:{c:.17,h:0,sx:0,kw:.035,egil:.075,bas:0,lfl:0,lfr:0,hl:[-.10,-.17,-.21],hr:[.10,-.17,-.21],el:[-.34,.03,.0],er:[.34,.03,.0]},
- havada:{c:.0,h:0,sx:0,kw:.02,egil:-.02,bas:0,lfl:.20,lfr:.15,hl:[-.20,.84,-.04],hr:[.20,.84,-.04],el:[-.35,.54,.0],er:[.35,.54,.0]}};
+ havada:{c:.0,h:0,sx:0,kw:.02,egil:-.02,bas:0,lfl:.20,lfr:.15,hl:[-.16,1.02,-.04],hr:[.16,1.02,-.04],el:[-.30,.70,.0],er:[.30,.70,.0]}};
 function uret(project,p,i,opt,poz){
  var gv=D.baraj.GORUNUM[i%D.baraj.GORUNUM.length],s=p.boy/1.92,b=project(p.x,0,p.z);if(!b)return null;
  var ol=b.olcek||40,dpr=((poz&&poz!=='dur')?.6:1)*(opt.dpr||1),   // çömelme ve havada pozları kısa görünür: daha düşük ayrıntı ve çözünürlük (maliyet yarıdan az)

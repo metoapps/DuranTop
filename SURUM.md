@@ -20,3 +20,5 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261016a | Durmadan koşu, kaleci eldiven ve anatomi, akıllı baraj, daire altın bölge, 6 delik, büyük rüzgâr ibresi |
 | 20261017a | Yalnız kullanıcının cümleleri (kişiye özel dahil), spiker sesi altyapısı (konuşma sentezi kaldırıldı), balon süresi, sabit seçim paneli |
 | 20261017b | Balonlar yalnız aut ve direkte; tüm kumanda sağ altta (ok artısı, ↺ ↻, Tamam), yönerge bandı kumandanın üstünde |
+
+| 20261017c | Yayın düzeltmesi: zıplayan barajda eller baş üstünde; eski tribün testi yeni sisteme uyarlandı |
