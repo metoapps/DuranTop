@@ -30,7 +30,7 @@ for(const p of P){const b=G(p,3,true).baraj;const bx=p.bx;
 assert(eskiKacirdi>.5,'kural 9 barajı en az bir pozisyonda yakın direk hattını kaçırıyordu ('+eskiKacirdi.toFixed(2)+' m)');
 // 4) Zıplama istatistiği (kural 10): orta ≈%92, kenar ≈%60, en az 2, ortalama > kural 9'un 2'si
 for(const p of P){const n=beklenen(p),say=new Array(n).fill(0);let ort=0,farkli=new Set();for(let seed=1;seed<=2000;seed++){const k=D.baraj.kur(p,{seed,kural10:true});let m=0;k.forEach((o,i)=>{if(o.jump){say[i]++;m++;}});assert(m>=2,'en az iki zıplayan');ort+=m;farkli.add(k.map(o=>o.jump?1:0).join(''));}
- const orta=(n-1)/2;say.forEach((c,i)=>{const f=c/2000,mrk=Math.abs(i-orta)<=1;if(mrk)assert(f>.88,p.ad+': orta oyuncu '+i+' '+f);else assert(f>.52&&f<.72,p.ad+': kenar oyuncu '+i+' '+f);});assert(ort/2000>2.0,'ortalama zıplayan '+ort/2000);assert(farkli.size>=3);
+ const orta=(n-1)/2;say.forEach((c,i)=>{const f=c/2000,mrk=Math.abs(i-orta)<=1;if(mrk)assert(f>.93,p.ad+': orta oyuncu '+i+' '+f);else assert(f>.80&&f<.98,p.ad+': kenar oyuncu '+i+' '+f);});assert(ort/2000>2.0,'ortalama zıplayan '+ort/2000);assert(farkli.size>=3);
  assert.equal(JSON.stringify(D.baraj.kur(p,{seed:7,kural10:true})),JSON.stringify(D.baraj.kur(p,{seed:7,kural10:true})),'aynı tohum aynı baraj');}
 // 5) Görünüm: 6 farklı ten/saç, yüz dokuları farklı; sprite önbelleği
 const G6=D.baraj.GORUNUM;assert.equal(G6.length,6);assert.equal(new Set(G6.map(x=>x.ten)).size,6);assert(new Set(G6.map(x=>x.stil)).size>=3);
@@ -49,4 +49,18 @@ const c1=cagri;D.baraj3d.oyuncu(ctx,proj,{x:0,y:0,z:10,boy:1.85},1,{t:2,makeCanv
 const c2=cagri;assert.equal(D.baraj3d.isit(proj,{x:1,y:0,z:10,boy:1.9},2,{makeCanvas:yap2,dpr:1,surum:3}),true);const uretilen=cagri-c2;assert(uretilen>=1,'ısınma sprite üretir');
 const c3=cagri;D.baraj3d.oyuncu(ctx,proj,{x:1,y:0,z:10,boy:1.9},2,{t:3,makeCanvas:yap2,dpr:1,surum:3});assert.equal(cagri,c3,'ısınmış oyuncu çizilirken yeni tuval üretilmez');
 assert.equal(D.baraj3d.oyuncu(ctx,proj,{x:0,y:0,z:10,boy:1.85},0,{t:0}),false,'makeCanvas yoksa eski çizime düşer');
+// AKILLI BARAJ (kural 10): okuma, eşzamanlı ve erken kalkış, kollar yukarıda, belirgin sıçrama
+{const B=D.baraj,pos=D.AYAR.pozisyonlar[5],A2=D.AYAR;
+ const dene=(aimY,zorluk,N)=>{let say=0,top=0,orta=0,ortaN=0;for(let seed=1;seed<=N;seed++){const w=B.kur(pos,{seed,kural10:true,zorluk,aimY});w.forEach((q,i)=>{top++;if(q.jump)say++;if(Math.abs(i-(w.length-1)/2)<=1){ortaN++;if(q.jump)orta++;}});}return{oran:say/top,orta:orta/ortaN};};
+ const yuk=dene(1.8,0,1500),alc=dene(.5,0,1500),alcZor=dene(.5,1,1500),yukZor=dene(1.8,1,1500);
+ assert(yuk.oran>.9,'yüksek hedefte baraj hep zıplar '+yuk.oran.toFixed(2));assert(alc.oran<yuk.oran-.15,'alçak hedefte baraj daha az zıplar (okuma): '+alc.oran.toFixed(2)+' < '+yuk.oran.toFixed(2));assert(alcZor.oran<alc.oran-.05,'zorluk arttıkça baraj daha çok okur: '+alcZor.oran.toFixed(2)+' < '+alc.oran.toFixed(2));assert(yukZor.oran>=yuk.oran-.02,'yüksek hedefte zorlukla da hep zıplar');
+ assert(Math.abs(dene(undefined,0,300).oran-yuk.oran)<.05,'hedef yüksekliği bilinmiyorsa temkinli: yüksek varsayar');
+ // zamanlama: zıplayanlar atıştan hemen önce/çok yakın kalkar, birbirlerine en çok ±0,05 sn farkla; zirve ≈0,45–0,6 m
+ let enErken=9,enGec=-9,zirveMin=9,zirveMax=0;for(let seed=1;seed<=800;seed++){const w=B.kur(pos,{seed,kural10:true,zorluk:0,aimY:1.8});const j=w.filter(q=>q.jump);const st=j.map(q=>q.start);enErken=Math.min(enErken,...st);enGec=Math.max(enGec,...st);assert(Math.max(...st)-Math.min(...st)<=.085,'zıplayanlar neredeyse eşzamanlı: '+(Math.max(...st)-Math.min(...st)).toFixed(3));for(const q of j){assert(q.kolYukari===true,'zıplayan kollar yukarıda');const zir=q.v*q.v/(2*A2.yercekimi);zirveMin=Math.min(zirveMin,zir);zirveMax=Math.max(zirveMax,zir);}}
+ assert(enErken>=.02&&enGec<=.14,'kalkış penceresi '+enErken.toFixed(3)+'…'+enGec.toFixed(3));assert(zirveMin>=.41&&zirveMax<=.55,'sıçrama zirvesi '+zirveMin.toFixed(2)+'…'+zirveMax.toFixed(2)+' m (eskiden 0,26–0,40)');
+ // durum: çömelme → havada (kollar yukarı) → iner; kural 9 oyuncuları eskisi gibi (poz alanı yok)
+ const w=B.kur(pos,{seed:3,kural10:true,zorluk:0,aimY:1.8}),q=w.find(x=>x.jump);const d0=B.durum(q,q.start-.2),d1=B.durum(q,q.start-.05),d2=B.durum(q,q.start+.2),d3=B.durum(q,q.start+1.2);assert.equal(d0.poz,'dur');assert.equal(d1.poz,'cokus','kalkıştan hemen önce çömelir');assert.equal(d2.poz,'havada');assert(d2.y>.3,'havada yükselmiş '+d2.y.toFixed(2));assert.equal(d3.poz,'dur');assert.equal(d3.y,0);
+ const eski=B.kur({bx:5,D:17.3,tip:'frikik'},null);assert(eski.every(x=>x.kolYukari===undefined),'kural 9 oyuncularında yeni alan yok');
+ // havadaki oyuncunun elleri başın üstünde: çarpışma geometrisi yüksek (blok yüksekliği)
+ const kalem=(t)=>B.parcalar(q,t),yuk0=Math.max(...kalem(q.start-.3).map(s=>Math.max(s.a[1],s.b[1])+s.r)),yuk1=Math.max(...kalem(q.start+.2).map(s=>Math.max(s.a[1],s.b[1])+s.r));assert(yuk1-yuk0>=d2.y+.05,'havada eller başın üstünde: erişim sıçramadan fazla artar '+(yuk1-yuk0).toFixed(2)+' ≥ '+(d2.y+.05).toFixed(2));}
 console.log('PASS baraj: kural 9 eskisi gibi; kural 10 mesafeye göre 5/4/3 oyuncu, omuz omuza, yakın direk hattını örter (kural 9 kaçırıyordu), zıplama istatistiği, 6 farklı yüz, sprite önbelleği');

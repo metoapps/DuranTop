@@ -14,7 +14,7 @@ for(const [pi,ad,aralik] of [[0,'penaltı',[.05,.30]],[5,'18 m',[.30,.65]],[9,'2
 // kural 9 / kupa: bayraksız çağrıda rüzgâr hiçbir şey değiştirmez
 for(const pi of [0,5,9]){const a=G(pi,undefined,false),b=G(pi,[6,3],false);assert.equal(JSON.stringify(a),JSON.stringify(b),'kural 10 kapalıyken rüzgâr yok sayılır');}
 // hedef ağı uçuşu da rüzgârdan etkilenir
-{const hp=D.hedef.pozisyonlar[1],h=D.hedef.delikler[2],gh=(w)=>D.hedef.hesapla({pos:hp,aim:{x:h.x,y:h.y},contact:{x:0,y:0},zaman:.5,seed:3,guc:.9,kural10:true,antrenman:true,ruzgar:w});assert(Math.abs(gh([6,0]).gecis.x-gh().gecis.x)>.1,'hedef ağında rüzgâr sapması');}
+{const hp=D.hedef.pozisyonlar[1],h=D.hedef.delikler[1],gh=(w)=>D.hedef.hesapla({pos:hp,aim:{x:h.x,y:h.y},contact:{x:0,y:0},zaman:.5,seed:3,guc:.9,kural10:true,antrenman:true,ruzgar:w});assert(Math.abs(gh([6,0]).gecis.x-gh().gecis.x)>.1,'hedef ağında rüzgâr sapması');}
 // 3) Bayraklar ve flamalar rüzgârla yatar (görüntü): aynı kare, farklı rüzgâr → farklı piksel; ters yön farklı; rüzgâr yokken değişmez
 {const rt={DT:{AYAR:{hareket:true}},matchMedia:()=>({matches:false})};vm.createContext(rt);vm.runInContext(fs.readFileSync(__dirname+'/../js/tribun.js','utf8'),rt);const T=rt.DT.tribun;
  const kare=(w,t)=>{const cv=C.createCanvas(390,200),g=cv.getContext('2d');g.fillStyle='#223';g.fillRect(0,0,390,200);T.atmosfer(g,{W:390,ust:35,alt:150,time:t,makeCanvas:(a,b)=>C.createCanvas(a,b),kalite:0,ruzgar:w});return Uint8ClampedArray.from(g.getImageData(0,0,390,200).data);};

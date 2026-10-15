@@ -31,10 +31,10 @@ console.log('PASS hedef ağı akışı: menü düğmesi, 5 vuruş, sunucuya iste
 
 // --- Fizik ve yerleşim ---
 const H=D.hedef,A=D.AYAR,R=A.kale.topYaricap,yari=A.kale.genislik/2,HH=A.kale.yukseklik;
-assert.equal(H.delikler.length,14);for(const y of [1.93,1.22]){}const sira=[...new Set(H.delikler.map(h=>h.y.toFixed(1)))].map(y=>H.delikler.filter(h=>h.y.toFixed(1)===y).length);assert.deepEqual(sira,[5,4,5]);
+assert.equal(H.delikler.length,6,'6 delik (azaltıldı)');for(const y of [1.93,1.22]){}const sira=[...new Set(H.delikler.map(h=>h.y.toFixed(1)))].map(y=>H.delikler.filter(h=>h.y.toFixed(1)===y).length);assert.deepEqual(sira,[3,2,1]);
 for(const h of H.delikler){assert(Math.abs(h.x)+h.r<=yari&&h.y-h.r>=0&&h.y+h.r<=HH,'delik kale ağzının içinde');}
-for(let i=0;i<14;i++)for(let j=i+1;j<14;j++){const a=H.delikler[i],b=H.delikler[j];assert(Math.hypot(a.x-b.x,a.y-b.y)>a.r+b.r+.1,'delikler çakışmaz');}
-const h0=H.delikler[2];assert(H.delikBul(h0.x,h0.y,R).tam);assert(!H.delikBul(h0.x+h0.r-R+.002,h0.y,R).tam,'kenara değen top tam geçmez');assert.equal(H.delikBul(h0.x+h0.r+R+.01,h0.y,R),null);
+for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){const a=H.delikler[i],b=H.delikler[j];assert(Math.hypot(a.x-b.x,a.y-b.y)>a.r+b.r+.1,'delikler çakışmaz');}
+const h0=H.delikler[1];assert(H.delikBul(h0.x,h0.y,R).tam);assert(!H.delikBul(h0.x+h0.r-R+.002,h0.y,R).tam,'kenara değen top tam geçmez');assert.equal(H.delikBul(h0.x+h0.r+R+.01,h0.y,R),null);
 const say={};let hizliDonus=0,hizli=0,yavasOnde=0,yavas=0;
 for(const pos of H.pozisyonlar)for(const aim of H.delikler.concat([{x:-.7,y:1.6},{x:2.6,y:.9},{x:0,y:.9}]))for(const guc of [.35,.6,1])for(const seed of [1,2]){
  const r=H.hesapla({pos,aim:{x:aim.x,y:aim.y},contact:{x:0,y:0},zaman:.5,seed,guc});say[r.sonuc]=(say[r.sonuc]||0)+1;const son=r.yol[r.yol.length-1];
@@ -44,5 +44,5 @@ for(const pos of H.pozisyonlar)for(const aim of H.delikler.concat([{x:-.7,y:1.6}
  assert(r.yol.every(p=>p.y>=R-1e-9),'top zeminin altına inmez');}
 assert(say.delik>50&&say.ag>20&&say.halka>10,JSON.stringify(say));assert(hizli>5&&hizliDonus/hizli>.8,'hızlı top ağdan geri döner '+hizliDonus+'/'+hizli);assert(yavas===0||yavasOnde/yavas>.8,'yavaş top ağın önüne düşer');
 assert.equal(A.pozisyonlar.length,10,'kupa pozisyonları değişmedi');
-console.log('PASS hedef ağı fiziği: 14 delik 5/4/5, kale içinde, çakışmasız; tam geçiş ölçütü; '+JSON.stringify(say)+'; hızlı dönüş '+hizliDonus+'/'+hizli+', yavaş önde '+yavasOnde+'/'+yavas);
+console.log('PASS hedef ağı fiziği: 6 delik 3/2/1, kale içinde, çakışmasız; tam geçiş ölçütü; '+JSON.stringify(say)+'; hızlı dönüş '+hizliDonus+'/'+hizli+', yavaş önde '+yavasOnde+'/'+yavas);
 })().catch(e=>{console.error(e);process.exit(1)});

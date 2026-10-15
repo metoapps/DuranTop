@@ -46,30 +46,48 @@ var FORMA={shirt:'#4f9fd8',shirtKoyu:'#3f86bd',shorts:'#f4f5f7',socks:'#e9edf1',
 /* Baraj oyuncuları ayrıntılı (detay 2) çizilir ama her karede değil: her oyuncu için BİR kez (duruş sprite'ı) bir tuvale çizilir, sonra her karede tek drawImage ile konur
  * (önceden dört oyuncu ≈190 ms/kare). Zıplama sprite'ın dikey kaydırılmasıyla gösterilir, gölge ayrıca çizilir. Önbellek kamera/sahne değişince (surum) boşalır. */
 var onbellek={surum:-1,s:{}};
-function anahtar(p,i){return i+'|'+Math.round(p.x*100)+','+Math.round(p.z*100)+'|'+Math.round(p.boy*100);}
-function uret(project,p,i,opt){
+function anahtar(p,i,poz){return i+'|'+Math.round(p.x*100)+','+Math.round(p.z*100)+'|'+Math.round(p.boy*100)+'|'+(poz||'dur');}
+/* Pozlar: dur (eller önde kenetli), cokus (atıştan hemen önce çömelir, eller aşağıda hazır), havada (diz toplu, kollar başın yanında yukarıda). */
+var POZLAR={dur:{c:.06,h:0,sx:0,kw:0,egil:.035,bas:0,lfl:0,lfr:0,hl:[-.045,-.28,-.215],hr:[.045,-.28,-.215],el:[-.36,-.03,.0],er:[.36,-.03,.0]},
+ cokus:{c:.17,h:0,sx:0,kw:.035,egil:.075,bas:0,lfl:0,lfr:0,hl:[-.10,-.17,-.21],hr:[.10,-.17,-.21],el:[-.34,.03,.0],er:[.34,.03,.0]},
+ havada:{c:.0,h:0,sx:0,kw:.02,egil:-.02,bas:0,lfl:.20,lfr:.15,hl:[-.20,.84,-.04],hr:[.20,.84,-.04],el:[-.35,.54,.0],er:[.35,.54,.0]}};
+function uret(project,p,i,opt,poz){
  var gv=D.baraj.GORUNUM[i%D.baraj.GORUNUM.length],s=p.boy/1.92,b=project(p.x,0,p.z);if(!b)return null;
- var ol=b.olcek||40,dpr=opt.dpr||1,w=Math.ceil(1.5*ol)+8,h=Math.ceil((p.boy+.2)*ol)+10;
+ var ol=b.olcek||40,dpr=((poz&&poz!=='dur')?.6:1)*(opt.dpr||1),   // çömelme ve havada pozları kısa görünür: daha düşük ayrıntı ve çözünürlük (maliyet yarıdan az)
+ w=Math.ceil(1.5*ol)+8,h=Math.ceil((p.boy+.2)*ol)+10;
  var c=opt.makeCanvas(Math.ceil(w*dpr),Math.ceil(h*dpr)),g2=c.getContext('2d');g2.scale(dpr,dpr);
  var ox=b.x-w/2,oy=b.y-(h-6),pr=function(x,y,z){var q=project(x,y,z);return q?{x:q.x-ox,y:q.y-oy,d:q.d,olcek:q.olcek}:q;};
  // Duruş: ayaklar omuz genişliği, dizler hafif kırık, eller önde kenetli (kasık koruması), bakış topa.
- var o={c:.06,h:0,sx:0,kw:0,egil:.035,bas:0,lfl:0,lfr:0,hl:[-.045,-.28,-.215],hr:[.045,-.28,-.215],el:[-.36,-.03,.0],er:[.36,-.03,.0]};
+ var o=Object.assign({},POZLAR[poz||'dur']);
  var n=K3.kalip({x:p.x,y:1},p.z,o);
  Object.keys(n).forEach(function(k){n[k]=[p.x+(n[k][0]-p.x)*s,n[k][1]*s,p.z+(n[k][2]-p.z)*s];});
- n.hl[1]=Math.max(n.hl[1],0.05);
- var renk=Object.assign({},FORMA,{skin:gv.ten,gloves:gv.ten,hair:gv.sac,sacStil:gv.stil,elCiplak:true,kol:gv.ten,sortKisa:true,kulak:true,basOlcek:.88,detay:2,olcek:s,kalin:gv.beden,yuz:yuzDoku(gv,i,opt.makeCanvas)});
+ n.hl[1]=Math.max(n.hl[1],0.05);n.hr[1]=Math.max(n.hr[1],0.05);
+ var renk=Object.assign({},FORMA,{skin:gv.ten,gloves:gv.ten,hair:gv.sac,sacStil:gv.stil,elCiplak:true,kol:gv.ten,sortKisa:true,kulak:true,basOlcek:.88,detay:(poz&&poz!=='dur')?1:2,olcek:s,kalin:gv.beden,yuz:yuzDoku(gv,i,opt.makeCanvas)});
  K3.cizGovde(g2,pr,{nodes:n},renk);
  return{c:c,ox:ox,oy:oy,w:w,h:h,ol:ol,tab:{x:b.x,y:b.y}};}
 function oyuncu(g,project,p,i,opt){opt=opt||{};var yap=opt.makeCanvas;if(!yap)return false;
  var sur=opt.surum||0;if(onbellek.surum!==sur)onbellek={surum:sur,s:{}};
- var key=anahtar(p,i),sp=onbellek.s[key];
- if(!sp){sp=uret(project,p,i,opt);if(!sp)return false;onbellek.s[key]=sp;}
- var t=opt.t||0,hv=Math.max(0,p.y),yer=hv>.005,dx=yer?0:Math.sin(t*1.7+i*1.9)*.7,dy=yer?0:Math.sin(t*1.3+i)*.5,yuk=hv*sp.ol;
+ var poz=POZLAR[p.poz]?p.poz:'dur',key=anahtar(p,i,poz),sp=onbellek.s[key];
+ if(!sp&&poz!=='dur'){var yedek=onbellek.s[anahtar(p,i,'dur')];kuyrugaEkle(project,p,i,opt,poz);if(yedek)sp=yedek;}   // poz henüz hazır değilse duruş çizimi kullanılır (takılma yok); arka planda üretilir
+ if(!sp){sp=uret(project,p,i,opt,poz);if(!sp)return false;onbellek.s[key]=sp;}
+ var t=opt.t||0,hv=Math.max(0,p.y),yer=hv>.005,hazir=!yer&&poz==='dur',
+  // hareketli duruş: nefes (dikey), ağırlık aktarma (yatay), arada bir adım düzeltme (±6 cm, 0,5 sn); çömelince ve havada hareketsiz (poz zaten değişti)
+  sal=hazir?Math.sin(t*1.1+i*1.7)*.025*sp.ol:0,adm=hazir?(function(){var c=3.4,ph=((t+i*.83)%c+c)%c;return ph<.5?Math.sin(Math.PI*ph/.5)*.06*sp.ol*(i%2?1:-1):0;})():0,
+  dx=sal+adm,dy=hazir?Math.sin(t*2.2+i)*.012*sp.ol:0,yuk=hv*sp.ol;
  // gölge yerde kalır, zıplayınca küçülür ve silikleşir
  g.save();g.fillStyle='rgba(0,0,0,'+(.30*(1-Math.min(1,hv/.9))).toFixed(3)+')';g.beginPath();g.ellipse(sp.tab.x,sp.tab.y,Math.max(3,.30*sp.ol*(1-.25*Math.min(1,hv/.6))),Math.max(1.5,.075*sp.ol),0,0,Math.PI*2);g.fill();g.restore();
  g.drawImage(sp.c,sp.ox+dx,sp.oy+dy-yuk,sp.w,sp.h);
  return true;}
 /* isit: pozisyon açılırken (nişan almadan önce) sprite'ları üretir; vuruş sırasında takılma olmasın. */
-function isit(project,p,i,opt){opt=opt||{};if(!opt.makeCanvas)return false;var sur=opt.surum||0;if(onbellek.surum!==sur)onbellek={surum:sur,s:{}};var key=anahtar(p,i);if(onbellek.s[key])return true;var sp=uret(project,p,i,opt);if(!sp)return false;onbellek.s[key]=sp;return true;}
-D.baraj3d={isit:isit,oyuncu:oyuncu,yuzDoku:yuzDoku,FORMA:FORMA,_onbellek:function(){return onbellek;}};
+/* Arka plan kuyruğu: duruş pozu pozisyon açılırken senkron üretilir (eskisi gibi); çömelme ve havada pozları sırayla, her biri ayrı zamanlayıcı turunda üretilir (tek seferde 15 çizim donma yapardı).
+ * setTimeout yoksa (testler) hemen üretilir. */
+var kuyruk=[],isliyor=false;
+function zamanla(f){if(root.setTimeout)root.setTimeout(f,30);else f();}
+function kuyrugaEkle(project,p,i,opt,poz){var sur=opt.surum||0,key=anahtar(p,i,poz);for(var k=0;k<kuyruk.length;k++)if(kuyruk[k].key===key&&kuyruk[k].sur===sur)return;kuyruk.push({project:project,p:p,i:i,opt:opt,poz:poz,sur:sur,key:key});if(!isliyor){isliyor=true;zamanla(isle);}}
+function isle(){var it=kuyruk.shift();if(!it){isliyor=false;return;}
+ if(onbellek.surum===it.sur&&!onbellek.s[it.key]){try{var sp=uret(it.project,it.p,it.i,it.opt,it.poz);if(sp)onbellek.s[it.key]=sp;}catch(e){/* sahne değişmiş olabilir */}}
+ if(kuyruk.length)zamanla(isle);else isliyor=false;}
+function isit(project,p,i,opt){opt=opt||{};if(!opt.makeCanvas)return false;var sur=opt.surum||0;if(onbellek.surum!==sur){onbellek={surum:sur,s:{}};kuyruk=[];}var key=anahtar(p,i,'dur');if(!onbellek.s[key]){var sp=uret(project,p,i,opt,'dur');if(!sp)return false;onbellek.s[key]=sp;}
+ kuyrugaEkle(project,p,i,opt,'cokus');kuyrugaEkle(project,p,i,opt,'havada');return true;}
+D.baraj3d={isit:isit,oyuncu:oyuncu,yuzDoku:yuzDoku,FORMA:FORMA,_onbellek:function(){return onbellek;},_kuyruk:function(){return kuyruk.length;},POZLAR:POZLAR};
 })(typeof globalThis!=='undefined'?globalThis:window);

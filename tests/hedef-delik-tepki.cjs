@@ -21,9 +21,9 @@ function gecerli(){return D.oyun._durum._son||null;}
 // Delikler: ilk delikten (yüksek puanlı) ve alt delikten geçiş, halkaya çarpma, ağa çarpma
 const DL=D.hedef.delikler,delik=(i)=>({aim:{x:DL[i].x,y:DL[i].y}}),halka=(i)=>({aim:{x:DL[i].x+DL[i].r*.95,y:DL[i].y}}),ag=()=>({aim:{x:(DL[0].x+DL[1].x)/2,y:(DL[0].y+DL[1].y)/2+.02}});
 const sonucAdi=()=>el('sonucBaslik').textContent;
-const t1=await tur([delik(2),delik(7)]);
+const t1=await tur([delik(1),delik(3)]);
 for(const s of t1){assert.equal(s.baslik,'DELİKTEN!','delikten geçti: '+s.baslik);assert.equal(s.kart,'sonuc gol','kart gol rengi: '+s.kart);assert.equal(s.golSes,1,'delikten geçen şutta tribün bağırır');assert.equal(s.alayN,0,'delikten geçen şutta ALAY YOK');assert.equal(s.alayTur,'gol','gol balonları');assert(s.sesler.includes('gol')&&s.sesler.includes('file'),'gol uğultusu ve ağ sesi: '+s.sesler.join());assert(!s.sesler.includes('ah'),'hayal kırıklığı sesi yok');assert(s.flas>0,'gol flaşı');assert.equal(s.sevinc,'sevinc','şutçu sevinir: '+s.sevinc);assert.equal(s.heyecan,1,'tribün tam coşar');}
-const t2=await tur([halka(2),ag()]);
+const t2=await tur([halka(1),ag()]);
 for(const s of t2){assert(['HALKAYA ÇARPTI','AĞDAN DÖNDÜ'].includes(s.baslik),'halka/ağ: '+s.baslik);assert.equal(s.kart,'sonuc kacti');assert.equal(s.golSes,0,'halka/ağda gol tezahüratı yok');assert.equal(s.alayN,1,'halka/ağda tribün alay eder');assert(!s.sesler.includes('gol')&&!s.sesler.includes('file'),'gol sesi yok: '+s.sesler.join());assert.equal(s.flas,0);assert.equal(s.sevinc,'kacirma');}
 D.hedef.hesapla=eskiH;
 console.log('PASS hedef ağı: delikten geçen top gol gibi karşılanır (sevinç, tribün bağırışı, ağ sesi, flaş, alay yok); halka ve ağ alayla karşılanır');

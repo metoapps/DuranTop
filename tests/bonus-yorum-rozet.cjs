@@ -3,13 +3,13 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 function dunya(){const depo={};const r={DT:{},localStorage:{getItem:k=>depo[k]===undefined?null:depo[k],setItem:(k,v)=>{depo[k]=String(v);}}};vm.createContext(r);for(const n of ['bonus','yorum','rozet'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),r);return{D:r.DT,depo,r};}
 const {D}=dunya(),B=D.bonus;
 // 1) Altın bölge: tohumdan, ağırlıklı, geçerli dikdörtgenler
-{assert.deepEqual(B.altinUret(5),B.altinUret(5));const say={};for(let s=0;s<6000;s++){const z=B.altinUret(s*131+7);assert(z.x1<z.x2&&z.y1<z.y2&&z.x1>=-3.66&&z.x2<=3.66&&z.y1>=0&&z.y2<=2.44&&z.bonus>=3&&z.bonus<=4);say[z.ad]=(say[z.ad]||0)+1;}
- assert.equal(Object.keys(say).length,6,'6 bölgenin hepsi çıkar');assert((say['Sol üst köşe']+say['Sağ üst köşe'])>(say['Alt orta']*3),'köşeler daha sık');
- const z=B.BOLGELER[0];assert(B.icinde(z,-3,2)&&!B.icinde(z,0,1)&&!B.icinde(z,-3,1)&&!B.icinde(z,NaN,2)&&!B.icinde(null,0,0),'içinde testi');assert(B.icinde(z,-3.66,2.44)&&B.icinde(z,-2.2,1.5),'sınırlar dahil');}
+{assert.deepEqual(B.altinUret(5),B.altinUret(5));const say={};for(let s=0;s<6000;s++){const z=B.altinUret(s*131+7);assert(z.r>=.4&&z.r<=.5&&z.x-z.r>=-3.66&&z.x+z.r<=3.66&&z.y-z.r>=0&&z.y+z.r<=2.44&&z.bonus>=4&&z.bonus<=5,'daire kale içinde ve küçük: '+JSON.stringify(z));say[z.ad]=(say[z.ad]||0)+1;}
+ assert.equal(Object.keys(say).length,5,'5 bölgenin hepsi çıkar');assert((say['Sol üst köşe']+say['Sağ üst köşe'])>(say['Üst orta']*1.5),'üst köşeler daha sık');
+ const z=B.BOLGELER[0];assert(B.icinde(z,-3,1.9)&&B.icinde(z,-3.2,2.1)&&!B.icinde(z,0,1)&&!B.icinde(z,-3,1.2)&&!B.icinde(z,-2.3,1.9)&&!B.icinde(z,NaN,2)&&!B.icinde(null,0,0),'daire içinde testi');assert(B.icinde(z,z.x+z.r,z.y)&&!B.icinde(z,z.x+z.r+.01,z.y),'sınır dahil, dışı değil');const alan=Math.PI*z.r*z.r;assert(alan<.9,'bölge küçük: '+alan.toFixed(2)+' m²');}
 // 2) Seri çarpanı ve puan
 {assert.deepEqual([1,2,3,4,5,9].map(B.seriCarpan),[1,1.25,1.5,2,2,2]);const durum={seri:0},p0={puan:5,taban:5,zaman:0,zor:0,gol:true},bolge=B.BOLGELER[0];
  const a=B.uygula(p0,{gol:true,x:0,y:1},durum,bolge);assert.equal(a.puan,5);assert.equal(a.seri,1);assert.equal(a.altin,0);assert.equal(a.seriEk,0);
- const b=B.uygula(p0,{gol:true,x:-3,y:2},durum,bolge);assert.equal(b.altin,4,'altın bölge +4');assert.equal(b.carpan,1.25);assert.equal(b.seriEk,Math.round(9*.25));assert.equal(b.puan,9+Math.round(9*.25));assert.equal(durum.seri,2);
+ const b=B.uygula(p0,{gol:true,x:-3,y:1.95},durum,bolge);assert.equal(b.altin,5,'altın bölge +5');assert.equal(b.carpan,1.25);assert.equal(b.seriEk,Math.round(10*.25));assert.equal(b.puan,10+Math.round(10*.25));assert.equal(durum.seri,2);
  const c=B.uygula(p0,{gol:true,x:0,y:1},durum,bolge);assert.equal(c.carpan,1.5);assert.equal(c.puan,5+Math.round(5*.5));
  const d=B.uygula(p0,{gol:true,x:0,y:1},durum,bolge);assert.equal(d.carpan,2);assert.equal(d.puan,10);
  const e=B.uygula({puan:0,gol:false},{gol:false,x:0,y:0},durum,bolge);assert.equal(e.puan,0);assert.equal(durum.seri,0,'kaçan şut seriyi sıfırlar');assert.equal(e.seri,0);
@@ -17,7 +17,7 @@ const {D}=dunya(),B=D.bonus;
 // 3) Yorumcu bandı
 {const Y=D.yorum,hepsi=new Set();for(const s of ['gol','direk_gol','kurtaris','direk_disari','aut','kisa','baraj','delik','halka','ag'])for(let t=0;t<200;t++){const m=Y.uret({sonuc:s,gol:s==='gol'||s==='direk_gol'||s==='delik',km:80},t);assert(typeof m==='string'&&m.length>8&&m.length<80,s+': '+m);hepsi.add(s+'|'+m);assert.equal(Y.uret({sonuc:s,gol:s==='gol'||s==='delik',km:80},t),m,'aynı tohum aynı cümle');}
  for(const s of Object.keys(Y.HAVUZ))assert(new Set([...hepsi].filter(x=>x.startsWith(s+'|'))).size>=2,s+': çeşitli cümleler');
- assert(/Altın bölge/.test(Y.uret({sonuc:'gol',gol:true,altin:4,km:90},1)),'altın bölge öne çıkar');let hiz=0;for(let t=0;t<100;t++)if(/km\/sa/.test(Y.uret({sonuc:'gol',gol:true,km:122},t)))hiz++;assert(hiz>40,'yüksek hızda hız cümlesi sık: '+hiz);
+ assert(/[Aa]ltın bölge/.test(Y.uret({sonuc:'gol',gol:true,altin:4,km:90},1)),'altın bölge öne çıkar');let hiz=0;for(let t=0;t<100;t++)if(/km\/sa/.test(Y.uret({sonuc:'gol',gol:true,km:122},t)))hiz++;assert(hiz>40,'yüksek hızda hız cümlesi sık: '+hiz);
  let seri=0,ruz=0;for(let t=0;t<100;t++){if(/Seri bozulmuyor/.test(Y.uret({sonuc:'gol',gol:true,km:90,seri:5},t)))seri++;if(/Rüzgâr bahane/.test(Y.uret({sonuc:'aut',gol:false,ruzgar:{hiz:5}},t)))ruz++;}assert(seri>35&&ruz>35,'seri ve rüzgâr yorumları');}
 // 4) Rozetler
 {const {D:D2,depo}=dunya(),R=D2.rozet;R.sifirla();R.turBasla();const gol=(o)=>R.vurus(Object.assign({gol:true,sonuc:'gol',tip:'penalti',km:90,falso:false,ruzgarHiz:0,altin:0,seri:1,x:0,y:1},o||{}));

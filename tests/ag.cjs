@@ -26,7 +26,7 @@ AG.sifirla(pen);now=1000;AG.guncelle(null,now);for(let k=0;k<12;k++){now+=16;AG.
 // 6) Kilit: top ağda dururken darbe tekrarlanmaz.
 AG.sifirla(pen);now=1000;AG.guncelle(null,now);now+=16;AG.guncelle({x:0,y:1.2,z:Z-R-.4},now);now+=16;AG.guncelle({x:0,y:1.2,z:Z-R},now);const v1=AG.enerji();for(let k=0;k<5;k++){now+=16;AG.guncelle({x:0,y:1.2,z:Z-R},now);}assert(AG.enerji()<v1*1.5,'darbe tekrarlanmadı');
 // 7) Hedef ağı: delikten geçen top delikli ağı sallamaz, halkaya çarpan sallar.
-const hp=D.hedef.pozisyonlar[1],hd=D.hedef.delikler[2];AG.sifirla(hp);function hedefAt(x,y){AG.sifirla(hp);now=1000;AG.guncelle(null,now);for(let k=0;k<12;k++){now+=16;AG.guncelle({x:x,y:y,z:hp.D-1.6+k*.35},now);}return topla(AG.hole);}
+const hp=D.hedef.pozisyonlar[1],hd=D.hedef.delikler[1];AG.sifirla(hp);function hedefAt(x,y){AG.sifirla(hp);now=1000;AG.guncelle(null,now);for(let k=0;k<12;k++){now+=16;AG.guncelle({x:x,y:y,z:hp.D-1.6+k*.35},now);}return topla(AG.hole);}
 const gecen=hedefAt(hd.x,hd.y),carpan=hedefAt(hd.x+hd.r+.05,hd.y+.1);assert(gecen<.01,'delikten geçen top ağı sallamaz '+gecen);assert(carpan>.2,'halkaya çarpan top sallar '+carpan);
 // 8) topOfset: ağın dışında 0; ağ göçükken top ağla birlikte gömülür; sınırlı.
 AG.sifirla(pen);assert.equal(AG.topOfset({x:0,y:1.2,z:pen.D-3}),0);oyna(t=>({x:0,y:1.2,z:Math.min(Z-R,pen.D-5+28*t)}),.3);const of=AG.topOfset({x:0,y:1.2,z:Z-R});assert(of>.1&&of<=.7,'top ağa gömülür '+of);

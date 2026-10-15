@@ -244,8 +244,10 @@
     var goster = !!d.ruzgar && d.ekran === 'oyun' && (d.faz === 'nisan' || d.faz === 'vurus');
     kutu.hidden = !goster; if (!goster) return;
     $('ruzgarYaz').textContent = d.ruzgar.hiz.toFixed(1);
-    $('ruzgarOk').style.transform = 'rotate(' + (DT.ruzgar.okAcisi(d.ruzgar) - 90) + 'deg)';
-    kutu.className = 'ruzgar-kutu ' + DT.ruzgar.seviye(d.ruzgar);
+    var sev = DT.ruzgar.seviye(d.ruzgar);
+    $('ruzgarOk').style.transform = 'rotate(' + (DT.ruzgar.okAcisi(d.ruzgar) - 90) + 'deg) scale(' + (0.85 + Math.min(1, d.ruzgar.hiz / 6.5) * 0.4).toFixed(2) + ')';   // ok hızla büyür
+    if ($('ruzgarSev')) $('ruzgarSev').textContent = sev === 'sert' ? 'SERT' : sev === 'orta' ? 'ORTA' : 'DURGUN';
+    kutu.className = 'ruzgar-kutu ' + sev;
   }
   /* Nişan sınırı: kupada ±4,5 m (eski), antrenman/hedefte ±9 m: direğin dışına nişan alıp falsoyla uzak köşeye sokmak için (falso 28 m'de topu ≈6 m saptırır). */
   function aimXMax(){return k10()?9:4.5;}
@@ -442,9 +444,12 @@
           if (!an.olay) {
             an.olay = true;
             var ses = SONUC_SES[r.sonuc]; if (ses && !(an.direk&&ses==='direk')) DT.ses.cal(ses,{hiz:r.speed});
-            if (golMu(r)) { DT.ses.cal('gol'); titret([40, 50, 40, 50, 90]); if (DT.muzik) { DT.muzik.efekt('gol'); DT.muzik.kis(3.4, 0.35); } d.konfetiT0 = now; d.alayT0 = now; d.alayTur = 'gol'; d.alayTohum = (Math.floor(now) ^ (d.idx || 0)) & 0xffff; if (DT.tezahurat && DT.tezahurat.golSes) DT.tezahurat.golSes(d.alayTohum); }   // gol: tribün bağırır (balonlar + ses)
+            if (golMu(r)) { DT.ses.cal('gol'); titret([40, 50, 40, 50, 90]); if (DT.muzik) { DT.muzik.efekt('gol'); DT.muzik.kis(3.4, 0.35); } d.konfetiT0 = now; d.alayT0 = now; d.alayTur = 'gol'; d.alayTohum = (Math.floor(now) ^ (d.idx || 0)) & 0xffff;
+              var pp = gecerliSonuc.p || {}, gx = r.gecis ? r.gecis.x : 0, gy = r.gecis ? r.gecis.y : 1;   // bağlama uygun tezahürat: altın bölge, direk, falso, köşe, sert şut, uzak, seri, penaltı
+              d.golCtx = { altin: !!pp.altin, direk: r.sonuc === 'direk_gol', falso: r.spinRps > 1, kose: Math.abs(gx) >= 2.6 && (gy >= 1.6 || gy <= 0.8), sert: r.speed * 3.6 >= 108, uzak: /Uzak/.test(d.pos.ad), seri: pp.seri || 0, tip: d.pos.tip };
+              if (DT.tezahurat && DT.tezahurat.golSes) DT.tezahurat.golSes(d.alayTohum, d.golCtx); }   // gol: tribün bağırır (balonlar + ses)
             if (r.sonuc === 'direk_disari') titret([30, 40, 30]);
-            if (!(golMu(r) || r.sonuc === 'direk_disari')) { var alayCaldi = DT.tezahurat && DT.tezahurat.alay(); titret([80]); if (DT.muzik) { DT.muzik.efekt('kacti'); DT.muzik.kis(1.6, 0.5); } d.alayT0 = now; d.alayTur = r.sonuc; if (r.sonuc !== 'aut' && !alayCaldi) DT.ses.cal('ah'); }   // kaçan şut: tribün alay eder (ses + balonlar)
+            if (!(golMu(r) || r.sonuc === 'direk_disari')) { var alayCaldi = DT.tezahurat && DT.tezahurat.alay(); titret([80]); if (DT.muzik) { DT.muzik.efekt('kacti'); DT.muzik.kis(1.6, 0.5); } d.alayT0 = now; d.alayTur = r.sonuc; d.alayTohum = (Math.floor(now) ^ (d.idx || 0)) & 0xffff; if (r.sonuc !== 'aut' && !alayCaldi) DT.ses.cal('ah'); }   // kaçan şut: tribün alay eder (ses + balonlar)
             else if (r.sonuc === 'direk_disari' && !an.uh) DT.ses.cal('ah');
           }
           if (se < 0.3 && r.sonuc !== 'aut') out.sarsinti = 7 * (1 - se / 0.3);
@@ -465,7 +470,7 @@
     // Görsel kaleci (kaleci3d): vuruşa göre zaman ve penaltı öncesi hareketin sönümü. Sonuç hesabına girmez.
     if(out.kaleci&&(d.faz==='vurus'&&d.an||d.faz==='sonuc')){var gk=d.faz==='vurus'?(now-d.an.t0)/1000:99,gs=d.faz==='vurus'?(d.an.simT===undefined?gk-d.an.on:d.an.simT):(d.tekrar?d.tekrar.sim:99);
       out.kaleci=Object.assign({},out.kaleci,{vurusT:gs,gesture:(d.faz==='vurus'&&gk<d.an.on-.1)?now/1000:undefined,gestureW:d.faz==='vurus'?Math.max(0,Math.min(1,(d.an.on-.1-gk)/.45)):0});}   // kaleci rutini koşu boyunca sürer, temastan hemen önce söner
-    out.konfeti = (d.konfetiT0 && now - d.konfetiT0 < 4500) ? { t: (now - d.konfetiT0) / 1000, tohum: d.alayTohum || 1 } : null; out.ruzgar = d.ruzgar ? [d.ruzgar.vx, d.ruzgar.vz] : null; out.altin = (d.altin && (d.faz === 'nisan' || d.faz === 'vurus')) ? d.altin : null; out.alay = d.alayT0 ? (now - d.alayT0) / 1000 : -1; out.alayTur = d.alayTur; out.alayTohum = d.alayTohum || 0;
+    out.konfeti = (d.konfetiT0 && now - d.konfetiT0 < 4500) ? { t: (now - d.konfetiT0) / 1000, tohum: d.alayTohum || 1 } : null; out.ruzgar = d.ruzgar ? [d.ruzgar.vx, d.ruzgar.vz] : null; out.altin = (d.altin && (d.faz === 'nisan' || d.faz === 'vurus')) ? d.altin : null; out.alay = d.alayT0 ? (now - d.alayT0) / 1000 : -1; out.alayTur = d.alayTur; out.alayTohum = d.alayTohum || 0; out.alayCtx = d.golCtx || null;
     out.heyecan = (d.alayTur === 'gol' && d.alayT0) ? 1 : d.faz === 'sonuc' && gecerliSonuc ? (gecerliSonuc.p && gecerliSonuc.p.gol ? 1 : 0.15) : d.faz === 'vurus' ? 0.35 : 0;   // tribün: gol olunca herkes zıplar
     return out;
   }

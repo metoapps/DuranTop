@@ -10,7 +10,7 @@ vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.
 
 
 // Hayatta kal ve günlük meydan okuma: oyun akışı (pozisyon, tohum, zorluk, HUD, tur sonu, kayıt, paylaşım).
-root.setTimeout=setTimeout;D.cizim.ciz=function(x){};const M=D.modlar;D.rozet.sifirla();
+root.setTimeout=setTimeout;let sonCizim=null;D.cizim.ciz=function(x){sonCizim=x;};const M=D.modlar;D.rozet.sifirla();
 const girdiler=[];const eski=D.fizik.hesapla,eskiH=D.hedef.hesapla;let zorla=null;
 D.fizik.hesapla=g=>{girdiler.push(g);const r=eski(g);if(zorla){r.sonuc=zorla.sonuc;r.gecis={x:zorla.x||0,y:zorla.y||1};}return r;};D.hedef.hesapla=g=>{girdiler.push(g);const r=eskiH(g);if(zorla){r.sonuc=zorla.sonuc==='gol'?'delik':zorla.sonuc;r.delik=r.delik||D.hedef.delikler[0];r.gecis={x:zorla.x||0,y:zorla.y||1};}return r;};
 D.puan.puanla=(tip,r)=>({puan:r.sonuc==='gol'?5:0,taban:5,zaman:0,zor:0,gol:r.sonuc==='gol'});const hp=D.hedef.puanla;D.hedef.puanla=r=>r.sonuc==='delik'?{puan:5,taban:5,zaman:0,zor:0,gol:true}:{puan:0,taban:0,zaman:0,zor:0,gol:false};
@@ -31,7 +31,7 @@ await flush();fire('btnHayat','click');await flush();assert.equal(d.mod,'hayat')
 fire('turMenu','click');await flush();fire('btnHayat','click');await flush();assert.equal(d.hayatGol,0,'yeni oyun sıfırdan');{await at('gol');await at('aut');assert.equal(el('turBaslik').textContent,'Seri bitti: 1 gol');assert(/Rekorun: 3 gol. 2 gol daha atsan geçerdin/.test(el('turNot').textContent),el('turNot').textContent);assert.deepEqual(M.hayatDurum(),{rekor:3,oyun:2,toplamGol:4});}
 // ---------- GÜNLÜK ----------
 fire('turMenu','click');await flush();fire('btnGunluk','click');await flush();assert.equal(d.mod,'gunluk');const gun=d.gun,beklenen=M.gunPozisyonlar(gun,D.AYAR.pozisyonlar,D.hedef.pozisyonlar);
-{const a=[];for(let i=0;i<3;i++){assert.equal(d.pos.ad,beklenen[i].ad,'günlük pozisyon '+i);assert.equal(d.seed,M.gunSeed(gun,i),'günlük tohum '+i);assert.equal(el('hudVurus').textContent,'Günlük #'+M.gunSira(gun)+' · '+(i+1)+'/3');a.push(await at(i===1?'aut':'gol'));}
+{const a=[];for(let i=0;i<3;i++){time+=16;root.frame();assert.equal(!!d.altin,d.pos.tip!=='hedef','altın bölge yalnız penaltı/frikikte (vuruş '+i+', '+d.pos.tip+')');assert.equal(!!sonCizim.altin,d.pos.tip!=='hedef','çizim girdisinde de');assert.equal(d.pos.ad,beklenen[i].ad,'günlük pozisyon '+i);assert.equal(d.seed,M.gunSeed(gun,i),'günlük tohum '+i);assert.equal(el('hudVurus').textContent,'Günlük #'+M.gunSira(gun)+' · '+(i+1)+'/3');a.push(await at(i===1?'aut':'gol'));}
  assert.deepEqual(a.map(x=>x.devam),['Sıradaki vuruş','Sıradaki vuruş','Turu bitir']);assert.deepEqual(a.map(x=>x.pos.tip),['penalti','frikik','hedef']);
  const rz=a.map(x=>JSON.stringify(x.ruzgar));assert.deepEqual(rz,[0,1,2].map(i=>JSON.stringify(D.ruzgar.uret(M.gunSeed(gun,i)^0x9e37))),'rüzgâr günlük tohumdan');assert(a.every(x=>x.girdi.seviye===undefined),'günlükte kaleci seviyesi yok');
  assert.equal(d.ekran,'tursonu');assert.equal(el('turBaslik').textContent,'Günlük #'+M.gunSira(gun)+': 2/3 gol');const du=M.gunlukDurum(gun);assert(du.oynadi&&du.deneme===1&&du.seri===1);assert(/kaydedildi/.test(el('turNot').textContent),el('turNot').textContent);assert(new RegExp('Günlük #'+M.gunSira(gun)+': '+du.puan+' puan \\(2/3 gol\\)').test(d.sonPaylas),d.sonPaylas);const ilk=du.puan;
@@ -39,6 +39,10 @@ fire('turMenu','click');await flush();fire('btnGunluk','click');await flush();as
  fire('turMenu','click');await flush();assert(/bugün \d+ puan/.test(el('gunlukDurum').textContent),'menüde bugünkü sonuç: '+el('gunlukDurum').textContent);fire('btnGunluk','click');await flush();assert.equal(d.pos.ad,beklenen[0].ad,'ikinci denemede aynı pozisyon');assert.equal(d.seed,M.gunSeed(gun,0),'aynı tohum');
  for(let i=0;i<3;i++)await at('gol');assert.equal(M.gunlukDurum(gun).puan,ilk,'ilk deneme sayılır');assert.equal(M.gunlukDurum(gun).deneme,2);assert(/Bu bir deneme: bugünkü ilk denemen \(\d+ puan\) sayılır/.test(el('turNot').textContent),el('turNot').textContent);}
 fire('turMenu','click');await flush();assert(/rekor 3 gol/.test(el('hayatDurum').textContent),el('hayatDurum').textContent);
+// Altın bölge yalnız penaltı ve frikikte: hedef ağı modunda ve antrenmandaki delikli kale aşamasında hiç yok; hayatta kal'da yalnız penaltı/frikikte
+fire('turMenu','click');await flush();fire('btnHedef','click');await flush();assert.equal(d.mod,'hedef');for(let i=0;i<3;i++){time+=16;root.frame();assert.equal(d.altin,null,'hedef ağı modunda altın bölge yok');assert.equal(sonCizim.altin,null);await at('gol');}
+fire('turMenu','click');await flush();fire('btnAntrenman','click');await flush();for(let i=0;i<10;i++){time+=16;root.frame();assert.equal(!!d.altin,d.pos.tip!=='hedef','antrenmanda altın bölge yalnız penaltı/frikik (vuruş '+i+' '+d.pos.tip+')');assert.equal(!!sonCizim.altin,d.pos.tip!=='hedef');if(d.pos.tip==='hedef')assert.equal(d.altin,null,'delikli kale aşamasında yok');await at('gol');}
+fire('turMenu','click');await flush();fire('btnHayat','click');await flush();{let hedefGordu=false,digerGordu=false;for(let i=0;i<14;i++){time+=16;root.frame();assert.equal(!!d.altin,d.pos.tip!=='hedef','hayatta kal: altın bölge yalnız penaltı/frikik '+d.pos.tip);if(d.pos.tip==='hedef')hedefGordu=true;else digerGordu=true;await at('gol');}assert(digerGordu,'penaltı/frikik geldi');}
 // kupa (resmi) bu modlardan etkilenmez: kaynakta ayrı dal
 const kaynak=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/d\.mod === 'gunluk' \? DT\.modlar\.gunSeed/.test(kaynak)&&/d\.mod === 'hayat' \? DT\.modlar\.hayatPoz/.test(kaynak));
 console.log('PASS yeni modlar: hayatta kal (seri, rekor, zorluk, tur sonu, paylaşım) ve günlük (3 sabit vuruş, aynı tohum ve rüzgâr, ilk deneme sayılır, günlük seri, menü durumu)');

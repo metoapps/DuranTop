@@ -8,59 +8,71 @@ function add(a,b){return a.map((x,i)=>x+b[i]);}function sub(a,b){return a.map((x
 function knee(hip,foot,L,hint){L=L||72;var axis=unit(sub(foot,hip)),distance=Math.hypot.apply(null,sub(foot,hip)),d=clamp(distance,.01,2*L-.01),center=add(hip,mul(axis,d/2)),bend=Math.sqrt(Math.max(0,L*L-d*d/4)),perp=unit(sub(hint=hint||[0,0,1],mul(axis,dot(hint,axis))));return{foot:add(hip,mul(axis,d)),knee:add(center,mul(perp,bend))};}
 // Metres, shared with the goal, keeper and ball. Head top 471, sole 8.
 var HEIGHT=1.80,UNIT=HEIGHT/463;
-/* ---------- Koşarak vuruş ----------
- * Zaman çizelgesi (windup W'nin oranları): 0–.30 geri adım (topun arkasındaki koşu başlangıcına), .30–.36 dönüş, .36–.82 koşu (4 adım: sağ, sol, sağ, sol=basma ayağı topun yanına),
- * .82–1.0 vuruş (sağ ayak savrulur), >1 vuruş sonrası sürüklenme. Koşu yolu soldan-arkadan topa kavisli bir yaydır; hız ivmelenip basma ayağında biter. */
-var TB_GERI=.34,TB_KOS=.40,TB_BAS=.82;
+/* ---------- Koşarak vuruş (durmadan) ----------
+ * Zaman çizelgesi (windup W'nin oranları): 0–.34 geri adım (topun arkasındaki koşu başlangıcına), .34–.40 dönüş, .40–1.0 koşu: oyuncu DURMADAN topa koşar,
+ * basma ayağı temastan TPRE (0,17 sn) önce topun yanına basar, vuruş bacağı savrulurken gövde hâlâ ileri gider, temasta koşu hızı ≈3,5 m/sn; vuruştan sonra da koşmaya devam edip yavaşlar.
+ * Koşu yolu: soldan-arkadan topa, son kısmı atış doğrultusuna hizalı kavisli bir yay. Hız profili u=τ^P (durgundan ivmelenir, temasta en hızlı). */
+var TB_GERI=.38,TB_KOS=.44,TPRE=.11,P_HIZ=1.25,K_SON=6.5,COK=26;   // COK: basma anında kalça çömelmesi (birim); bacak erişimini artırır
+function tbBas(W){return 1-TPRE/W;}
 function aci(a,b){var d=(b-a)%(2*Math.PI);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;return d;}
 function bez(a,c,b,t){var m=1-t;return[m*m*a[0]+2*m*t*c[0]+t*t*b[0],m*m*a[1]+2*m*t*c[1]+t*t*b[1]];}
 function bezT(a,c,b,t){return[2*(1-t)*(c[0]-a[0])+2*t*(b[0]-c[0]),2*(1-t)*(c[1]-a[1])+2*t*(b[1]-c[1])];}
 function yatay(v){return Math.atan2(v[0],v[1]);}
 function kosuYolu(pos,o,base,launch,start,end){
- var tc=(o.shot&&o.shot.contact)||{x:0,y:0},cx=clamp(tc.x||0,-.85,.85),LA=pos.tip==='frikik'?2.4:2.0,alpha=(.40+.20*Math.abs(cx))*clamp(1+Math.min(0,o.direction||0),0,1)*clamp(1+Math.min(0,launch-base)*3,0,1),H=launch+alpha,hv=[Math.sin(H),Math.cos(H)];
- var R0=[end[0]-hv[0]*LA,end[1]-hv[1]*LA],gd=Math.hypot(R0[0]-start[0],R0[1]-start[1]);if(gd>1.5)R0=[start[0]+(R0[0]-start[0])*1.5/gd,start[1]+(R0[1]-start[1])*1.5/gd];   // geri adım ≤1,5 m (atış yönü duruş yönünden çok farklıysa koşu başı duruşa yaklaşır)
- var pv=[Math.cos(H),-Math.sin(H)],mid=[(R0[0]+end[0])/2,(R0[1]+end[1])/2],C=[mid[0]-pv[0]*.20,mid[1]-pv[1]*.20];
+ var tc=(o.shot&&o.shot.contact)||{x:0,y:0},cx=clamp(tc.x||0,-.85,.85),LA=pos.tip==='frikik'?3.2:2.7,alpha=(.40+.20*Math.abs(cx))*clamp(1+Math.min(0,o.direction||0),0,1)*clamp(1+Math.min(0,launch-base)*3,0,1),H=launch+alpha,hv=[Math.sin(H),Math.cos(H)],ld=[Math.sin(launch),Math.cos(launch)];
+ var R0=[end[0]-hv[0]*LA,end[1]-hv[1]*LA],gd=Math.hypot(R0[0]-start[0],R0[1]-start[1]);if(gd>1.55)R0=[start[0]+(R0[0]-start[0])*1.55/gd,start[1]+(R0[1]-start[1])*1.55/gd];   // geri adım ≤1,55 m
+ var L0=Math.hypot(R0[0]-end[0],R0[1]-end[1]),C=[end[0]-ld[0]*.55*L0,end[1]-ld[1]*.55*L0];   // kontrol noktası atış doğrultusunda: yol sonunda tam topa doğru, hizalı
  var L=0,prev=R0,tab=[0];for(var i=1;i<=24;i++){var q=bez(R0,C,end,i/24);L+=Math.hypot(q[0]-prev[0],q[1]-prev[1]);tab.push(L);prev=q;}
- return{R0:R0,C:C,end:end,H:H,L:L,tab:tab,S0:start};
+ return{R0:R0,C:C,end:end,H:H,L:L,tab:tab,S0:start,launch:launch};
 }
+function uHiz(tau){return Math.pow(clamp(tau,0,1),P_HIZ);}
+function kosuHizi(y,W){return y.L*P_HIZ/((1-TB_KOS)*W);}   // temas anındaki koşu hızı (m/sn)
 function kosuAyak(y,o,tb,point,yaw,launch,W){
- var M=4,tau0=(tb-TB_KOS)/(TB_BAS-TB_KOS),res={};
- function us(t){t=clamp(t,0,1);return t*t*(3-2*t);}
- function tersUs(v){var lo=0,hi=1;for(var i=0;i<30;i++){var m=(lo+hi)/2;if(us(m)<v)lo=m;else hi=m;}return(lo+hi)/2;}
- function yolNokta(s){var f=clamp(s/y.L,0,1)*24,i=Math.min(23,Math.floor(f)),a=y.tab[i],b=y.tab[i+1],t=(f-i);var u=(i+t)/24;return bez(y.R0,y.C,y.end,u);}
- function yolYon(s){var u=clamp(s/y.L,0,1);return yatay(bezT(y.R0,y.C,y.end,u));}
- var tj=[],pj=[],ayakSag=function(h,k){return[Math.cos(h)*k,-Math.sin(h)*k];};
- var tcn=(o.shot&&o.shot.contact)||{x:0,y:0},cxn=clamp(tcn.x||0,-.85,.85),cyn=clamp(tcn.y||0,-.85,.85),plx=(-50-Math.abs(cxn)*12)*UNIT,plz=(28-cyn*12)*UNIT;   // vuruş dalındaki basma ayağı konumuyla aynı
- var endLeft=[y.end[0]+(Math.cos(launch)*plx+Math.sin(launch)*plz),y.end[1]+(-Math.sin(launch)*plx+Math.cos(launch)*plz)],sagSon=[y.end[0]+Math.cos(launch)*24*UNIT,y.end[1]-Math.sin(launch)*24*UNIT];   // sağ ayak vuruşa hazır: gövdenin yanında
- for(var j=1;j<=M;j++){var s=y.L*j/M,tj_=TB_KOS+tersUs(j/M)*(TB_BAS-TB_KOS),pt=yolNokta(s),hd=yolYon(s),off=ayakSag(hd,(j%2?1:-1)*.11*1.0);tj.push(tj_);pj.push(j===M?endLeft:[pt[0]+off[0],pt[1]+off[1]]);}
- var h0=yolYon(0),i0=[ayakSag(h0,-.11),ayakSag(h0,.11)];   // başlangıç: sol, sağ
- var sol0=[y.R0[0]+i0[0][0],y.R0[1]+i0[0][1]],sag0=[y.R0[0]+i0[1][0],y.R0[1]+i0[1][1]];
- var olay={sag:[{t:-9,p:sag0},{t:tj[0],p:pj[0]},{t:tj[2],p:pj[2]},{t:TB_BAS,p:sagSon}],sol:[{t:-9,p:sol0},{t:tj[1],p:pj[1]},{t:tj[3],p:pj[3]}]},SW=.30/W,HW=.03;
- function konum(liste){for(var k=0;k<liste.length-1;k++){var a=liste[k],b=liste[k+1];if(tb<b.t-HW||k===liste.length-2){var bas=Math.max(TB_KOS,a.t+HW,b.t-SW),bit=b.t-HW;/* salınım önceki basıştan sonra başlar (üst üste binmez) */if(tb<=bas)return{p:a.p,l:0};if(tb>=bit)return{p:b.p,l:0};var f=(tb-bas)/(bit-bas),e=ease(f);return{p:[mix(a.p[0],b.p[0],e),mix(a.p[1],b.p[1],e)],l:Math.sin(Math.PI*f)};}}var son=liste[liste.length-1];return{p:son.p,l:0};}
+ var Trun=1-TB_KOS,tauP=(tbBas(W)-TB_KOS)/Trun,tau0=(tb-TB_KOS)/Trun,res={},cs0=Math.cos(launch),sn0=Math.sin(launch);
+ var tcn=(o.shot&&o.shot.contact)||{x:0,y:0},cxn=clamp(tcn.x||0,-.85,.85),cyn=clamp(tcn.y||0,-.85,.85),plx=(-50-Math.abs(cxn)*12)*UNIT,plz=(0-cyn*12)*UNIT;   // basma ayağı topun tam yanında (koşuda gövde üstünden geçer)
+ function dunya(lx,lz,kok,ya){var c=Math.cos(ya),s=Math.sin(ya);return[kok[0]+c*lx+s*lz,kok[1]-s*lx+c*lz];}
+ function bezNokta(u){return bez(y.R0,y.C,y.end,clamp(u,0,1));}
+ function bezYon(u){return yatay(bezT(y.R0,y.C,y.end,clamp(u,0,1)));}
+ function ters(v){return Math.pow(Math.max(0,v),1/P_HIZ);}
+ var lead=.12/y.L,F=[.20,.45,.66],tj=[],pj=[];
+ for(var j=0;j<3;j++){var u=F[j],tt=TB_KOS+ters(u-lead)*Trun,hd=bezYon(u),n=bezNokta(u),yan=(j%2===0?1:-1)*.11;tj.push(Math.max(tt,TB_KOS+.07+j*.001));pj.push([n[0]+Math.cos(hd)*yan,n[1]-Math.sin(hd)*yan]);}
+ var tP=tbBas(W),uP=uHiz(tauP),kokP=bezNokta(uP),endLeft=dunya(plx,plz,y.end,launch);   // basma ayağı: topun yanında, dünyada sabit
+ var geriX=8+cxn*34,geriY=55+(cyn<0?16*-cyn:-10*cyn),geriDunya=dunya(geriX*UNIT,-112*UNIT,kokP,launch);   // vuruş ayağının geri savruluşu (vuruş koluyla aynı poz)
+ var h0=bezYon(0),sol0=[y.R0[0]-Math.cos(h0)*.11,y.R0[1]+Math.sin(h0)*.11],sag0=[y.R0[0]+Math.cos(h0)*.11,y.R0[1]-Math.sin(h0)*.11];
+ var HW=.03,olay={sag:[{t:-9,p:sag0,h:8,hw:0,k:44},{t:tj[0],p:pj[0],h:8,hw:HW,k:44},{t:tj[2],p:pj[2],h:8,hw:HW,k:44},{t:tP,p:geriDunya,h:geriY,hw:0,k:10}],sol:[{t:-9,p:sol0,h:8,hw:0,k:44},{t:tj[1],p:pj[1],h:8,hw:HW,k:44},{t:tP,p:endLeft,h:8,hw:HW,k:44}]},SW=.30/W;
+ function konum(liste){for(var k=0;k<liste.length-1;k++){var a=liste[k],b=liste[k+1];if(tb<b.t-b.hw||k===liste.length-2){var bas=Math.max(TB_KOS,a.t+a.hw,b.t-b.hw-SW),bit=b.t-b.hw;if(tb<=bas)return{p:a.p,h:a.h,l:0};if(tb>=bit)return{p:b.p,h:b.h,l:0};var f=(tb-bas)/(bit-bas),e=ease(f);return{p:[mix(a.p[0],b.p[0],e),mix(a.p[1],b.p[1],e)],h:mix(a.h,b.h,e),l:Math.sin(Math.PI*f),k:b.k};}}var son=liste[liste.length-1];return{p:son.p,h:son.h,l:0};}
  var sol=konum(olay.sol),sag=konum(olay.sag),cs=Math.cos(yaw),sn=Math.sin(yaw);
- function yerel(p,lift){var dx=(p[0]-point[0])/UNIT,dz=(p[1]-point[1])/UNIT;return[cs*dx-sn*dz,8+lift*44,sn*dx+cs*dz];}
- var tau=clamp(tau0,0,1),ds=6*tau*(1-tau),hiz=clamp(ds/1.5,0,1),sNorm=us(tau),m=M*sNorm;
- // kök sıçraması: ayak basışları arasında yükselir (uçuş), basışta alçalır
- var tp=[TB_KOS].concat(tj),ph=0;for(var q=0;q<tp.length-1;q++)if(tb>=tp[q]&&tb<tp[q+1]){ph=(tb-tp[q])/(tp[q+1]-tp[q]);}
- var amp=1+.6*hiz;
- return{kosu:true,feetLocal:[yerel(sol.p,sol.l),yerel(sag.p,sag.l)],lift:-Math.sin(Math.PI*ph)*8*hiz,sway:Math.sin(Math.PI*m)*10*hiz,roll:Math.sin(Math.PI*m)*6*hiz,lean:46*hiz,arm:Math.sin(Math.PI*m)*(34+18*hiz)*amp/1.6,armBlend:ease(clamp(tau/.18,0,1)),hiz:hiz,steps:M,u:tau};
+ function yerel(f){var dx=(f.p[0]-point[0])/UNIT,dz=(f.p[1]-point[1])/UNIT;return[cs*dx-sn*dz,f.h+(f.l||0)*(f.k||44),sn*dx+cs*dz];}
+ var tau=clamp(tau0,0,1),hiz=Math.pow(tau,P_HIZ-1)*ease(clamp(tau/.2,0,1));   // gövde mekaniği (eğim, sallanma, kol) koşunun ilk %20'sinde yumuşakça devreye girer
+ // adım fazı (kollar ve gövde sallanması): basış anları arasında doğrusal; her basış yarım periyot
+ var tp=[TB_KOS,tj[0],tj[1],tj[2],tP],m=0,ph=0;for(var q=0;q<tp.length-1;q++)if(tb>=tp[q]&&tb<tp[q+1]){ph=(tb-tp[q])/(tp[q+1]-tp[q]);m=q+ph;}if(tb>=tP)m=tp.length-1;
+ var amp=1+.6*hiz,cok=COK*ease(clamp((tb-(tP-.08))/.08,0,1));   // son adımda çömelme
+ return{kosu:true,feetLocal:[yerel(sol),yerel(sag)],lift:-Math.sin(Math.PI*ph)*8*hiz*(1-cok/COK)+cok,sway:Math.sin(Math.PI*m)*10*hiz,roll:Math.sin(Math.PI*m)*6*hiz,lean:46*hiz,arm:Math.sin(Math.PI*m)*(34+18*hiz)*amp/1.6,armBlend:ease(clamp(tau/.18,0,1)),hiz:hiz,steps:4,u:tau,endLeft:endLeft,tP:tP,cok:cok};
 }
 function placement(pos,o){
  var w=o.walk,turn=w?mix(w.from,w.to,ease(w.u)):o.direction||0,base=Math.atan2(-pos.bx,pos.D);
  var shot=o.shot,launch=base,path=o.path;if(path&&path.length>1)launch=Math.atan2(path[1].x-path[0].x,path[1].z-path[0].z);
  function stance(d){return [pos.bx-Math.sin(base)*1.0+Math.cos(base)*d*.35,-Math.cos(base)*1.0-Math.sin(base)*d*.35];}
  var start=stance(o.direction||0),end=[pos.bx-Math.sin(launch)*28*UNIT,-Math.cos(launch)*28*UNIT];
- var point=w?stance(turn):start,yaw=shot?base+(o.direction||0)*.40:base+turn*.40,gait=null,kick=0,drift=0,run=0;
+ var point=w?stance(turn):start,yaw=shot?base+(o.direction||0)*.40:base+turn*.40,gait=null,kick=0,drift=0,run=0,plant=null,devam=null,hizMs=0;
  if(shot){
-  var W=shot.windup||1.4,tb=shot.elapsed/W,yaw0=base+(o.direction||0)*.40,y=kosuYolu(pos,o,base,launch,start,end);run=clamp(tb/TB_BAS,0,1);
+  var W=shot.windup||1.5,tb=shot.elapsed/W,yaw0=base+(o.direction||0)*.40,y=kosuYolu(pos,o,base,launch,start,end),tP=tbBas(W),Trun=1-TB_KOS,ld=[Math.sin(launch),Math.cos(launch)];run=clamp(tb,0,1);hizMs=kosuHizi(y,W);
+  function kosuNokta(tb2){var tau2=clamp((tb2-TB_KOS)/Trun,0,1);return bez(y.R0,y.C,y.end,uHiz(tau2));}
   if(tb<TB_GERI){var u=clamp(tb/TB_GERI,0,1),e=ease(u);point=[mix(start[0],y.R0[0],e),mix(start[1],y.R0[1],e)];yaw=yaw0+aci(yaw0,launch)*ease(u);
    gait={u:u,start:start,end:y.R0,yaw0:yaw0,yaw1:launch,steps:Math.max(2,Math.ceil(Math.hypot(y.R0[0]-start[0],y.R0[1]-start[1])/.40)),cokme:.5};if(gait.steps%2)gait.steps++;}
-  else if(tb<TB_KOS){var u2=(tb-TB_GERI)/(TB_KOS-TB_GERI),yh=y.H;point=y.R0;yaw=launch+aci(launch,yh)*ease(u2);gait={u:u2,start:y.R0,end:y.R0,yaw0:launch,yaw1:yh,steps:2,cokme:.15};}
-  else if(tb<TB_BAS){var tau=(tb-TB_KOS)/(TB_BAS-TB_KOS),us=tau*tau*(3-2*tau),f=clamp(us,0,1)*24,i=Math.min(23,Math.floor(f)),ui=us;point=bez(y.R0,y.C,y.end,ui);var th=yatay(bezT(y.R0,y.C,y.end,ui));yaw=th+aci(th,launch)*ease(clamp((tau-.70)/.30,0,1));
-   gait=kosuAyak(y,o,tb,point,yaw,launch,W);}
-  else{point=end;yaw=launch;}
-  if(tb>=TB_BAS)kick=tb>=1?1:clamp((tb-TB_BAS)/(1-TB_BAS),0,1);
-  if(tb>1){var post=(tb-1)*W;drift=.26*(1-Math.exp(-post*6));point=[end[0]+Math.sin(launch)*drift,end[1]+Math.cos(launch)*drift];}
+  else if(tb<TB_KOS){var u2=(tb-TB_GERI)/(TB_KOS-TB_GERI),yh=yatay(bezT(y.R0,y.C,y.end,0));point=y.R0;yaw=launch+aci(launch,yh)*ease(u2);gait={u:u2,start:y.R0,end:y.R0,yaw0:launch,yaw1:yh,steps:2,cokme:.15};}
+  else{
+   // koşu: yol üzerinde ilerler; yön önce hareket yönü, basma ayağına kadar atış doğrultusuna döner
+   var tau=clamp((tb-TB_KOS)/Trun,0,1),ui=uHiz(tau);point=bez(y.R0,y.C,y.end,ui);var th=yatay(bezT(y.R0,y.C,y.end,ui)),tauP=(tP-TB_KOS)/Trun;yaw=th+aci(th,launch)*ease(clamp((tau-.35)/Math.max(.05,tauP-.35),0,1));
+   if(tb<tP)gait=kosuAyak(y,o,tb,point,yaw,launch,W);
+   else{yaw=launch;kick=tb>=1?1:.6+.4*clamp((tb-tP)/(1-tP),0,1);
+    var kokP=kosuNokta(tP),gP=kosuAyak(y,o,tP-1e-6,kokP,launch,launch,W);devam={lean:gP.lean,sway:gP.sway,roll:gP.roll,arm:gP.arm};
+    var ed=gP.endLeft;
+    if(tb>=1){var post=(tb-1)*W,vc=hizMs,sp=vc*(1-Math.exp(-K_SON*post))/K_SON;point=[end[0]+ld[0]*sp,end[1]+ld[1]*sp];drift=sp;}
+    else{point=kosuNokta(tb);drift=-((end[0]-point[0])*ld[0]+(end[1]-point[1])*ld[1]);}
+    var c2=Math.cos(launch),s2=Math.sin(launch),dx2=(ed[0]-point[0])/UNIT,dz2=(ed[1]-point[1])/UNIT;plant=[c2*dx2-s2*dz2,s2*dx2+c2*dz2];   // basma ayağı dünyada sabit: gövde ilerledikçe yerel konumu geriye kayar
+   }
+  }
  }
  else if(w){
   var S0=stance(w.from),S1=stance(w.to),Y0=base+w.from*.40,Y1=base+w.to*.40,dx=S1[0]-S0[0],dz=S1[1]-S0[1],dist=Math.hypot(dx,dz);
@@ -73,7 +85,8 @@ function placement(pos,o){
  // Ok tuşuyla dönerken: yerinde küçük adımlar (gövde neredeyse hiç çökmez).
  if(!gait&&!w&&!shot&&o.turning!=null)gait={u:clamp(o.turning,0,1),start:point,end:point,yaw0:yaw,yaw1:yaw,cokme:.15};
  if(gait&&!gait.kosu){gait.steps=gait.steps||Math.max(2,Math.ceil(Math.hypot(gait.end[0]-gait.start[0],gait.end[1]-gait.start[1])/.22));if(gait.steps%2)gait.steps++;}
- return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?kick:0,drift:drift};
+ var cok=0;if(shot&&plant)cok=COK*(shot.elapsed/(shot.windup||1.5)<1?1:1-ease(clamp((shot.elapsed/(shot.windup||1.5)-1)*(shot.windup||1.5)/.25,0,1)));
+ return {point:point,yaw:yaw,unit:UNIT,height:HEIGHT,gait:gait,run:run,kick:shot?kick:0,drift:drift,plant:plant,devam:devam,hiz:hizMs,cok:cok};
 }
 function gaitFeet(g){
  var u=clamp(g.u,0,1),e=ease(u),root=[mix(g.start[0],g.end[0],e),mix(g.start[1],g.end[1],e)],yaw=mix(g.yaw0,g.yaw1,e);
@@ -98,14 +111,17 @@ function rig(o){
  var kosu=!!(o.gait&&o.gait.kosu);
  if(kosu){feet=o.gait.feetLocal.map(function(v){return v.slice();});lift=o.gait.lift;}
  else if(o.gait){feet=gaitFeet(o.gait);lift=Math.sin(Math.PI*o.gait.u)*24*(o.gait.cokme==null?1:o.gait.cokme);}
+ if(o.plant&&o.cok)lift+=o.cok;   // vuruşta çömelme: basma ayağı gövdenin önünde kalsa da erişir
  var nodes={hip:[0,141-lift,0],chest:[0,249-lift,0],neck:[0,287-lift,0],head:[0,382-lift,0],sl:[-55,251-lift,0],sr:[55,251-lift,0]};
  var shot=o.shot,progress=shot?(o.kick===undefined?clamp(shot.elapsed/shot.windup,0,1):o.kick):0,post=shot?Math.max(0,shot.elapsed-shot.windup):0;
  if(shot&&!o.gait){
   var tc=shot.contact||{x:0,y:0},cy=Math.max(-.85,Math.min(.85,tc.y||0)),cx=Math.max(-.85,Math.min(.85,tc.x||0)),rb=.11/UNIT,drift=(o.drift||0)/UNIT;
   // Basma ayağı topun yanında: kıvrımlı vuruşta daha geniş, alt temasta biraz geride, üst temasta biraz önde
-  if(o.kick!==undefined)feet[0]=[-50-Math.abs(cx)*12,8,28-cy*12-drift];
-  var b=progress<1?Math.sin(progress*Math.PI/2):Math.exp(-post*6),lean=progress<1?Math.sin(progress*Math.PI)*(22+cy*58):-Math.sin(Math.min(1,post/.55)*Math.PI)*(14-cy*30);   // üst temas: gövde topun üstüne eğilir; alt temas: geriye yaslanır
-  nodes.chest[2]=lean;nodes.neck[2]=lean;nodes.head[2]=lean;
+  if(o.kick!==undefined){if(o.plant){var pb=post>0?ease((post-.10)/.30):0;feet[0]=[mix(o.plant[0],-24,pb),8+Math.sin(Math.PI*pb)*30,mix(o.plant[1],12,pb)];}   // koşu: basma ayağı dünyada sabit (gövde üstünden geçer); vuruştan sonra kalkıp öne adım atar
+   else feet[0]=[-50-Math.abs(cx)*12,8,28-cy*12-drift];}
+  var b=progress<1?Math.sin(progress*Math.PI/2):Math.exp(-post*6),dv=o.devam||null,kpd=(progress-.6)/.4,bl3=dv&&progress<1?ease(clamp(kpd/.5,0,1)):1,kickLean=progress<1?Math.sin(progress*Math.PI)*(22+cy*58):0,lean=progress<1?(dv?mix(dv.lean,kickLean,bl3):kickLean):(dv?dv.lean*.5*Math.exp(-post*4)-Math.sin(Math.min(1,post/.55)*Math.PI)*(14-cy*30)*.5:-Math.sin(Math.min(1,post/.55)*Math.PI)*(14-cy*30));   // üst temas: gövde topun üstüne eğilir; alt temas: geriye yaslanır; koşarken gelinmişse koşu eğiminden yumuşak geçiş
+  nodes.chest[2]=lean;nodes.neck[2]=lean*(dv?1.4:1);nodes.head[2]=lean*(dv?1.3:1);if(dv){nodes.sl[2]=lean*.8;nodes.sr[2]=lean*.8;}   // koşudaki gövde eğimiyle aynı oranlar
+  if(dv&&progress<1){var swc=dv.sway*(1-bl3),rlc=dv.roll*(1-bl3);nodes.chest[0]+=swc*.6;nodes.neck[0]+=swc*.5;nodes.head[0]+=swc*.3;nodes.sl[0]+=swc*.6;nodes.sr[0]+=swc*.6;nodes.sl[1]+=rlc;nodes.sr[1]-=rlc;}   // koşudaki yana sallanma vuruşa doğru sönümlenir
   // At impact the toe touches the rear ball surface at ball-centre height.
   // The ankle is behind it, never at the ball centre. Cubic downswing retains
   // a nonzero toe velocity through contact, then decelerates in follow-through.
@@ -115,7 +131,7 @@ function rig(o){
   if(progress<.60){var q=ease(progress/.60);feet[1]=[mix(24,geriX,q),mix(8,geriY,q),mix(0,-112,q)];ayak[1]={pitch:mix(.15,.95,q),yaw:0,roll:0};}
   else if(progress<1){var q=Math.pow((progress-.60)/.40,3);feet[1]=[mix(geriX,hit[0],q),mix(geriY,hit[1],q),mix(-112,hit[2],q)];ayak[1]={pitch:mix(.95,.40+cy*.50,etki),yaw:-cx*.55*etki,roll:cx*.45*etki};}
   else {
-   var span=(shot.windup||.85)*(o.kick!==undefined?1-TB_BAS:.34)*.40,speed=(hit[2]+112)*3/span;   // vuruş fazının süresi: koşu zaman çizelgesinde windup'ın son %18'i
+   var span=o.kick!==undefined?TPRE:(shot.windup||.85)*.34*.40,speed=(hit[2]+112)*3/span;   // aşağı savruluşun süresi: koşuda basma ayağından temasa TPRE (0,17 sn)
    var follow=Math.min(.11,2*(55-hit[2])/speed),q=clamp(post/follow,0,1),z=hit[2]+speed*follow*(q-q*q/2);
    var settle=ease((post-follow)/.42),plantZ=z;
    // takip hareketi: alt temasta ayak yukarı süzülür, kıvrımlı vuruşta bacak gövdenin önünden karşıya geçer
@@ -125,7 +141,7 @@ function rig(o){
   }
   kneeHint[1]=[-cx*.55,.0,1];
   var ka={el:[-65,199+20*b,-10-25*b],er:[65,199-12*b,10+25*b],hl:[-68,145+20*b,-20-30*b],hr:[68,145-12*b,20+30*b]};
-  if(o.kick!==undefined){var bl=ease(Math.min(1,progress/.30)),ra={el:[-66,205,0],er:[66,205,0],hl:[-60,212,28],hr:[60,212,28]};   // koşu kollarından vuruş kollarına yumuşak geçiş
+  if(o.kick!==undefined){var ak=dv?dv.arm:0,bl=dv?ease(clamp(kpd/.6,0,1)):ease(Math.min(1,progress/.30)),ra={el:[-66,205,-ak*.5],er:[66,205,ak*.5],hl:[-60,212,ak*1.2+28],hr:[60,212,-ak*1.2+28]};   // koşu kollarından (adım fazıyla) vuruş kollarına yumuşak geçiş
    ['el','er','hl','hr'].forEach(function(k){nodes[k]=ka[k].map(function(v,i){return mix(ra[k][i],v,bl);});});}
   else{nodes.el=ka.el;nodes.er=ka.er;nodes.hl=ka.hl;nodes.hr=ka.hr;}
  }else if(kosu){
@@ -138,7 +154,7 @@ function rig(o){
  }else{var swing=o.gait?Math.sin(Math.PI*o.gait.steps*o.gait.u)*Math.sin(Math.PI*o.gait.u)*18:(walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0);nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}
  if(o.sevinc&&D.sevinc){var celebration=D.sevinc.pose(o.sevinc.id,o.sevinc.time);nodes.hl=celebration.left;nodes.hr=celebration.right;feet=celebration.feet;Object.keys(nodes).forEach(function(k){nodes[k][1]+=celebration.shift;});}
  [-1,1].forEach(function(side,i){var h=[side*24,nodes.hip[1],0],sol=knee(h,feet[i],72,kneeHint[i]||undefined),suffix=i?'r':'l';nodes['hip'+suffix]=h;nodes['k'+suffix]=sol.knee;nodes['f'+suffix]=sol.foot;});
- ['l','r'].forEach(function(k){var sol=knee(nodes['s'+k],nodes['h'+k],55,kosu?[0,-.35,-1]:undefined);nodes['e'+k]=sol.knee;nodes['h'+k]=sol.foot;});
+ ['l','r'].forEach(function(k){var sol=knee(nodes['s'+k],nodes['h'+k],55,(kosu||o.devam)?[0,-.35,-1]:undefined);nodes['e'+k]=sol.knee;nodes['h'+k]=sol.foot;});
  return{nodes:nodes,yaw:yaw,rootX:rootX,forward:[Math.sin(yaw),0,Math.cos(yaw)],ayak:ayak};
 }
 function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old&&old.front===front&&old.back===back)return old;
@@ -211,4 +227,4 @@ function render(g,o){
  }
  return rig(o);
 }
-D.futbolcu3d={rig:rig,draw:render,placement:placement,gaitFeet:gaitFeet,HEIGHT:HEIGHT,UNIT:UNIT};})(typeof globalThis!=='undefined'?globalThis:window);
+D.futbolcu3d={rig:rig,draw:render,placement:placement,gaitFeet:gaitFeet,HEIGHT:HEIGHT,UNIT:UNIT,TB_GERI:TB_GERI,TB_KOS:TB_KOS,TPRE:TPRE,tbBas:tbBas};})(typeof globalThis!=='undefined'?globalThis:window);

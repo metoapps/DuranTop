@@ -93,7 +93,7 @@
       var mesafe = A.baraj.mesafe;
       var kay = girdi.kural10 === true ? DT.baraj.yanKayma(pos, ux, uz, px, pz, mesafe) : 0;   // kural 10: baraj yakın direğe giden hattı örter
       baraj = { ux: ux, uz: uz, px: px, pz: pz, mesafe: mesafe, merkezX: bx + ux * mesafe + px * kay, merkezZ: uz * mesafe + pz * kay };
-      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0,kural10:true,zorluk:girdi.seviye}:null);
+      baraj.oyuncular=DT.baraj.kur(pos,girdi.kural10===true?{seed:girdi.seed|0,kural10:true,zorluk:girdi.seviye,aimY:girdi.aim&&girdi.aim.y}:null);
       var hit=DT.baraj.ilkTemas(baraj,ornekler,R);
       if(hit){sonuc='baraj';olayIndex=hit.index;baraj.temas=hit;}
 

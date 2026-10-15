@@ -418,3 +418,17 @@ html,body {width:100%;min-height:100%;}canvas#sahne {height:100dvh;}
 #oyun.sol-el .kumanda { flex-direction:row-reverse; } #oyun.sol-el .kumanda-sag { align-items:flex-start; } #oyun.sol-el .kumanda-vucut { flex-direction:row-reverse; }
 #oyun.buyuk .kumanda-sol { grid-template-columns:repeat(3, 64px); grid-template-rows:repeat(2, 64px); }
 #oyun.buyuk .kumanda .yon-ok { width:64px; height:64px; font-size:26px; } #oyun.buyuk .kumanda .kumanda-tamam { width:150px; height:56px; min-height:56px; font-size:21px; border-radius:28px; }
+
+/* Rüzgâr ibresi (büyük sürüm): yönü gösteren kadran, büyük hız, şiddet etiketi. Ok yukarı = kaleye doğru esiyor. */
+.ruzgar-kutu { top:calc(env(safe-area-inset-top, 0px) + 54px); right:6px; gap:8px; padding:6px 12px 6px 7px; border-radius:20px; background:rgba(4,12,20,.78); border:2px solid #7fc4ff; box-shadow:0 0 14px rgba(127,196,255,.45); }
+.ruzgar-kadran { width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 50%, rgba(127,196,255,.18), rgba(0,0,0,.35)); border:2px solid rgba(255,255,255,.55); position:relative; }
+.ruzgar-kadran::before { content:'K'; position:absolute; top:1px; left:50%; transform:translateX(-50%); font:700 9px/1 Arial, sans-serif; color:rgba(255,255,255,.7); }
+.ruzgar-ok { font-size:34px; line-height:1; color:#cfeaff; text-shadow:0 0 8px rgba(127,196,255,.9); transition:transform .25s; }
+.ruzgar-metin { display:flex; flex-direction:column; align-items:flex-start; line-height:1; }
+.ruzgar-satir { display:flex; align-items:baseline; gap:3px; } .ruzgar-yaz { font:800 32px/1 'Barlow Condensed', Arial, sans-serif; color:#fff; } .ruzgar-birim { font:600 13px/1 'Barlow Condensed', Arial, sans-serif; color:rgba(255,255,255,.75); }
+.ruzgar-sev { margin-top:3px; font:800 13px/1 'Barlow Condensed', Arial, sans-serif; letter-spacing:.14em; color:#9fd3ff; }
+.ruzgar-kutu.orta { border-color:#7fc4ff; } .ruzgar-kutu.orta .ruzgar-ok { color:#cfeaff; }
+.ruzgar-kutu.sert { border-color:#ffa24a; box-shadow:0 0 18px rgba(255,162,74,.65); animation:ruzgarNabiz 1.1s ease-in-out infinite; } .ruzgar-kutu.sert .ruzgar-ok { color:#ffd3a1; text-shadow:0 0 10px rgba(255,162,74,.95); } .ruzgar-kutu.sert .ruzgar-sev { color:#ffb36b; }
+.ruzgar-kutu.durgun { opacity:.8; border-color:#8aa; box-shadow:none; } .ruzgar-kutu.durgun .ruzgar-ok { color:#9ab; text-shadow:none; }
+@keyframes ruzgarNabiz { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .ruzgar-kutu.sert { animation:none; } }

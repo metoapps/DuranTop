@@ -7,10 +7,9 @@
 A.hiz.hedef=A.hiz.hedef||A.hiz.frikik;   // yalnız istemcide: hedef vuruşları frikik hızıyla
 var BUYUK=.42,KUCUK=.33;
 // Görselden ölçülen yerleşim (kale 7,32 × 2,44 m'ye ölçeklenmiş). puan: küçük delik > büyük, üst sıra > alt.
-var DELIKLER=[
- {x:-3.04,y:1.93,r:BUYUK,puan:4},{x:-1.48,y:1.93,r:KUCUK,puan:5},{x:0,y:1.93,r:KUCUK,puan:5},{x:1.48,y:1.93,r:KUCUK,puan:5},{x:3.04,y:1.93,r:BUYUK,puan:4},
- {x:-2.18,y:1.22,r:KUCUK,puan:4},{x:-.72,y:1.22,r:KUCUK,puan:4},{x:.72,y:1.22,r:KUCUK,puan:4},{x:2.18,y:1.22,r:KUCUK,puan:4},
- {x:-3.04,y:.50,r:BUYUK,puan:2},{x:-1.48,y:.48,r:KUCUK,puan:3},{x:0,y:.48,r:KUCUK,puan:3},{x:1.48,y:.48,r:KUCUK,puan:3},{x:3.04,y:.50,r:BUYUK,puan:2}];
+var DELIKLER=[   // 6 delik: üst sırada iki büyük köşe + küçük orta (5 puan), altta iki orta-alçak ve bir alt orta
+ {x:-3.04,y:1.93,r:BUYUK,puan:4},{x:0,y:1.93,r:KUCUK,puan:5},{x:3.04,y:1.93,r:BUYUK,puan:4},
+ {x:-1.62,y:.86,r:KUCUK,puan:4},{x:1.62,y:.86,r:KUCUK,puan:4},{x:0,y:.46,r:KUCUK,puan:3}];
 var POZ=[{tip:'hedef',ad:'Hedef ağı · 11 m',bx:0,D:11},{tip:'hedef',ad:'Hedef ağı · 16 m',bx:0,D:16},{tip:'hedef',ad:'Hedef ağı · 16 m (sağ)',bx:5,D:Math.sqrt(16*16-25)},
  {tip:'hedef',ad:'Hedef ağı · 16 m (sol)',bx:-5,D:Math.sqrt(16*16-25)},{tip:'hedef',ad:'Hedef ağı · 20 m',bx:0,D:20}];
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}

@@ -1,0 +1,24 @@
+// Baraj çizimi: üç poz (dur, çömelme, havada); duruş pozu pozisyon açılırken, diğerleri arka planda; hazır değilse duruş çizimi (takılma yok); sahne değişince kuyruk temizlenir.
+const fs=require('fs'),vm=require('vm'),assert=require('assert');const C=require('/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/@napi-rs/canvas');
+function dunya(zamanlayici){const timers=[];const root={DT:{},performance:{now:()=>0}};if(zamanlayici)root.setTimeout=(f)=>{timers.push(f);return timers.length;};vm.createContext(root);for(const n of ['ayar','model3d','kaleci3d','baraj','baraj3d'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),root);return{D:root.DT,timers};}
+const project=(x,y,z)=>({x:200+x*60,y:300-y*60,d:z+10,olcek:60}),yap=(w,h)=>C.createCanvas(w,h);
+const oyuncu={x:0,z:9,boy:1.85};const opt={makeCanvas:yap,dpr:1,surum:1,t:2};
+// 1) Zamanlayıcı varken: isit yalnız duruş pozunu üretir, geri kalanını kuyruğa alır
+{const {D,timers}=dunya(true),B3=D.baraj3d;assert.equal(B3.isit(project,oyuncu,0,opt),true);const ob=B3._onbellek();assert.equal(Object.keys(ob.s).length,1,'yalnız duruş');assert(Object.keys(ob.s)[0].endsWith('|dur'));assert.equal(B3._kuyruk(),2,'çömelme ve havada kuyrukta');assert.equal(timers.length,1,'tek zamanlayıcı turu planlı');
+ // hazır değilken havada pozu istenirse duruş çizimi kullanılır (blokajsız) ve donma olmaz
+ const cv=yap(400,320),g=cv.getContext('2d');const t0=Date.now();assert.equal(B3.oyuncu(g,project,Object.assign({y:.3,poz:'havada'},oyuncu),0,opt),true);assert(Date.now()-t0<60,'havada pozu hazır değilken çizim hızlı (üretmez): '+(Date.now()-t0)+' ms');assert.equal(Object.keys(B3._onbellek().s).length,1,'üretilmedi');
+ // zamanlayıcı turları: her tur BİR çizim üretir
+ timers.shift()();assert.equal(Object.keys(B3._onbellek().s).length,2,'ilk turda bir poz');assert.equal(timers.length,1);timers.shift()();assert.equal(Object.keys(B3._onbellek().s).length,3,'ikinci turda üçüncü poz');assert.equal(timers.length,0,'kuyruk bitti');assert.equal(B3._kuyruk(),0);
+ // artık havada pozu kendi çizimiyle çizilir: duruş çiziminden farklı piksel
+ const a=yap(400,320),b=yap(400,320);B3.oyuncu(a.getContext('2d'),project,Object.assign({y:.3,poz:'havada'},oyuncu),0,opt);B3.oyuncu(b.getContext('2d'),project,Object.assign({y:.3,poz:'dur'},oyuncu),0,opt);const da=a.getContext('2d').getImageData(0,0,400,320).data,db=b.getContext('2d').getImageData(0,0,400,320).data;let fark=0;for(let i=0;i<da.length;i+=4)if(Math.abs(da[i]-db[i])+Math.abs(da[i+1]-db[i+1])+Math.abs(da[i+2]-db[i+2])>60)fark++;assert(fark>1500,'havada pozu duruştan farklı (kollar yukarı, dizler toplu): '+fark);
+ const c=yap(400,320),dd=yap(400,320);B3.oyuncu(c.getContext('2d'),project,Object.assign({y:0,poz:'cokus'},oyuncu),0,opt);B3.oyuncu(dd.getContext('2d'),project,Object.assign({y:0,poz:'dur'},oyuncu),0,opt);const dc=c.getContext('2d').getImageData(0,0,400,320).data,dd2=dd.getContext('2d').getImageData(0,0,400,320).data;let f2=0;for(let i=0;i<dc.length;i+=4)if(Math.abs(dc[i]-dd2[i])+Math.abs(dc[i+1]-dd2[i+1])+Math.abs(dc[i+2]-dd2[i+2])>60)f2++;assert(f2>800,'çömelme duruştan farklı: '+f2);
+ // yukarıda: havadaki oyuncunun renkli pikselleri duruştakinden daha yükseğe uzanır (eller başın üstünde)
+ const enUst=(d)=>{for(let y=0;y<320;y++)for(let x=0;x<400;x++){const i=(y*400+x)*4;if(d[i+3]>40)return y;}return 320;};assert(enUst(da)<enUst(db)-4,'eller yukarıda: en üst piksel '+enUst(da)+' < '+enUst(db));}
+// 2) Sahne (surum) değişince bekleyen üretimler atılır
+{const {D,timers}=dunya(true),B3=D.baraj3d;B3.isit(project,oyuncu,0,opt);assert.equal(B3._kuyruk(),2);B3.isit(project,oyuncu,0,Object.assign({},opt,{surum:2}));assert.equal(B3._kuyruk(),2,'eski sahnenin işleri atıldı, yenisi eklendi');while(timers.length)timers.shift()();const anahtarlar=Object.keys(B3._onbellek().s);assert.equal(anahtarlar.length,3);assert.equal(B3._onbellek().surum,2);}
+// 3) Zamanlayıcı yokken (testler/eski ortam): hepsi hemen üretilir
+{const {D}=dunya(false),B3=D.baraj3d;B3.isit(project,oyuncu,0,opt);assert.equal(Object.keys(B3._onbellek().s).length,3,'zamanlayıcı yoksa hepsi hemen');assert.equal(B3._kuyruk(),0);}
+// 4) Maliyet: ek pozlar duruştan belirgin ucuz (düşük ayrıntı ve çözünürlük)
+{const {D}=dunya(false),B3=D.baraj3d;const t=[];for(let k=0;k<2;k++){const o2=Object.assign({},opt,{surum:10+k});const t0=process.hrtime.bigint();B3.isit(project,Object.assign({},oyuncu,{x:k*.1}),0,o2);t.push(Number(process.hrtime.bigint()-t0)/1e6);}assert(t[1]<400,'üç poz birlikte makul süre '+t[1].toFixed(0)+' ms');}
+const src=fs.readFileSync(__dirname+'/../js/cizim.js','utf8');assert(/boy:state\.boy,poz:state\.poz/.test(src),'cizim poz bilgisini iletir');
+console.log('PASS baraj pozları: duruş senkron, çömelme ve havada arka planda (tur başına bir çizim), hazır değilse duruş çizimi, sahne değişince kuyruk temizlenir, havada pozu kollar yukarı farklı çizilir');
