@@ -28,7 +28,12 @@ Gol olunca **maç anlatan bir spikerin bağırışı** çalar ("Goooooool!", "Go
 3. `İnanılmaz! İnanılmaz! Gooooooooool! Gollllllaaaazooooo!`
 4. `Süper, süper, süper vuruş! GOOOOOOOOLLLLLL!`
 
-(Sadece "Gooool" ve "Gollazo" istiyorsan yalnız 1 ve 2'yi üret; ne kadar çok farklı kayıt olursa o kadar az tekrar eder.)
+## Tribün uğultusu
+- `gol.mp3` : ana tribün uğultusu / “goooool” kalabalık sesi (uzun, 4–8 sn ideal).
+- İsteğe bağlı varyasyonlar: `gol-2.mp3`, `gol-3.mp3` … (oyun rastgele seçer).
+- `yuh.mp3` ve `ah.mp3` kaçan şutlar için zaten kullanılıyor.
+
+Spiker ve tribün kayıtları ne kadar çeşitli olursa tekrar hissi o kadar azalır.
 
 ## Kontrol
 Telefonda adrese `?sestest=1` ekle → "Sesi aç" → "Kayıt durumunu yenile": "Spiker kayıtları: gol N adet, gollazo M adet" yazmalı. "Spiker: gol" ve "Spiker: gollazo" düğmeleri kaydı çalar.

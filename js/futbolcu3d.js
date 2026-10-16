@@ -148,8 +148,18 @@ function rig(o){
   var g=o.gait,L=g.lean,a=g.arm,sw=g.sway||0,rl=g.roll||0;nodes.chest[2]=L;nodes.neck[2]=L*1.4;nodes.head[2]=L*1.3;nodes.sl[2]=L*.8;nodes.sr[2]=L*.8;
   // Koşuda gövde her adımda basan ayağa doğru yana sallanır, omuzlar hafifçe yalpalar (baş gövdeden az sallanır: gözler topta kalır)
   nodes.chest[0]+=sw*.6;nodes.neck[0]+=sw*.5;nodes.head[0]+=sw*.3;nodes.sl[0]+=sw*.6;nodes.sr[0]+=sw*.6;nodes.sl[1]+=rl;nodes.sr[1]-=rl;
-  // Koşu kolları: dirsekler bükük, eller göğüs hizasında, ayakla ters yönde sallanır
-  var ab=g.armBlend==null?1:g.armBlend,run={el:[-66,205,-a*.5],er:[66,205,a*.5],hl:[-60,212,a*1.2+28],hr:[60,212,-a*1.2+28]},dur={el:[-65,196,0],er:[65,196,0],hl:[-64,143,0],hr:[64,143,0]};   // dururken kollar aşağıda: koşunun ilk %18'inde kaldırılır
+  // Koşu kolları: doğal sarkaç (omuz–dirsek–bilek bir bütün). Dirsek hafif bükük sabit aralıkta, ayakla ters fazda salınır.
+  // a parametresi adım fazından gelir; daha yumuşak ve bağlı salınım için ölçek ve ofset ayarlandı.
+  var ab=g.armBlend==null?1:g.armBlend;
+  var swing = a * 0.85; // daha kontrollü genlik
+  var elbowBend = 28;   // dirsek hafif bükük (insani koşu)
+  var run={
+    el:[-62, 198 + Math.sin(swing*0.15)*4, -swing*0.6],
+    er:[ 62, 198 - Math.sin(swing*0.15)*4,  swing*0.6],
+    hl:[-58, 168 + Math.cos(swing*0.12)*6, -swing*1.05 + elbowBend*0.3],
+    hr:[ 58, 168 - Math.cos(swing*0.12)*6,  swing*1.05 - elbowBend*0.3]
+  };
+  var dur={el:[-65,196,0],er:[65,196,0],hl:[-64,143,0],hr:[64,143,0]};
   ['el','er','hl','hr'].forEach(function(k){nodes[k]=run[k].map(function(v,i){return mix(dur[k][i],v,ab);});});
  }else{var swing=o.gait?Math.sin(Math.PI*o.gait.steps*o.gait.u)*Math.sin(Math.PI*o.gait.u)*18:(walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0);nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}
  if(o.sevinc&&D.sevinc){var celebration=D.sevinc.pose(o.sevinc.id,o.sevinc.time);nodes.hl=celebration.left;nodes.hr=celebration.right;feet=celebration.feet;Object.keys(nodes).forEach(function(k){nodes[k][1]+=celebration.shift;});}

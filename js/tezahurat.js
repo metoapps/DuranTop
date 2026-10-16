@@ -34,7 +34,13 @@ async function getir(ad){
   return await new Promise(function(ok,hata){var p=ctx.decodeAudioData(ham,ok,hata);if(p&&p.then)p.then(ok,hata);});}catch(e){}}
  return null;}
 async function yukle(){if(yukleniyor||!kur())return;yukleniyor=true;ah=await getir('ah');yuh=await getir('yuh');if(!ah||!yuh)gol=await getir('gol');
- if(!spikerYuk){spikerYuk=true;['gol','gollazo'].forEach(function(g){});for(var gi=0;gi<2;gi++){var grup=gi?'gollazo':'gol';for(var k=1;k<=8;k++){var b=await getir('spiker-'+grup+'-'+k);if(b)SPIKER[grup].push(b);else break;}}}}
+ // Birden fazla tribün uğultusu varyasyonu (gol.mp3, gol-2.mp3 …) desteklenir.
+ if(!spikerYuk){spikerYuk=true;['gol','gollazo'].forEach(function(g){});for(var gi=0;gi<2;gi++){var grup=gi?'gollazo':'gol';for(var k=1;k<=8;k++){var b=await getir('spiker-'+grup+'-'+k);if(b)SPIKER[grup].push(b);else break;}}}
+ // Ek tribün kayıtları
+ var ekGol=[];for(var i=2;i<=6;i++){var eg=await getir('gol-'+i);if(eg)ekGol.push(eg);}
+ if(ekGol.length&&gol)ekGol.unshift(gol);else if(ekGol.length)gol=ekGol[0];
+ if(ekGol.length)gol=ekGol[Math.floor(Math.random()*ekGol.length)]; // rastgele seçim için hazır
+}
 function cal(buf,oran,kesim,ses,sure){var t=ctx.currentTime+.02,s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
  s.buffer=buf;s.playbackRate.value=oran;f.type='lowpass';f.frequency.value=kesim;f.Q.value=.5;
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(ses,t+.18);g.gain.exponentialRampToValueAtTime(.0001,t+sure);
