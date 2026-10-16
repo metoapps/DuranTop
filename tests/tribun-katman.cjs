@@ -15,8 +15,16 @@ for(const [w,h] of [[320,568],[390,844],[844,390]]){const cv=C.createCanvas(w,h)
    assert(mx<t.height-8,'tribün içeriği katman sınırının içinde (kesilmiyor): '+mx+'/'+t.height+' '+w+'x'+h+' '+pos.ad);enAlt=Math.max(enAlt,mx);}}
  // Önbellek: aynı durumda ardışık 4 çizimde tribün en çok 2 kez yeniden çizilir.
  const pos=D.AYAR.pozisyonlar[0];D.cizim.sahneKur(pos);const eski=D.tribun.draw;let n=0;D.tribun.draw=function(){n++;return eski.apply(this,arguments);};
- const d={top:{x:0,y:.11,z:0},oyuncu:{karakter:'meto',poz:'bekle'}};for(let i=0;i<4;i++)D.cizim.ciz(d);D.tribun.draw=eski;
- assert(n>=1&&n<=2,'4 karede tribün '+n+' kez çizildi (en çok 2 beklenir)');
+ const d={top:{x:0,y:.11,z:0},oyuncu:{karakter:'meto',poz:'bekle'}};
+ // Gerçek çizim süresi ağır CI makinelerinde 100 ms'yi aşabilir; kare sınırı ve
+ // 100 ms güvenlik yenilemesini birbirinden bağımsız, denetlenen saatle ölç.
+ const realPerformance=Object.getOwnPropertyDescriptor(globalThis,'performance');let clock=0;
+ Object.defineProperty(globalThis,'performance',{configurable:true,value:{now:()=>clock}});
+ try{
+  for(let i=0;i<4;i++){clock=i*16;D.cizim.ciz(d);}
+  assert(n>=1&&n<=2,'4 karede tribün '+n+' kez çizildi (en çok 2 beklenir)');
+  n=0;clock+=101;D.cizim.ciz(d);assert.equal(n,1,'100 ms geçince kare sayısı beklenmeden yenilenir');
+ }finally{Object.defineProperty(globalThis,'performance',realPerformance);D.tribun.draw=eski;}
  console.log(w+'x'+h,'en alt dolu satır',enAlt,'sınır',D.cizim._tribunSinir());}
 console.log('PASS tribün katmanı: üst bölge kadar, içerik sınırın içinde, 4 karede ≤2 yeniden çizim');
 })().catch(e=>{console.error(e);process.exit(1);});

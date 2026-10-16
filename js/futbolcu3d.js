@@ -98,6 +98,16 @@ function gaitFeet(g){
  var next=planted(swing,Math.min(1,(step+2)/g.steps)),t=ease(phase);feet[swing]=[mix(feet[swing][0],next[0],t),mix(feet[swing][1],next[1],t)];
  return feet.map(function(v,i){var dx=(v[0]-root[0])/UNIT,dz=(v[1]-root[1])/UNIT;return [Math.cos(yaw)*dx-Math.sin(yaw)*dz,8+(i===swing?Math.sin(Math.PI*phase)*22:0),Math.sin(yaw)*dx+Math.cos(yaw)*dz];});
 }
+function kosuKolPozu(a){
+ var swing = a * 0.85; // daha kontrollü genlik
+  var elbowBend = 28;   // dirsek hafif bükük (insani koşu)
+  return {
+    el:[-62, 198 + Math.sin(swing*0.15)*4, -swing*0.6],
+    er:[ 62, 198 - Math.sin(swing*0.15)*4,  swing*0.6],
+    hl:[-58, 168 + Math.cos(swing*0.12)*6, -swing*1.05 + elbowBend*0.3],
+    hr:[ 58, 168 - Math.cos(swing*0.12)*6,  swing*1.05 - elbowBend*0.3]
+  };
+}
 function rig(o){
  var walk=o.walk,u=walk?clamp(walk.u,0,1):0,from=walk?walk.from:o.direction,to=walk?walk.to:o.direction;
  var turn=mix(from||0,to||0,ease(u)),yaw=turn*.60,travel=walk?(to-from)*52:0;
@@ -141,7 +151,7 @@ function rig(o){
   }
   kneeHint[1]=[-cx*.55,.0,1];
   var ka={el:[-65,199+20*b,-10-25*b],er:[65,199-12*b,10+25*b],hl:[-68,145+20*b,-20-30*b],hr:[68,145-12*b,20+30*b]};
-  if(o.kick!==undefined){var ak=dv?dv.arm:0,bl=dv?ease(clamp(kpd/.6,0,1)):ease(Math.min(1,progress/.30)),ra={el:[-66,205,-ak*.5],er:[66,205,ak*.5],hl:[-60,212,ak*1.2+28],hr:[60,212,-ak*1.2+28]};   // koşu kollarından (adım fazıyla) vuruş kollarına yumuşak geçiş
+  if(o.kick!==undefined){var ak=dv?dv.arm:0,bl=dv?ease(clamp(kpd/.6,0,1)):ease(Math.min(1,progress/.30)),ra=kosuKolPozu(ak);   // koşu kollarından (adım fazıyla) vuruş kollarına yumuşak geçiş
    ['el','er','hl','hr'].forEach(function(k){nodes[k]=ka[k].map(function(v,i){return mix(ra[k][i],v,bl);});});}
   else{nodes.el=ka.el;nodes.er=ka.er;nodes.hl=ka.hl;nodes.hr=ka.hr;}
  }else if(kosu){
@@ -151,14 +161,7 @@ function rig(o){
   // Koşu kolları: doğal sarkaç (omuz–dirsek–bilek bir bütün). Dirsek hafif bükük sabit aralıkta, ayakla ters fazda salınır.
   // a parametresi adım fazından gelir; daha yumuşak ve bağlı salınım için ölçek ve ofset ayarlandı.
   var ab=g.armBlend==null?1:g.armBlend;
-  var swing = a * 0.85; // daha kontrollü genlik
-  var elbowBend = 28;   // dirsek hafif bükük (insani koşu)
-  var run={
-    el:[-62, 198 + Math.sin(swing*0.15)*4, -swing*0.6],
-    er:[ 62, 198 - Math.sin(swing*0.15)*4,  swing*0.6],
-    hl:[-58, 168 + Math.cos(swing*0.12)*6, -swing*1.05 + elbowBend*0.3],
-    hr:[ 58, 168 - Math.cos(swing*0.12)*6,  swing*1.05 - elbowBend*0.3]
-  };
+  var run=kosuKolPozu(a);
   var dur={el:[-65,196,0],er:[65,196,0],hl:[-64,143,0],hr:[64,143,0]};
   ['el','er','hl','hr'].forEach(function(k){nodes[k]=run[k].map(function(v,i){return mix(dur[k][i],v,ab);});});
  }else{var swing=o.gait?Math.sin(Math.PI*o.gait.steps*o.gait.u)*Math.sin(Math.PI*o.gait.u)*18:(walk?Math.sin(2*Math.PI*u)*Math.sin(Math.PI*u)*18:0);nodes.el=[-65,196,-swing];nodes.er=[65,196,swing];nodes.hl=[-64,143,-2*swing];nodes.hr=[64,143,2*swing];}

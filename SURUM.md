@@ -29,3 +29,4 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 
 | 20261019a | Menü cilası, ses düzeyi kaydırıcıları (müzik/efekt/spiker+tribün), spiker tekrar yorgunluğu, kaleci yüksek yakası |
 | 20261021a | Anatomik Meto kolları (çözücü + burulmasız kemik çerçevesi), tam-beden canlı Meto sevinci, hazırlıklı ve kendiliğinden vurmayan ibre (ortada büyük daire) |
+| 20261021b | Eksik ana oyun kodu geri yüklendi; girişsiz antrenman, karakter seçimi ve başlangıç akışı testi |
