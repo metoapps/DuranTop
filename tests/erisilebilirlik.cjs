@@ -23,7 +23,7 @@ fire('btnSolEl','click');assert(!el('oyun').classList.has('sol-el'),'kapanır');
 // hareket az: tribün/bayrak durgun (AYAR.hareket=false), geri açılır
 fire('btnHareket','click');assert.equal(D.AYAR.hareket,false);assert(/az/.test(el('btnHareket').textContent));fire('btnHareket','click');assert.equal(D.AYAR.hareket,true);assert.equal(el('btnHareket').textContent,'Hareket: tam');
 // titreşim: basış (12), temas (14), gol deseni; kapatılınca hiçbiri; kaçan şut ve direk desenleri
-async function at(sonuc){hedef={sonuc};fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();let k=0;while(d.faz==='vurus'&&k++<4000){time+=16;root.frame();}time+=16;root.frame();fire('devamBtn','click');}
+async function at(sonuc){hedef={sonuc};fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});await flush();let k=0;while(d.faz==='vurus'&&k++<4000){time+=16;root.frame();}time+=16;root.frame();fire('devamBtn','click');}
 titres.length=0;await at('gol');assert.deepEqual(titres,[12,14,[40,50,40,50,90]],'varsayılan açık: basış, temas, gol: '+JSON.stringify(titres));titres.length=0;
 await at('aut');assert.deepEqual(titres,[12,14,[80]],'kaçan şut: '+JSON.stringify(titres));titres.length=0;
 await at('direk_disari');assert.deepEqual(titres,[12,14,[30,40,30]],'direkten dönüş: '+JSON.stringify(titres));titres.length=0;

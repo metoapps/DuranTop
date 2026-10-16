@@ -28,3 +28,4 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261018b | Basılı tutma iptal güvenliği, gövdeye bağlı forma UV, önde çizilen tribün metinleri, dönüş/sürtünmeli direk darbesi (rules 12), öne alınan gol kaydı |
 
 | 20261019a | Menü cilası, ses düzeyi kaydırıcıları (müzik/efekt/spiker+tribün), spiker tekrar yorgunluğu, kaleci yüksek yakası |
+| 20261021a | Anatomik Meto kolları (çözücü + burulmasız kemik çerçevesi), tam-beden canlı Meto sevinci, hazırlıklı ve kendiliğinden vurmayan ibre (ortada büyük daire) |

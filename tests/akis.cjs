@@ -26,14 +26,18 @@ for(let i=0;i<10;i++){
    fire('vurBtn','pointercancel',{pointerId:21});time+=3000;root.frame();assert(!d.fifa.faz,'tarayıcı iptalinde şut yerine sıfırlanır');assert.equal(shots,0);
    fire('vurBtn','pointerdown',{isPrimary:true,pointerId:23});fire('vurBtn','lostpointercapture',{pointerId:23});time+=3000;root.frame();assert(!d.fifa.faz);assert.equal(shots,0);
   }
-  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'isabet');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
-  if(i===6){time+=1500;root.frame();assert.notEqual(d.faz,'gonderiliyor','ibre aşağı indi ve geri dönüyor: hâlâ ikinci şans');time+=300;root.frame();assert.equal(d.faz,'gonderiliyor','iki geçiş de bitince en kötü zamanlamayla vurulur');}
-  else if(i===4){time+=1000;root.frame();assert.equal(d.faz,'nisan','ibre 1,0 sn: ikinci geçişte, hâlâ vurulmadı');time+=200;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor','ikinci geçişte (geri dönerken) de vurulabilir');}
-  else{time+=400;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');}
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'hazir','bırakınca ibre HEMEN başlamaz: hazırlık evresi');assert(!el('fifaTik').hidden,'ortadaki büyük ibre alanı görünür');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
+  // hazırlıkta dokunuşlar yok sayılır (yanlışlıkla seçim olmasın): ne VUR düğmesi ne ibre alanı vurdurur
+  fire('fifaTik','pointerdown',{isPrimary:true});fire('vurBtn','pointerdown',{isPrimary:true});time+=300;root.frame();assert.equal(d.fifa.faz,'hazir','0,3 sn: hâlâ hazırlıkta');assert.equal(shots,i,'hazırlıktaki dokunuşlar vurdurmaz');assert.equal(d.faz,'nisan');
+  time+=400;root.frame();assert.equal(d.fifa.faz,'isabet','0,65 sn sonra hareketli imleç başlar');
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i,'ibre sırasında VUR düğmesi ibreyi durdurmaz (ayrı dokunma alanı)');assert.equal(d.fifa.faz,'isabet');
+  if(i===6){const sure=D.AYAR.zamanCubuguSuresi*1000;time+=sure*2.4;root.frame();assert.equal(d.faz,'nisan','ibre iki geçişi bitirse de OYUN KENDİLİĞİNDEN VURMAZ');assert.equal(d.fifa.faz,'isabet','ibre gidip gelmeye devam eder');assert.equal(shots,i);time+=sure*1.6;root.frame();fire('fifaTik','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor','oyuncu dokununca vurulur (ibre dibe denk geldi: en kötü zamanlama)');}
+  else if(i===4){time+=1000;root.frame();assert.equal(d.faz,'nisan','ibre 1,0 sn: ikinci geçişte, hâlâ vurulmadı');time+=200;fire('fifaTik','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor','ikinci geçişte (geri dönerken) de vurulabilir');}
+  else{time+=400;fire('fifaTik','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');}
   fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i+1);
  }
  await flush();assert.equal(d.faz,'vurus');time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
 
-assert.deepEqual(state.players[0].entries.map(e=>e.input.zaman),[.5,.5,.5,.5,.5,.5,0,.5,.5,.5],'FIFA ibresi zamanlamayı verir: 4. vuruş ikinci geçişte (geri dönerken) yeşilde, 7. vuruş iki geçiş de bitince en kötü zamanlama (0)');assert(state.players[0].entries.every(e=>Math.abs(e.input.guc-.65)<.02&&e.input.aim.y<2.3));
+assert.deepEqual(state.players[0].entries.map(e=>e.input.zaman),[.5,.5,.5,.5,.5,.5,0,.5,.5,.5],'FIFA ibresi zamanlamayı verir: 4. vuruş ikinci geçişte (geri dönerken) yeşilde, 7. vuruş ibre dibindeyken (en kötü zamanlama, 0) oyuncu dokununca');assert(state.players[0].entries.every(e=>Math.abs(e.input.guc-.65)<.02&&e.input.aim.y<2.3));
 assert.equal(state.players[0].idx,10);assert.equal(state.players[0].entries.length,10);assert.equal(shots,10);assert.equal(d.ekran,'tursonu');assert(el('turNot').textContent.includes('otomatik'));console.log('PASS live cup flow; approach→3D walk→power→target→contact→timing; server wait; duplicate-press guard; ten automatic saves; result screen');
 })().catch(e=>{console.error(e);process.exit(1)});

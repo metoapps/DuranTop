@@ -12,7 +12,7 @@ let golSes=[],alayN=0;D.tezahurat={alay(){alayN++;return true;},uh(){return true
 await flush();fire('btnAntrenman','click');await flush();
 const eski=D.fizik.hesapla;let hedefSonuc=null,forceSpeed=130;D.fizik.hesapla=g=>{const r=eski(g);if(hedefSonuc){r.sonuc=hedefSonuc;r.speed=forceSpeed/3.6;}return r;};
 async function oyna(sonuc,yavasAcik){hedefSonuc=sonuc;D.AYAR.yavasCekim.acik=yavasAcik;golSes=[];alayN=0;
- fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus',sonuc);
+ fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus',sonuc);
  const t0=time,simler=[];let kare=0,olayKare=-1;while(d.faz==='vurus'&&kare<4000){time+=16;root.frame();kare++;if(d.an){simler.push(d.an.simT);if(olayKare<0&&d.an.olay)olayKare=kare;}}
  const bitis=(time-t0)/1000,simBitis=d.an?d.an.simT:null,plan=d.an?d.an.yavas:null,on=d.an?d.an.on:0;fire('devamBtn','click');return{bitis,simler,olayKare,simBitis,on,golSes:golSes.length,alayN,yavas:plan};}
 forceSpeed=120;const ordinary=await oyna('gol',true);assert.equal(ordinary.yavas,null,'120 km/h stays at normal speed');forceSpeed=130;fire('btnAntrenman','click');await flush();

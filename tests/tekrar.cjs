@@ -13,7 +13,7 @@ let sonCizim=null,golSes=0,sesler=[];D.cizim.ciz=function(x){sonCizim=x;};D.teza
 await flush();fire('btnAntrenman','click');await flush();
 const eski=D.fizik.hesapla;let hedefSonuc='gol';D.fizik.hesapla=g=>{const r=eski(g);r.sonuc=hedefSonuc;return r;};
 D.AYAR.yavasCekim.acik=false;
-async function sonuca(sonuc){hedefSonuc=sonuc;fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();let k=0;while(d.faz==='vurus'&&k++<3000){time+=16;root.frame();}assert.equal(d.faz,'sonuc',sonuc);}
+async function sonuca(sonuc){hedefSonuc=sonuc;fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});await flush();let k=0;while(d.faz==='vurus'&&k++<3000){time+=16;root.frame();}assert.equal(d.faz,'sonuc',sonuc);}
 const H=D.AYAR.tekrar;
 // tekrar yalnız sonuç ekranında çalışır
 D.oyun._tekrar();assert(!d.tekrar,'nişan aşamasında tekrar yok');
