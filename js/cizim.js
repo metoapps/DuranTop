@@ -101,12 +101,13 @@
   var VURUS_POZ = ['vurus1','vurus2','vurus3','bekle'];
   function karakterHazir(id) {return VURUS_POZ.every(function(p){return !!gorseller[id+'_'+p];});}
   function karakterYukle(id) {
-    if(karakterHazir(id))return Promise.resolve(true);
+    var modelReady=id==='meto'&&DT.meto3d?DT.meto3d.load():Promise.resolve(true);
+    if(karakterHazir(id))return modelReady.then(function(){return true;});
     if(karakterIstekleri[id])return karakterIstekleri[id];
     yuklemeHatasi=false;karakterBekleniyor=true;yuklemeBildir();
     var el=root.document&&root.document.getElementById('yukleme');
     var loaded=0;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… 0/4';
-    karakterIstekleri[id]=Promise.all(VURUS_POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').then(function(im){loaded++;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… '+loaded+'/4';return im;});})).then(function(){
+    karakterIstekleri[id]=Promise.all(VURUS_POZ.map(function(p){return gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').then(function(im){loaded++;if(el)el.textContent=id.toUpperCase()+' hazırlanıyor… '+loaded+'/4';return im;});})).then(function(){return modelReady;}).then(function(){
       karakterBekleniyor=false;yuklemeBildir();
       ['bekle','sevinc','kacirma'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.webp').catch(function(){});});
       ['sevinc1','sevinc2','sevinc3','sevinc4'].forEach(function(p){gorselDosya(id+'_'+p,'assets/sprites/'+id+'_'+p+'.png').catch(function(){});});
@@ -513,7 +514,7 @@
       var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
       var shadow=izdus(rootX,0,rootZ);g.save();g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(shadow.x,shadow.y,.28*shadow.olcek,.09*shadow.olcek,0,0,Math.PI*2);g.fill();g.restore();
       DT.futbolcu3d.draw(g,{id:karakter,front:gorseller[karakter+'_bekle'],back:gorseller[karakter+'_vurus1'],makeCanvas:yerelCanvas,
-        x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,drift:placement.drift,plant:placement.plant,devam:placement.devam,cok:placement.cok,
+        viewport:{width:W,height:H,dpr:dpr},x:anchor.x,y:anchor.y,scale:actorScale,direction:dir,walk:walk3,yaw:yaw,project:worldProject,gait:placement.gait,kick:placement.kick,drift:placement.drift,plant:placement.plant,devam:placement.devam,cok:placement.cok,
         viewKey:[W,H,pos.bx,pos.D,yaw,rootX,rootZ].join(':'),shot:shot,ball:ballLayer});
       return;
     }
@@ -555,6 +556,7 @@
   }
 
   function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
+    if(karakter==='meto'&&DT.meto3d&&DT.meto3d.portrait(g,{id:karakter,x:cx,y:taban,height:boy,time:durum&&durum.sure||0,goal:!!(durum&&durum.gol),variant:durum&&durum.sevinc,viewport:{width:W,height:H,dpr:dpr}}))return;
     if(durum&&durum.gol&&durum.sevinc===1&&DT.sevinc){
       if(DT.sevinc.draw(g,{id:karakter,time:durum.sure||0,x:cx,y:taban,height:boy,sprite:function(k){return sprite(karakter,k);},makeCanvas:yerelCanvas}))return;
     }

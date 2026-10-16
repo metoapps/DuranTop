@@ -68,3 +68,8 @@ Güncel bakım sürümü: 20261004o. Kalite toparlanması, giriş işlem korumas
 
 ## Güncelleme 20261005ae
 Yeni vuruşlar rules 9: penaltıda kaleci vuruştan 100 ms önce sağ/sol/ortada kalma kararını verir. Köşe tercihi nişandan bağımsız ortak tohumla belirlenir; şut çıktıktan sonra yalnız yüksekliği okuyup sabit kol boyuyla uzanır. Frikik davranışı ve kayıtlı rules 4–8 sonuçları korunur. METO ikinci sevincinde göğsüne dokunur, ayakları yerdeyken kollarını açar, tribüne döner ve kollarını indirir. Direkten geri dönen topun sonucu için durması beklenmez. `tests/penalti-tahmin.cjs` nedensellik, hız, erişim, gerçek temas ve eski kayıtları; `tests/direk-sonuc.cjs` vuruş öncesi çizim ve sonuç kartı geçişini kontrol eder.
+
+## Meto 3B modeli — 20261020a
+Meto'nun onaylanan v03 kafa, küçültülmüş gözlük, saç ve anatomik bedeni gerçek ağ geometrisiyle çizilir. Oyun kopyası yaklaşık 8,6 MB'dir; yüksek çözünürlüklü ana dosyaya dokunulmadı. Model yalnız Meto seçilince yüklenir. Koşu, vuruş ve sonuç ekranı mevcut zaman çizelgesine bağlanır; kamera ve top örtüşmesi aynı izdüşümü kullanır. WebGL bulunamazsa önceki çizim yolu devreye girer. Diğer dört kişinin modelleri, fizik ve skor kuralları korunur.
+
+Beden tabanı MakeHuman Community CC0; lisans `assets/meto3d/LICENSE-body.md`. `tools/meto-model-hazirla.py` ana GLB ve MakeHuman `base.obj` dosyalarından mobil kopyayı üretir; Python, NumPy ve Pillow gerekir. Ana GLB'nin SHA-256 değeri model.json içindedir. Yeni kontroller: `node tests/meto-model.cjs`; yerel Chromium varsa `DT_CHROMIUM=/tam/yol/chrome-headless-shell node tests/meto-webgl.cjs`. Gerçek iPhone/Safari donanım performansı ayrıca gözlemlenmelidir.

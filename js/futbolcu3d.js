@@ -210,6 +210,7 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes),T=textures(o.id,o.front,
  return r;
 }
 function render(g,o){
+ if(D.meto3d&&D.meto3d.draw(g,o))return rig(o);
  if(o.walk||o.shot||o.sevinc)return draw(g,o);
  var density=Math.min(2,root.devicePixelRatio||1),key=[o.id,o.direction,o.scale,density,o.viewKey||''].join(':'),stored=idleCache.get(key);
  if(!stored||stored.front!==o.front||stored.back!==o.back){
