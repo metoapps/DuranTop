@@ -34,3 +34,8 @@ Bağlantılar:
 spiker-gollazo-1.mp3: golazo.mp3 kaydının ilk 4,5 saniyelik alıntısı.
 Kaynak: https://github.com/ApongsehIyan23/SportsBiz-Africa-Game/blob/main/public/assets/audio/golazo.mp3
 İşleme: mono 44,1 kHz, 100 Hz high-pass, -14 LUFS hedef, -1,5 dBTP limit, 0,3 sn çıkış. Kaynak deposunda ses için ayrı bir lisans belirtilmemiştir.
+
+gol-2.mp3: "Crowd Cheering" (kalabalık tezahüratı), gerçek kayıt, 3,6 sn.
+Kaynak kayıt: https://freesound.org/people/SoundsExciting/sounds/365132/ (SoundsExciting), lisans CC0 1.0 (kamu malı; atıf gerekmez, nezaketen yazıldı).
+Bu dosya, kaynağı ve lisansı belgelenmiş (docs/credits.md: 1,0-4,6 sn kesit, fade, loudnorm, mono 96 kbps) şu depodan alındı: https://github.com/chloeeeyan/Claude/blob/main/public/sfx/cheer.mp3
+Not: genel kalabalık tezahüratıdır, stadyuma özel gol kükremesi değil; gol.mp3 ile dönüşümlü çalar. Dinlenerek doğrulanmadı (yalnız süre/ses seviyesi ölçüldü).

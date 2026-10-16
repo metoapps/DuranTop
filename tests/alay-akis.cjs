@@ -13,7 +13,7 @@ const eski=D.fizik.hesapla;let hedefSonuc=null;D.fizik.hesapla=g=>{const r=eski(
 const tablo={aut:true,kisa:true,kurtaris:true,baraj:true,gol:false,direk_gol:false,direk_disari:false};
 for(const [sonuc,alayBeklenen] of Object.entries(tablo)){
  hedefSonuc=sonuc;alayN=0;uhN=0;
- fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});
+ fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});
  await flush();assert.equal(d.faz,'vurus',sonuc);time+=15000;root.frame();assert.equal(d.faz,'sonuc',sonuc);
  assert.equal(alayN,alayBeklenen?1:0,sonuc+': alay '+(alayBeklenen?'var':'yok'));if(sonuc==='gol'||sonuc==='direk_gol'){assert(d.alayT0&&d.alayTur==='gol',sonuc+': gol balonları (tezahürat) var');}else if(sonuc==='direk_disari'){assert(d.alayT0&&d.alayTur==='direk_disari',sonuc+': direkten dönüşte de genel olumsuz cümleler çıkar');assert.equal(alayN,0,'ama alay (yuh) sesi çalmaz, "ahhh" kullanılır');}else assert.equal(!!d.alayT0,alayBeklenen,sonuc+': alay balonları '+(alayBeklenen?'var':'yok'));
  if(alayBeklenen)assert.equal(d.alayTur,sonuc);

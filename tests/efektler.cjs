@@ -32,5 +32,5 @@ D.perf.sabitle(0);
  D.AYAR.topIzi=true;D.perf.sabitle(0);D.cizim.sahneKur(pos,0);for(let i=0;i<20;i++){now+=16;D.cizim.ciz({top:y[i],zaman:.2});}now+=400;D.cizim.ciz({top:y[20],zaman:0});const dur=Uint8ClampedArray.from(g.getImageData(0,0,W,H).data);D.AYAR.topIzi=false;D.cizim.sahneKur(pos,0);now+=16;D.cizim.ciz({top:y[20],zaman:0});const ref=Uint8ClampedArray.from(g.getImageData(0,0,W,H).data);assert.equal(fark(dur,ref),0,'zaman 0 iken iz yok');D.AYAR.topIzi=true;}
 D.perf.sabitle('auto');
 // 4) Oyun entegrasyonu
-{const oyun=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/out\.hizBalon = \{ km: Math\.round\(r\.speed \* 3\.6\), t: simT \}/.test(oyun)&&/out\.konfeti = \(d\.konfetiT0/.test(oyun)&&/d\.konfetiT0 = now; d\.alayT0 = now/.test(oyun),'oyun hız balonu ve konfeti verir');}
+{const oyun=fs.readFileSync(__dirname+'/../js/oyun.js','utf8');assert(/out\.hizBalon = \{ km: Math\.round\(r\.speed \* 3\.6\), t: simT, alev: !!d\.alev \}/.test(oyun)&&/out\.konfeti = \(d\.konfetiT0/.test(oyun)&&/d\.konfetiT0 = now; d\.alayT0 = now/.test(oyun),'oyun hız balonu ve konfeti verir');}
 console.log('PASS efektler: hız balonu (renk eşiği, sönme), konfeti (150/70/0 parça, deterministik, 4,5 sn), top izi (arkada, durunca yok, kademe 2 yok)');

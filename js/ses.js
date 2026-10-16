@@ -60,7 +60,7 @@
   }
   /* Gerçek kayıt (isteğe bağlı): assets/ses/<ad>.mp3 varsa o çalınır, yoksa sentez. Kaynaklar: assets/ses/KAYNAKLAR.txt
    * Karşılaştırma için adrese ?ses=sentez eklemek kayıtları devre dışı bırakır (telefonda A/B dinleme). */
-  var KAYITLAR = ['direk', 'file', 'vurus', 'islik', 'gol'];
+  var KAYITLAR = ['direk', 'file', 'vurus', 'islik', 'gol', 'gol-2'];   // gol-2: ikinci gerçek kalabalık kaydı (CC0); goller dönüşümlü bunlardan çalar
   var kayit = {}, yukleniyor = {}, kayitDenendi = false, zorlaSentez = !!(root.location && /[?&]ses=sentez/.test(root.location.search || ''));
   function kayitlariYukle() {
     if (kayitDenendi || zorlaSentez || !ctx || !root.fetch) return; kayitDenendi = true;
@@ -105,7 +105,14 @@
     islik: function () { ton('sine', 2800, 0.45, 0.15, 3000); }
   };
   // Kayıt seviyeleri: dosyalar -3 dB tepeye ayarlı; gol uğultusu uzun ve geniş bantlı olduğu için daha kısık çalınır.
-  var KAZANC = { vurus: 0.9, islik: 0.6, gol: 0.55 };
+  var KAZANC = { vurus: 0.9, islik: 0.6, gol: 0.55, 'gol-2': 0.80 };   // gol-2 daha sessiz kaydedilmiş (-17,5 LUFS): eşitlemek için daha yüksek kazanç
+  var sonGol = '';
+  function golKaydiSec() {   // yüklü gol kayıtlarından, bir öncekinden farklı olanı sırayla seç; hiçbiri yoksa 'gol' (sentez yedeği)
+    var var1 = ['gol', 'gol-2'].filter(function (a) { return kayit[a]; });
+    if (!var1.length) return 'gol';
+    var aday = var1.filter(function (a) { return a !== sonGol; }); if (!aday.length) aday = var1;
+    sonGol = aday[0]; return sonGol;   // sırayla: gol, gol-2, gol, ... (deterministik; art arda aynı kayıt yok)
+  }
   function kayitliYaDaSentez(ad, uzun) {
     if (kayit[ad]) { kayitCal(ad, KAZANC[ad], ad === 'vurus', uzun); return; }
     if (ad === 'islik' && yukleniyor.islik) {   // sesi ilk açışta kayıt henüz inmemiş olabilir: kısa süre bekle
@@ -120,7 +127,7 @@
     direk: function (options) { darbe('direk',options); },
     kurtaris: function () { gurultuSes(0.14, 'lowpass', 400, 0.7, 0.9, 0.004); ton('sine', 110, 0.14, 0.6, 70); },
     baraj: function () { gurultuSes(0.16, 'lowpass', 300, 0.7, 0.9, 0.004); ton('sine', 90, 0.16, 0.6, 55); },
-    gol: function () { sustur(); kayitliYaDaSentez('gol', true); },
+    gol: function () { sustur(); kayitliYaDaSentez(golKaydiSec(), true); },
     ah: function () { gurultuSes(1.0, 'bandpass', 420, 0.6, 0.4, 0.3); },
     islik: function () { kayitliYaDaSentez('islik', false); }
   };

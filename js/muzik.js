@@ -7,7 +7,7 @@
 var AKOR={Am:[57,60,64],F:[53,57,60],C:[55,60,64],G:[55,59,62],Dm:[53,57,62],E:[56,59,64]},KOK={Am:45,F:41,C:48,G:43,Dm:50,E:40};
 var SES={   // ses karakterleri: dalga, giriş/çıkış süresi (sn), alçak geçiren süzgeç (Hz)
  pad:{dalga:'triangle',a:.30,r:.55,lp:1500},bas:{dalga:'triangle',a:.012,r:.10,lp:700},basM:{dalga:'sawtooth',a:.008,r:.07,lp:520},arp:{dalga:'square',a:.004,r:.05,lp:2600},lead:{dalga:'square',a:.015,r:.14,lp:2200},
- kick:{dalga:'kick'},snare:{dalga:'snare'},hat:{dalga:'hat'},zil:{dalga:'sine',a:.003,r:.9,lp:9000},fanfar:{dalga:'square',a:.01,r:.25,lp:3000}};
+ kick:{dalga:'kick'},snare:{dalga:'snare'},hat:{dalga:'hat'},zil:{dalga:'sine',a:.003,r:.9,lp:9000},fanfar:{dalga:'square',a:.01,r:.25,lp:3000},tarama:{dalga:'tarama',a:.02,r:.10,lp:6000}};
 var PARCALAR={
  menu:{bpm:96,bar:8,akor:['Am','F','C','G','Am','F','Dm','E'],
   lead:[[[0,76,4],[4,72,2],[6,74,2],[8,76,6]],[[0,77,4],[4,76,2],[6,72,2],[8,69,6]],[[0,72,4],[4,74,2],[6,76,2],[8,79,6]],[[0,79,4],[4,76,2],[6,74,2],[8,71,6]],
@@ -36,7 +36,12 @@ var EFEKT={
  rozet:[[0,88],[.14,93],[.28,100]].map(function(n){return{t:n[0],tur:'zil',midi:n[1],sure:.45,ses:.14};}),
  altin:[[0,96,.6,.18],[.04,103,.5,.07]].map(function(n){return{t:n[0],tur:'zil',midi:n[1],sure:n[2],ses:n[3]};}),
  kacti:[[0,57,.22],[.20,54,.22],[.40,50,.5]].map(function(n){return{t:n[0],tur:'lead',midi:n[1],sure:n[2],ses:.10};}),
- tik:[{t:0,tur:'hat',midi:0,sure:.04,ses:.10}]};
+ tik:[{t:0,tur:'hat',midi:0,sure:.04,ses:.10}],
+ /* Ağır çekim: başlarken alçalan süpürme + gürleme (zaman yavaşlıyor), biterken yükselen süpürme (hız geri geliyor). f0→f1 Hz. */
+ /* Alevli şut: yükselen ateş süpürmesi + vuruş gümlemesi + çıtırtı */
+ alev:[{t:0,tur:'tarama',f0:160,f1:1100,sure:.38,ses:.14},{t:0,tur:'kick',midi:0,sure:.3,ses:.30},{t:.03,tur:'hat',midi:0,sure:.08,ses:.16},{t:.09,tur:'hat',midi:0,sure:.08,ses:.14},{t:.16,tur:'hat',midi:0,sure:.08,ses:.12},{t:.24,tur:'hat',midi:0,sure:.08,ses:.10}],
+ yavasBasla:[{t:0,tur:'tarama',f0:520,f1:70,sure:.55,ses:.20},{t:0,tur:'kick',midi:0,sure:.3,ses:.30},{t:.05,tur:'tarama',f0:260,f1:45,sure:.6,ses:.14}],
+ yavasBit:[{t:0,tur:'tarama',f0:90,f1:640,sure:.26,ses:.18},{t:.16,tur:'hat',midi:0,sure:.08,ses:.14}]};
 function frek(m){return 440*Math.pow(2,(m-69)/12);}
 /* ---- Çevrimdışı render (WAV önizleme ve testler): aynı olaylar, basit sentez ---- */
 function render(olaylar,sure,rate){rate=rate||22050;var n=Math.ceil(sure*rate),out=new Float32Array(n),seed=12345;function nz(){seed=(Math.imul(seed,1664525)+1013904223)|0;return((seed>>>0)/4294967296)*2-1;}
@@ -44,6 +49,7 @@ function render(olaylar,sure,rate){rate=rate||22050;var n=Math.ceil(sure*rate),o
   if(k.dalga==='kick'){for(var i=0;i<Math.ceil(.18*rate)&&i0+i<n;i++){var t=i/rate,f=150*Math.exp(-t*18)+45;ph+=2*Math.PI*f/rate;out[i0+i]+=Math.sin(ph)*Math.exp(-t*14)*e.ses*1.6;}return;}
   if(k.dalga==='snare'){var lp=0;for(var j=0;j<Math.ceil(.16*rate)&&i0+j<n;j++){var tj=j/rate,w=nz();lp+=.55*(w-lp);out[i0+j]+=(lp*Math.exp(-tj*26)*.9+Math.sin(2*Math.PI*190*tj)*Math.exp(-tj*30)*.5)*e.ses*1.4;}return;}
   if(k.dalga==='hat'){var pv=0;for(var h=0;h<Math.ceil(.05*rate)&&i0+h<n;h++){var th=h/rate,w2=nz(),hp=w2-pv;pv=w2;out[i0+h]+=hp*Math.exp(-th*90)*e.ses*1.2;}return;}
+  if(k.dalga==='tarama'){var f=e.f0,faz=0,len2=Math.ceil((e.sure+k.r)*rate);for(var z=0;z<len2&&i0+z<n;z++){var tz=z/rate,oran=Math.min(1,tz/e.sure);f=e.f0*Math.pow(e.f1/e.f0,oran);faz+=2*Math.PI*f/rate;var ev=tz<k.a?tz/k.a:1;if(tz>e.sure)ev*=Math.max(0,1-(tz-e.sure)/k.r);out[i0+z]+=Math.sin(faz)*ev*e.ses;}return;}
   var f0=frek(e.midi),alfa=1-Math.exp(-2*Math.PI*k.lp/rate);
   for(var q=0;q<len&&i0+q<n;q++){var tq=q/rate,x,fase=(ph%(2*Math.PI))/(2*Math.PI);ph+=2*Math.PI*f0/rate;
    if(k.dalga==='sine')x=Math.sin(ph);else if(k.dalga==='triangle')x=4*Math.abs(fase-.5)-1;else if(k.dalga==='square')x=fase<.5?1:-1;else x=2*fase-1;
@@ -61,6 +67,7 @@ function gurultu(sure){var n=Math.floor(ctx.sampleRate*sure),b=ctx.createBuffer(
 function cal(e,t,cikis){var k=SES[e.tur],g=ctx.createGain();g.connect(cikis);
  if(k.dalga==='kick'){var o=ctx.createOscillator();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);g.gain.setValueAtTime(e.ses*1.6,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);o.start(t);o.stop(t+.2);return;}
  if(k.dalga==='snare'||k.dalga==='hat'){var s=gurultu(.18),f=ctx.createBiquadFilter();f.type=k.dalga==='hat'?'highpass':'bandpass';f.frequency.value=k.dalga==='hat'?7000:1800;g.gain.setValueAtTime(e.ses*1.3,t);g.gain.exponentialRampToValueAtTime(.0001,t+(k.dalga==='hat'?.05:.16));s.connect(f);f.connect(g);s.start(t);s.stop(t+.2);return;}
+ if(k.dalga==='tarama'){var ot=ctx.createOscillator();ot.type='sine';ot.frequency.setValueAtTime(e.f0,t);ot.frequency.exponentialRampToValueAtTime(e.f1,t+e.sure);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(e.ses,t+k.a);g.gain.setValueAtTime(e.ses,t+Math.max(k.a,e.sure));g.gain.exponentialRampToValueAtTime(.0001,t+e.sure+k.r);ot.connect(g);ot.start(t);ot.stop(t+e.sure+k.r+.05);return;}
  var o2=ctx.createOscillator(),f2=ctx.createBiquadFilter();o2.type=k.dalga;o2.frequency.value=frek(e.midi);f2.type='lowpass';f2.frequency.value=k.lp;
  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(e.ses,t+k.a);g.gain.setValueAtTime(e.ses,t+Math.max(k.a,e.sure));g.gain.exponentialRampToValueAtTime(.0001,t+e.sure+k.r);o2.connect(f2);f2.connect(g);o2.start(t);o2.stop(t+e.sure+k.r+.05);}
 /* parça çalıcı: ileriye bakan zamanlayıcı (120 ms pencere), döngü */

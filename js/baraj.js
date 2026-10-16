@@ -24,17 +24,17 @@ function kur(pos,opts){
   for(var i=0;i<n;i++){var h=BOYLAR[Math.floor(rp()*BOYLAR.length)],jit=(rp()-.5)*.07,merkez=Math.abs(i-orta)<=1,pj=(merkez?.97:.88)+.03*zr,sans=rs(),jump=sans<pj;
    if(oku)jump=yuksek?(merkez||sans<.93):(merkez?sans<.45:sans<.15);   // okunan atış: yüksekse hep (kenarlar çoğu), alçaksa çoğu zıplamaz
    var v=2.85+rs()*.30,start=lider+(rs()-.5)*.06+Math.abs(i-orta)*.008;if(jump)say++;
-   l10.push({boy:h,off:(i-orta)*SP10+jit,jump:jump,v:v,start:start,kolYukari:true});}
+   l10.push({boy:h,off:(i-orta)*SP10+jit,jump:jump,v:v,start:start,kollarAsagi:true});}
   if(say<2)l10.map(function(q,i){return i;}).sort(function(a,b){return Math.abs(a-orta)-Math.abs(b-orta);}).slice(0,2).forEach(function(i){l10[i].jump=true;});   // en az iki zıplayan: ortadaki iki oyuncu
   return l10;}
  var heights=pos.bx>0?[1.78,1.94,1.85,1.89]:[1.89,1.85,1.94,1.78],r=opts?rnd(opts.seed):null,say2=0;
  var liste=heights.map(function(h,i){var orta=i===1||i===2,jump=r?r()<(orta?.92:.60):orta,v=r?2.25+r()*.55:(i===1?2.6:2.35),start=r?.24+i*.03+r()*.07:.28+i*.035;if(jump)say2++;return {boy:h,off:(i-1.5)*.55,jump:jump,v:v,start:start};});
  if(r&&say2<2)[1,2].forEach(function(i){liste[i].jump=true;});return liste;}
 function durum(p,t){var u=t-p.start,j=p.jump&&u>0?Math.max(0,p.v*u-.5*A.yercekimi*u*u):0,d={boy:p.boy,off:p.off,y:j};
- if(p.kolYukari){d.poz=j>.03?'havada':(p.jump&&u>-.10&&u<=0.0?'cokus':'dur');d.havada=j>.03;}   // kural 10: zıplarken kollar yukarıda; zıplamadan önce çömelir
+ if(p.kollarAsagi){d.poz=j>.03?'havada':(p.jump&&u>-.10&&u<=0.0?'cokus':'dur');d.havada=j>.03;}   // kural 10: zıplarken kollar AŞAĞIDA kalır (ele çarpan top penaltı olur); zıplamadan önce çömelir
  return d;}
 function distance(px,py,a,b){var dx=b[0]-a[0],dy=b[1]-a[1],u=Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/(dx*dx+dy*dy||1)));return Math.hypot(px-a[0]-u*dx,py-a[1]-u*dy);}
-function parcalar(p,t){var d=durum(p,t),scale=d.boy/1.92,rig=D.model3d.rig({x:d.off,y:d.y+1,poz:'bekle',high:!!d.havada},0);   // kural 10'da havadaki oyuncunun elleri başın üstünde: gerçek blok yüksekliği
+function parcalar(p,t){var d=durum(p,t),scale=d.boy/1.92,rig=D.model3d.rig({x:d.off,y:d.y+1,poz:'bekle'},0);   // kollar hep aşağıda (zıplarken de): blok yüksekliği yalnız sıçrama kadar artar
  function point(n){return [d.off+(n[0]-d.off)*scale,d.y+(n[1]-d.y)*scale];}
  var shapes=rig.bones.map(function(b){return {a:point(rig.nodes[b[0]]),b:point(rig.nodes[b[1]]),r:b[2]*scale,ad:b[3]==='shorts'||b[3]==='socks'?'bacak':b[3]==='skin'?'kol':'gövde'};});
  shapes.push({a:point(rig.nodes.head),b:point(rig.nodes.head),r:.19*scale,ad:'baş'});return shapes;

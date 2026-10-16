@@ -377,6 +377,37 @@
     }
     g.restore();
   }
+  /* Ağır çekim görsel vurgusu (≥100 km/sa): kenarlarda koyu vinyet + hafif soğuk renk tonu; yoğunluk y (0..1) ağır çekimin başında ve sonunda yumuşakça girer çıkar. */
+  function yavasCiz(g, y) {
+    g.save();
+    var vg = g.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.12, W / 2, H * 0.5, Math.max(W, H) * 0.62);
+    vg.addColorStop(0, 'rgba(0,0,10,0)'); vg.addColorStop(0.55, 'rgba(0,0,10,' + (0.35 * y).toFixed(3) + ')'); vg.addColorStop(1, 'rgba(0,0,10,' + (0.86 * y).toFixed(3) + ')'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(120,170,255,' + (0.045 * y).toFixed(3) + ')'; g.fillRect(0, 0, W, H);
+    g.restore();
+  }
+  /* ALEVLİ ŞUT: topun arkasında yükselen, beyaz-sarıdan turuncuya ve kırmızıya sönen alev parçacıkları + topun etrafında sıcak parlama. Kademe 2'de yalnız parlama. */
+  var alevP = [], alevTohum = 12345, alevOnceki = null;
+  function alevRnd() { alevTohum = (Math.imul(alevTohum, 1664525) + 1013904223) >>> 0; return alevTohum / 4294967296; }
+  function alevGuncelle(q, tNow, Q) {
+    var dx = 0, dy = 1;
+    if (alevOnceki) { var ax = q.x - alevOnceki.x, ay = q.y - alevOnceki.y, m = Math.hypot(ax, ay); if (m > 0.5) { dx = ax / m; dy = ay / m; } }
+    alevOnceki = { x: q.x, y: q.y };
+    var n = Q >= 2 ? 0 : Q >= 1 ? 3 : 6, r0 = Math.max(3, q.olcek * A.kale.topYaricap);
+    for (var i = 0; i < n; i++) alevP.push({ x: q.x + (alevRnd() - 0.5) * r0 * 1.2, y: q.y + (alevRnd() - 0.5) * r0 * 1.2, vx: -dx * (40 + alevRnd() * 70) + (alevRnd() - 0.5) * 40, vy: -dy * (40 + alevRnd() * 70) - 30 - alevRnd() * 50, t0: tNow, omur: 0.40 + alevRnd() * 0.40, r: r0 * (0.8 + alevRnd() * 0.9) });
+    while (alevP.length > 110) alevP.shift();
+  }
+  function alevCiz(g, tNow, q) {
+    var r0 = Math.max(3, q.olcek * A.kale.topYaricap);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    var glow = g.createRadialGradient(q.x, q.y, r0 * 0.4, q.x, q.y, r0 * 3.2); glow.addColorStop(0, 'rgba(255,190,70,.42)'); glow.addColorStop(0.5, 'rgba(255,100,15,.18)'); glow.addColorStop(1, 'rgba(255,60,0,0)'); g.fillStyle = glow; g.beginPath(); g.arc(q.x, q.y, r0 * 3.2, 0, 6.2832); g.fill();
+    for (var i = alevP.length - 1; i >= 0; i--) {
+      var p = alevP[i], dt = (tNow - p.t0) / 1000, yas = dt / p.omur; if (yas >= 1) { alevP.splice(i, 1); continue; }
+      var px = p.x + p.vx * dt, py = p.y + p.vy * dt, rr = p.r * (1 - yas * 0.45) * 1.15, a = (1 - yas) * 0.42;
+      var rc = yas < 0.18 ? '255,226,130' : yas < 0.5 ? '255,118,18' : '210,34,6', gr = g.createRadialGradient(px, py, 0, px, py, rr); gr.addColorStop(0, 'rgba(' + rc + ',' + a.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + rc + ',0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(px, py, rr, 0, 6.2832); g.fill();
+    }
+    g.restore();
+  }
   /* Hız balonu: vuruş anında topun hızı ("118 km/sa") büyük yazı olarak belirir, yükselip söner. b = { km, t (sn) } */
   function hizBalonCiz(g, b) {
     if (!(b.t >= 0 && b.t < 1.6)) return;
@@ -384,6 +415,7 @@
     g.save(); g.globalAlpha = al; g.textAlign = 'center'; g.textBaseline = 'middle'; g.translate(W / 2, H * 0.30 - b.t * 16); g.scale(pop, pop);
     var boy = Math.round(Math.max(30, Math.min(46, W / 9)));
     g.font = '900 ' + boy + "px 'Barlow Condensed', Arial, sans-serif"; g.lineWidth = Math.max(4, boy * 0.16); g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineJoin = 'round'; g.strokeText(b.km + ' km/sa', 0, 0); g.fillStyle = renk; g.fillText(b.km + ' km/sa', 0, 0);
+    if (b.alev) { var by = -boy * 0.95; g.font = '900 ' + Math.round(boy * 0.62) + "px 'Barlow Condensed', Arial, sans-serif"; g.lineWidth = Math.max(3, boy * 0.12); g.strokeStyle = 'rgba(80,10,0,.8)'; g.strokeText('ALEVLİ ŞUT!', 0, by); var gd = g.createLinearGradient(0, by - boy * 0.3, 0, by + boy * 0.3); gd.addColorStop(0, '#fff2a0'); gd.addColorStop(0.5, '#ffa02a'); gd.addColorStop(1, '#e03a10'); g.fillStyle = gd; g.fillText('ALEVLİ ŞUT!', 0, by); }
     g.restore();
   }
   /* Konfeti: gol sonrası ekranın üstünden dökülen renkli parçalar (tohumdan deterministik; kademe 1'de yarı, kademe 2'de yok). k = { t (sn), tohum } */
@@ -848,12 +880,16 @@
     }
     // Top izi: hızlı topun arkasında sönen şerit (kademe 2'de yok)
     var Qi = DT.perf ? DT.perf.kalite() : 0, tNow = root.performance ? root.performance.now() : Date.now();
-    if (d.top && !actorBall && Qi < 2 && A.topIzi !== false && d.zaman > 0.02) {
+    if (d.top && !actorBall && Qi < 2 && A.topIzi !== false && d.zaman > 0.02 && !d.alev) {   // alevli şutta beyaz iz yok: ateş izi var
       var qi = izdus(d.top.x, d.top.y, d.top.z);
       if (qi) { var sonIz = izTop[izTop.length - 1]; if (!sonIz || Math.hypot(qi.x - sonIz.x, qi.y - sonIz.y) > 1.5) izTop.push({ x: qi.x, y: qi.y, r: Math.max(1.5, qi.olcek * A.kale.topYaricap), t: tNow }); }
       while (izTop.length && tNow - izTop[0].t > 260) izTop.shift();
       if (izTop.length > 1 && qi) liste.push({ z: qi.d + 0.002, ciz: function () { izCiz(g, tNow); } });
     } else izTop.length = 0;
+    if (d.alev && d.top && !actorBall && d.zaman > 0.02) {   // alevli şut: ateş izi ve parlama
+      var qa = izdus(d.top.x, d.top.y, d.top.z);
+      if (qa) { alevGuncelle(qa, tNow, Qi); liste.push({ z: qa.d + 0.004, ciz: function () { alevCiz(g, tNow, qa); } }); }
+    } else { alevP.length = 0; alevOnceki = null; }
     liste.sort(function (a, b) { return b.z - a.z; });
     liste.forEach(function (o) { o.ciz(); });
 
@@ -869,6 +905,7 @@
     }
     if (d.nisan) nisanCiz(g, d.nisan.aim, d.nisan.kilit, d.nisan.falso, d.nisan.onizleme, d.nisan.fifa);
     if (d.flas) { g.fillStyle = 'rgba(255,255,255,' + d.flas + ')'; g.fillRect(0, 0, W, H); }
+    if (d.yavas > 0.01) yavasCiz(g, d.yavas);
     if (d.konfeti) konfetiCiz(g, d.konfeti, Qi);
     // Screen-space captions are composited after the complete 3D scene.
     alayCiz(g, d.alay === undefined ? -1 : d.alay, d.alayTur, d.alayTohum || 0, d.alayKisi || null);

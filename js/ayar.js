@@ -50,7 +50,7 @@
       hareketSabit: 0.08,                        // her hareketin sabit süresi (s)
       baslangicY: 1.0
     },
-    antrenman: { tepkiEk: 0.035, hizAzalt: 0.6 },   // antrenmanda kaleci biraz yavaş
+    antrenman: { tepkiEk: 0.012, hizAzalt: 0.30 },   // antrenmanda kaleci biraz yavaş
     puan: { penalti: 100, frikik: 110, zaman: 10, zor: 5, bonusTavan: 15 },
     koseMetre: 1.0,       // direğe bu kadar yakın gol = "köşe"
 
@@ -58,7 +58,7 @@
     tekrar: { baslangic: -0.55, hiz: 0.5, sonra: 1.0, zum: 1.5, ses: true },   // tekrar: temastan 0,55 sn önce başlar, olaydan 1 sn sonra biter; yarı hızda; kamera topu 1,5 kat yakınlaşıp izler
     topIzi: true,                                            // hızlı topun arkasında sönen iz (kademe 2'de ayrıca kapalı)
     ruzgar: { acik: true },                                  // antrenman/hedef ağında vuruş başına rüzgâr (kupada yok)
-    yavasCekim: { once: 0.45, sonra: 0.25, hiz: 0.40 },    // gol, kurtarış ve direkten dönüşte olaydan 0,45 sn önce başlayıp 0,25 sn sonra biten yavaş çekim (hız çarpanı)
+    yavasCekim: { once: 0.45, sonra: 0.25, hiz: 0.40, minKmh: 100 },    // YALNIZ 100 km/sa ve üstü şutlarda: olaydan 0,45 sn önce başlayıp 0,25 sn sonra biten ağır çekim (hız çarpanı) + ağır çekim ses efekti ve görsel vurgu; altında hiçbiri yok
     tezTTS: true,                                           // gol tezahüratı kayıt yoksa tarayıcının Türkçe konuşma sentezini kullanır
     kosuSure: { penalti: 1.5, frikik: 1.7, hedef: 1.5 },   // basıştan vuruş temasına kadar koşu süresi (sn)
     hareket: true             // tribün, bayrak, ağ ve gol sevinci hareketleri (sistem "hareketi azalt" ayarından bağımsız; testler false yapar)

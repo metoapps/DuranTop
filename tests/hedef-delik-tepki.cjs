@@ -12,7 +12,7 @@ let sonCizim=null,golSes=0,alayN=0,sesler=[];D.cizim.ciz=function(x){sonCizim=x;
 const eskiH=D.hedef.hesapla;let senaryo=null;D.hedef.hesapla=g=>eskiH(Object.assign({},g,senaryo?{aim:senaryo.aim,zaman:.5,contact:{x:0,y:0},guc:senaryo.guc||.9}:{}));
 async function tur(senaryolar){await flush();fire('btnAntrenman','click');await flush();const sonuclar=[];
  for(let i=0;i<10;i++){const hedefMi=d.pos.tip==='hedef';senaryo=hedefMi?senaryolar.shift():null;golSes=0;alayN=0;sesler.length=0;
-  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=400;fire('vurBtn','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus');
+  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus');
   let k=0,flas=0;while(d.faz==='vurus'&&k++<4000){time+=16;root.frame();if(sonCizim&&sonCizim.flas)flas=Math.max(flas,sonCizim.flas);}assert.equal(d.faz,'sonuc');
   if(hedefMi){const r=d.sonuclar[d.sonuclar.length-1];time+=300;root.frame();sonuclar.push({sonuc:gecerli(),golSes,alayN,sesler:sesler.slice(),flas,kart:el('sonuc').className,baslik:el('sonucBaslik').textContent,sevinc:sonCizim&&sonCizim.onKarakter&&sonCizim.onKarakter.poz,heyecan:sonCizim&&sonCizim.heyecan,alayTur:d.alayTur,alayT0:!!d.alayT0});}
   fire('devamBtn','click');}

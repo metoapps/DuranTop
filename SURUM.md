@@ -28,3 +28,4 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261018b | Basılı tutma iptal güvenliği, gövdeye bağlı forma UV, önde çizilen tribün metinleri, dönüş/sürtünmeli direk darbesi (rules 12), öne alınan gol kaydı |
 
 | 20261019a | Menü cilası, ses düzeyi kaydırıcıları (müzik/efekt/spiker+tribün), spiker tekrar yorgunluğu, kaleci yüksek yakası |
+| 20261020a | Ağır çekim yalnız ≥100 km/sa (ses+vinyet), alevli şut, gerçekçi kaleci sıçraması (kupa dışı), ayrı merkez ibre alanı, baraj kolları aşağıda, ikinci gol sesi |

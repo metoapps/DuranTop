@@ -165,7 +165,7 @@
     d.ruzgar = (d.mod !== 'resmi' && A.ruzgar && A.ruzgar.acik !== false && DT.ruzgar) ? DT.ruzgar.uret(d.seed ^ 0x9e37) : null;
     if (d.ruzgar && d.mod === 'hayat') d.ruzgar = DT.ruzgar.olcekle(d.ruzgar, DT.modlar.hayatZorluk(d.hayatGol).ruzgarOlcek);   // hayatta kal: rüzgâr zorlaşır
     d.altin = (d.mod !== 'resmi' && d.pos.tip !== 'hedef' && DT.bonus) ? DT.bonus.altinUret(d.seed ^ 0x51ed) : null;   // altın bölge: yalnız antrenman penaltı/frikik
-    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.kamDurus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=true;d.alayT0=null;d.konfetiT0=null;d.tekrar=null;panelKonumu();
+    d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.kamDurus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=true;d.alev=false;d.alayT0=null;d.konfetiT0=null;d.tekrar=null;panelKonumu();
     $('gucPanel').hidden=true;$('gucSec').value=100;$('gucNot').textContent='%100 · Tam güç';$('fifaNisan').hidden=true;$('fifaKutu').hidden=true;d.fifa={faz:null};d.nisanHiz=null;$('temasPanel').hidden = true;
     $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';$('ucusDurum').textContent='';
     $('sonuc').hidden = true; $('alt').hidden = true;
@@ -316,8 +316,10 @@
     var now = simdi();
     var zaman = typeof zamanVerilen === 'number' ? zamanVerilen : (zamanVerilen === null ? null : (cubukAktif() ? cubukDegeri(now) : null));
     if (fifaMod() && !(d.fifa && d.fifa.atis)) return;   // FIFA frikikte yalnız sayaç vurdurur
-    d.fifa = { faz: null };
-    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
+    /* ALEVLİ ŞUT: maksimum güç (≥%98) VE hareketli imleç yeşil bandı tam yakaladıysa (|zaman−0,5| ≤ yeşil bant yarı genişliği). Yalnız görsel/ses ödülü; fizik ve sonuç aynı. */
+    d.alev = typeof zaman === 'number' && (d.guc || 0) >= 0.98 && Math.abs(zaman - 0.5) <= DT.zamanBandi(d.aim, d.guc, k10());
+    d.fifa = { faz: null }; fifaYaz();
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,direkFizigi:true,kural10:d.mod!=='resmi',balistikDalis:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:(d.mod==='antrenman'?0.30:undefined) };   // balistikDalis: kupada yok; antrenman kalecisi biraz daha usta (seviye .30)
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
       d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
@@ -375,8 +377,19 @@
    * Dünya zamanı (top, kaleci, şutçu, sesler, olaylar) aynı haritadan geçer; yalnız gerçek zaman uzar. Kaçan şutlarda (aut, kısa, baraj) yok. */
   function yavasPlan(r, olayT) {
     var Y = A.yavasCekim; if (!Y || Y.acik === false) return null;
-    var tur = r.sonuc; if (!(tur === 'gol' || tur === 'direk_gol' || tur === 'kurtaris' || tur === 'direk_disari' || (d.pos && d.pos.tip === 'hedef' && r.delik))) return null;
+    var tur = r.sonuc; if (tur === 'baraj' || tur === 'kisa') return null;   // barajda ya da kısa kalan şutta "kaleye giden sürat" yok
+    if (!(r.speed * 3.6 >= (Y.minKmh || 100))) return null;   // 100 km/sa altı şutlarda ağır çekim da, ses efekti de, görsel vurgu da yok
     return { a: Math.max(0, olayT - Y.once), b: olayT + Y.sonra, k: Y.hiz };
+  }
+  /* Ağır çekim ses efekti ve görsel vurgu, ağır çekimle EŞ ZAMANLI: pencere başlayınca "ağır çekim" süpürmesi (alçalan ton + gürleme), bitince "hızlanma" süpürmesi (yükselen ton).
+   * Müzik pencere boyunca kısılır. Dönen değer 0..1 görsel yoğunluktur (vinyet; cizim.js). Yalnız yavasPlan varsa (≥100 km/sa) çalışır. */
+  function yavasEfekt(an, simT) {
+    var y = an.yavas; if (!y) return 0;
+    if (!an.yavasBasladi && simT >= y.a) { an.yavasBasladi = true; if (DT.muzik) { DT.muzik.efekt('yavasBasla'); DT.muzik.kis((y.b - y.a) / y.k + 0.3, 0.35); } }
+    if (an.yavasBasladi && !an.yavasBitti && simT >= y.b) { an.yavasBitti = true; if (DT.muzik) DT.muzik.efekt('yavasBit'); }
+    if (simT < y.a) return 0;
+    if (simT < y.b) return Math.min(1, (simT - y.a) / 0.05);
+    return Math.max(0, 1 - (simT - y.b) / 0.10);
   }
   function simSure(e, y) {   // temastan beri gerçek süre → simülasyon süresi
     if (!y || e <= y.a) return e;
@@ -432,7 +445,7 @@
     if (d.faz === 'nisan') {
       if (d.aim) out.nisan = { aim: d.aim, kilit: d.kilit, onizleme: (d.temasHazir&&!fifaMod())?d.onizleme:null, fifa: fifaMod(), fifaYol: fifaMod()?fifaOnizleme(now):null };
     } else if (d.faz === 'vurus' && d.an) {
-      var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el < an.on ? el - an.on : simSure(el - an.on, an.yavas); an.simT = simT;
+      var r = gecerliSonuc.r, an = d.an, el = (now - an.t0) / 1000, simT = el < an.on ? el - an.on : simSure(el - an.on, an.yavas); an.simT = simT; out.yavas = yavasEfekt(an, simT);
       out.oyuncu.ilerleme = Math.max(0, Math.min(1, el / (an.on + 0.40)));
       out.oyuncu.sure=el < an.on ? el : an.on + simT;out.oyuncu.on=an.on;   // şutçunun vuruş sonrası hareketi de yavaş çekimde
       out.oyuncu.temas = an.on / (an.on + 0.40);
@@ -440,9 +453,10 @@
       out.oyuncu.poz = el < an.on ? 'vurus1' : (el < an.on + 0.10 ? 'vurus2' : 'vurus3');
       if(r.kaleci.onKarar)out.kaleci=r.kaleci.cizimKonum(simT);
       if (simT > 0) {
-        if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); titret(14); if (DT.muzik) DT.muzik.kis(2.4, 0.4); }
+        if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); titret(14); if (d.alev) { an.alevT0 = now; if (DT.muzik) { DT.muzik.efekt('alev'); DT.muzik.kis(1.4, 0.45); } titret([20, 30, 60]); } if (DT.muzik) DT.muzik.kis(2.4, 0.4); }
         out.zaman=simT;var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
-        if (simT < 1.6) out.hizBalon = { km: Math.round(r.speed * 3.6), t: simT };   // vuruş hızı balonu
+        if (simT < 1.6) out.hizBalon = { km: Math.round(r.speed * 3.6), t: simT, alev: !!d.alev };   // vuruş hızı balonu
+        if (d.alev) { out.alev = true; var ea = (now - (an.alevT0 || now)) / 1000; out.sarsinti = ea < 0.28 ? 10.5 * (1 - ea / 0.28) : out.sarsinti; out.flas = ea < 0.16 ? 0.28 * (1 - ea / 0.16) : out.flas; }   // alevli şut: ateş izi, sarsıntı ve parlama
         out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
         out.kaleci = (!r.kaleci.onKarar&&(r.sonuc === 'baraj'||r.sonuc === 'kisa')) ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
         var se = simT - an.olayT;
@@ -680,7 +694,7 @@
    * Sıra: duruş → okla nişan (◀ ▶ yön, ▲ ▼ yükseklik; ya da kaleye dokun) → falso (topun neresine) →
    * VUR'u basılı tut: güç dolar, fazla tutarsan geri düşer; bırak → ibre geri döner, yeşilde tekrar bas.
    * Sunucuya giden girdiler aynı (nişan, temas, güç, zamanlama, duruş): kural sürümü değişmez (rules 9). */
-  var FIFA = { gucSure: 1100, nisanX: 3.2, nisanY: 1.6 };   // m/sn; basılı tutuldukça 2,2 katına hızlanır
+  var FIFA = { gucSure: 1100, nisanX: 3.2, nisanY: 1.6, hazirSure: 650 };   // hazirSure: güç bırakıldıktan sonra ibre BU kadar ms bekler (yanlışlıkla seçim olmasın)   // m/sn; basılı tutuldukça 2,2 katına hızlanır
   /* Yer oku = topun GERÇEK uçuş yolu (tam güç, kusursuz zamanlama): falso verince ok eğilir, alt temasta ok havaya kalkar.
    * Hesap önbelleğe alınır ve en çok ≈14 kez/sn yenilenir (kural 10 hızlı entegrasyonla ≈7 ms). */
   var onizBel = { key: '', yol: null, t: -1e9 };
@@ -718,12 +732,13 @@
   function fifaIsabet(now) { var x = fifaIlerleme(now); return Math.max(0, Math.min(1, x <= 1 ? x : 2 - x)); }
   function fifaHazir() { return d.faz === 'nisan' && d.kilit && d.temasHazir && d.durusHazir && DT.cizim.hazir(); }
   function fifaAt(zaman) { d.fifa.atis = true; vur(zaman); }
-  function fifaBas() {
+  /* kaynak: 'vur' = VUR düğmesi (güç yalnız oradan başlar; ibreyi DURDURMAZ), 'tik' = ekran ortasındaki büyük ibre alanı, tuş = boşluk. Güç bırakılınca 'hazir' evresi başlar: ibre sabit ve dokunuşlar yok sayılır. */
+  function fifaBas(kaynak) {
     if (d.guncelle) { root.location.reload(); return; }
     if (!fifaMod() || !fifaHazir()) return;
     var now = simdi();
-    if (!d.fifa || !d.fifa.faz) { d.fifa = { faz: 'guc', t0: now }; fifaYaz(); return; }
-    if (d.fifa.faz === 'isabet') fifaAt(fifaIsabet(now));
+    if (!d.fifa || !d.fifa.faz) { if (kaynak === 'tik') return; d.fifa = { faz: 'guc', t0: now }; fifaYaz(); return; }
+    if (d.fifa.faz === 'isabet' && kaynak !== 'vur') fifaAt(fifaIsabet(now));
   }
   var fifaPointer = null;
   function fifaIptal() { fifaPointer=null;if(d.fifa&&d.fifa.faz){d.fifa={faz:null};fifaYaz();} }
@@ -731,17 +746,22 @@
     if (!d.fifa || d.fifa.faz !== 'guc') return;
     var now = simdi(); d.guc = fifaGuc(now); bantGuncelle(); acikKaydet();
     if (!cubukAktif()) { fifaAt(null); return; }
-    d.fifa = { faz: 'isabet', t0: now, guc: d.guc }; fifaYaz();
+    d.fifa = { faz: 'hazir', t0: now, guc: d.guc }; fifaYaz();   // ibre hemen başlamaz: önce kısa bir hazırlık (parmak düğmeden çekilsin), sonra hareketli imleç
   }
   function fifaYaz() {
     var el = $('fifaYazi'); if (!el) return; var f = d.fifa || {};
-    el.textContent = f.faz === 'guc' ? 'Güç doluyor… bırak!' : f.faz === 'isabet' ? '%' + Math.round(f.guc * 100) + ' güç · Yeşilde bas! İbre aşağı iner, sonra bir kez geri döner.' : "3/3 · Sertlik: VUR'u basılı tut, dolsun, bırak.";
-    $('vurBtn').textContent = f.faz === 'isabet' ? 'BAS!' : 'VUR';
+    var ibreAsamasi = f.faz === 'hazir' || f.faz === 'isabet';
+    el.textContent = f.faz === 'guc' ? 'Güç doluyor… bırak!' : f.faz === 'hazir' ? '%' + Math.round(f.guc * 100) + ' güç seçildi · ibre başlıyor…' : f.faz === 'isabet' ? '%' + Math.round(f.guc * 100) + ' güç · Ortadaki daireye dokun: yeşilde bas!' : "3/3 · Sertlik: VUR'u basılı tut, dolsun, bırak.";
+    $('vurBtn').textContent = ibreAsamasi ? '…' : 'VUR'; if (ibreAsamasi) $('vurBtn').disabled = true; else if (d.faz === 'nisan') $('vurBtn').disabled = false;
+    var tik = $('fifaTik'); if (tik) { tik.hidden = !ibreAsamasi; if (tik.classList && tik.classList.toggle) tik.classList.toggle('hazir', f.faz === 'hazir'); }
+    var ty = $('fifaTikYazi'); if (ty) ty.textContent = f.faz === 'hazir' ? 'Hazırlan…' : 'Yeşile gelince dokun!';
   }
   function fifaKare(now) {
-    var f = d.fifa || {}, guc = f.faz === 'guc' ? fifaGuc(now) : f.faz === 'isabet' ? f.guc : null, v = f.faz === 'isabet' ? fifaIsabet(now) : null;
+    var f = d.fifa || {};
+    if (f.faz === 'hazir' && now - f.t0 >= FIFA.hazirSure) { d.fifa = { faz: 'isabet', t0: now, guc: f.guc }; f = d.fifa; fifaYaz(); }   // hazırlık bitti: hareketli imleç şimdi başlar
+    var guc = f.faz === 'guc' ? fifaGuc(now) : (f.faz === 'isabet' || f.faz === 'hazir') ? f.guc : null, v = f.faz === 'isabet' ? fifaIsabet(now) : f.faz === 'hazir' ? 0 : null;
     if (f.faz === 'isabet' && fifaIlerleme(now) >= 2) { fifaAt(0); return; }   // ibre iki geçişi de bitirdi: en kötü zamanlamayla vurulur
-    var cv = $('fifaSayac'); if (!cv || !cv.getContext) return; var g = cv.getContext('2d'); if (!g || !g.arc) return;
+    var cv = $((f.faz === 'isabet' || f.faz === 'hazir') ? 'fifaSayacBuyuk' : 'fifaSayac'); if (!cv || !cv.getContext) return; var g = cv.getContext('2d'); if (!g || !g.arc) return;   // ibre evresi ekranın ortasındaki büyük ölçekte çizilir
     var W = 240, c = 120, R = 92, a0 = Math.PI * 0.75, tam = Math.PI * 1.5, oran = function (x) { return (x - 0.3) / 0.7; };
     g.clearRect(0, 0, W, W); g.lineCap = 'butt';
     g.lineWidth = 18; g.strokeStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(c, c, R, a0, a0 + tam); g.stroke();
@@ -825,13 +845,14 @@
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
     $('turTekrar').addEventListener('click', function () { secimGoster(d.mod); });
-    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); if(fifaPointer!==null)return;fifaBas();if(d.fifa&&d.fifa.faz==='guc'){fifaPointer=e.pointerId;try { this.setPointerCapture(e.pointerId); } catch (x) {}} return; } vur(); });
+    $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); if(fifaPointer!==null)return;fifaBas('vur');if(d.fifa&&d.fifa.faz==='guc'){fifaPointer=e.pointerId;try { this.setPointerCapture(e.pointerId); } catch (x) {}} return; } vur(); });
     $('vurBtn').addEventListener('pointerup',function(e){if(fifaPointer!==null&&e.pointerId!==fifaPointer)return;fifaPointer=null;if(fifaMod())fifaBirak();});
     ['pointercancel','lostpointercapture'].forEach(function(t){$('vurBtn').addEventListener(t,function(e){if(fifaPointer!==null&&(e.pointerId===fifaPointer||e.pointerId===undefined))fifaIptal();});});
     $('vurBtn').addEventListener('contextmenu',function(e){e.preventDefault();});
     if(root.addEventListener)root.addEventListener('blur',fifaIptal);
     doc.addEventListener('visibilitychange',function(){if(doc.hidden)fifaIptal();});
-    $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0||fifaPointer!==null) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas(); return; } vur(); });
+    $('vurBtn').addEventListener('click', function (e) { if (e.detail !== 0||fifaPointer!==null) return; if (fifaMod()) { if (d.fifa && d.fifa.faz === 'guc') fifaBirak(); else fifaBas('vur'); return; } vur(); });
+    if ($('fifaTik')) $('fifaTik').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (e.preventDefault) e.preventDefault(); fifaBas('tik'); });
     $('cubukYol').addEventListener('pointerdown', vur);
     $('duzeltBtn').addEventListener('click', duzelt);
     $('devamBtn').addEventListener('click', function () { tekrarBitir(); devam(); });

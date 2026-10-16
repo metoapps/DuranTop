@@ -2,10 +2,10 @@
 // gol uğultusu sustur() ile kesilir; düdük ilk açışta kaydın inmesini kısa süre bekler; oyun.js düdüğü koşu başında çalar.
 // Çalıştır: node tests/ses-kayit-tam.cjs
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
-const KOK=path.join(__dirname,'..'),ADLAR=['vurus','direk','file','islik','gol'];
+const KOK=path.join(__dirname,'..'),ADLAR=['vurus','direk','file','islik','gol','gol-2'];
 
 // 1) Dosyalar: MP3 başlığı ve makul boyut (süre sınırları OKU-BENI.txt ile uyumlu; ölçüm ffprobe ile teslim notunda)
-const SINIR={vurus:[3000,40000],direk:[3000,40000],file:[3000,40000],islik:[3000,40000],gol:[40000,400000]};
+const SINIR={vurus:[3000,40000],direk:[3000,40000],file:[3000,40000],islik:[3000,40000],gol:[40000,400000],'gol-2':[20000,200000]};
 for(const ad of ADLAR){
   const p=path.join(KOK,'assets/ses',ad+'.mp3');assert(fs.existsSync(p),ad+'.mp3 yok');
   const b=fs.readFileSync(p);const id3=b.slice(0,3).toString()==='ID3',sync=b[0]===0xff&&(b[1]&0xe0)===0xe0;
@@ -34,10 +34,12 @@ const bekle=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
   // Hepsi yüklenir ve kayıttan çalınır
   let s=kur({kayitVar:true});s.DT.ses.ayarla(true);await bekle(20);
-  assert.deepEqual(s.istenen.map(u=>u.split('/').pop().split('?')[0]).sort(),ADLAR.map(a=>a+'.mp3').sort(),'beş kaydın hepsi istenir');
+  assert.deepEqual(s.istenen.map(u=>u.split('/').pop().split('?')[0]).sort(),ADLAR.map(a=>a+'.mp3').sort(),'altı kaydın hepsi istenir (gol-2: ikinci gerçek kalabalık kaydı)');
   assert(s.istenen.every(u=>/\?v=20261006a$/.test(u)),'önbellek etiketi güncel');
   for(const ad of ADLAR)assert(s.DT.ses.kayitVarMi(ad),ad+' yüklenmedi');
-  for(const ad of ['vurus','islik','gol']){s.calan.length=0;s.DT.ses.cal(ad);assert.equal(s.calan.length,1,ad+' tek kaynak');assert.equal(s.calan[0].buffer.kayit,ad,ad+' kayıttan çalmalı');}
+  for(const ad of ['vurus','islik','gol']){s.calan.length=0;s.DT.ses.cal(ad);assert.equal(s.calan.length,1,ad+' tek kaynak');assert((ad==='gol'?['gol','gol-2']:[ad]).includes(s.calan[0].buffer.kayit),ad+' kayıttan çalmalı');}
+  // Goller iki gerçek kalabalık kaydından DÖNÜŞÜMLÜ çalar (art arda aynı kayıt yok)
+  {const sira=[];for(let k=0;k<8;k++){s.calan.length=0;s.DT.ses.cal('gol');sira.push(s.calan[0].buffer.kayit);}assert(sira.every((a,i)=>i===0||a!==sira[i-1]),'gol kayıtları dönüşümlü: '+sira.join(','));assert(new Set(sira).size===2,'iki kayıt da kullanılır');}
   // Gol uğultusu: sustur() 0,3 sn'de kısar ve durdurur; ikinci gol öncekini keser
   s.calan.length=0;s.DT.ses.cal('gol');const gol1=s.calan[0];s.zaman.t=2;s.DT.ses.cal('gol');assert(Math.abs(gol1.durdu-2.32)<1e-9,'yeni gol önceki uğultuyu keser');
   const gol2=s.calan[1];s.zaman.t=3;s.DT.ses.sustur();assert(Math.abs(gol2.durdu-3.32)<1e-9,'sustur uğultuyu keser');
@@ -65,6 +67,6 @@ const bekle=ms=>new Promise(r=>setTimeout(r,ms));
   for(const ad of ['vur','vurusUygula','fifaBas','fifaBirak','fifaKare','nisanIlerle']) assert(!/ses\.cal\('islik'\)/.test(govde(ad)),ad+' içinde düdük çalmamalı');
   assert(/function vurusHazirla[\s\S]*?DT\.ses\.cal\('islik'\)/.test(govde('vurusHazirla')),'düdük vurusHazirla içinde çalmalı');
   const html=fs.readFileSync(path.join(KOK,'index.html'),'utf8');
-  assert(/js\/ses\.js\?v=20261019a/.test(html)&&/js\/oyun\.js\?v=20261019a/.test(html),'index.html önbellek etiketleri');
+  assert(/js\/ses\.js\?v=20261020a/.test(html)&&/js\/oyun\.js\?v=20261020a/.test(html),'index.html önbellek etiketleri');
   console.log('PASS five real recordings present; all loaded and played; crowd roar cut on next shot/mute; whistle waits for first load; synth fallback; oyun.js wiring');
 })().catch(e=>{console.error(e);process.exit(1);});

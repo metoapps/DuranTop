@@ -26,10 +26,14 @@ for(let i=0;i<10;i++){
    fire('vurBtn','pointercancel',{pointerId:21});time+=3000;root.frame();assert(!d.fifa.faz,'tarayıcı iptalinde şut yerine sıfırlanır');assert.equal(shots,0);
    fire('vurBtn','pointerdown',{isPrimary:true,pointerId:23});fire('vurBtn','lostpointercapture',{pointerId:23});time+=3000;root.frame();assert(!d.fifa.faz);assert.equal(shots,0);
   }
-  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'isabet');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.fifa.faz,'guc');time+=550;root.frame();fire('vurBtn','pointerup');assert.equal(d.fifa.faz,'hazir','bırakınca ibre HEMEN başlamaz: hazırlık evresi');assert(!el('fifaTik').hidden,'ortadaki büyük ibre alanı görünür');assert(Math.abs(d.guc-.65)<.02,'yarım dolu güç ≈%65: '+d.guc);assert.equal(shots,i,'bırakmak vurmaz');
+  // hazırlıkta dokunuşlar yok sayılır (yanlışlıkla seçim olmasın): ne VUR düğmesi ne ibre alanı vurdurur
+  fire('fifaTik','pointerdown',{isPrimary:true});fire('vurBtn','pointerdown',{isPrimary:true});time+=300;root.frame();assert.equal(d.fifa.faz,'hazir','0,3 sn: hâlâ hazırlıkta');assert.equal(shots,i,'hazırlıktaki dokunuşlar vurdurmaz');assert.equal(d.faz,'nisan');
+  time+=400;root.frame();assert.equal(d.fifa.faz,'isabet','0,65 sn sonra hareketli imleç başlar');
+  fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i,'ibre sırasında VUR düğmesi ibreyi durdurmaz (ayrı dokunma alanı)');assert.equal(d.fifa.faz,'isabet');
   if(i===6){time+=1500;root.frame();assert.notEqual(d.faz,'gonderiliyor','ibre aşağı indi ve geri dönüyor: hâlâ ikinci şans');time+=300;root.frame();assert.equal(d.faz,'gonderiliyor','iki geçiş de bitince en kötü zamanlamayla vurulur');}
-  else if(i===4){time+=1000;root.frame();assert.equal(d.faz,'nisan','ibre 1,0 sn: ikinci geçişte, hâlâ vurulmadı');time+=200;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor','ikinci geçişte (geri dönerken) de vurulabilir');}
-  else{time+=400;fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');}
+  else if(i===4){time+=1000;root.frame();assert.equal(d.faz,'nisan','ibre 1,0 sn: ikinci geçişte, hâlâ vurulmadı');time+=200;fire('fifaTik','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor','ikinci geçişte (geri dönerken) de vurulabilir');}
+  else{time+=400;fire('fifaTik','pointerdown',{isPrimary:true});assert.equal(d.faz,'gonderiliyor');}
   fire('vurBtn','pointerdown',{isPrimary:true});assert.equal(shots,i+1);
  }
  await flush();assert.equal(d.faz,'vurus');time+=15000;root.frame();assert.equal(d.faz,'sonuc');fire('devamBtn','click');}
