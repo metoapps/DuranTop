@@ -10,11 +10,17 @@ function pose(id,t){
   p.right=blend([67,210,35],[-38,316,45],sip);p.right=blend(p.right,[88,300,38],cheers);
   p.left=[-72,205,25];p.prop='latte';p.propAngle=-.28*sip+.06*Math.sin(t*7)*(1-sip);p.turn=.08*Math.sin(t*1.4);
  }else if(id==='lort'){
-  var ring=smooth(.35,.8,t)*(1-smooth(1.25,1.7,t)),pocket=smooth(1.6,2.1,t)*(1-smooth(2.4,2.8,t)),horon=smooth(2.6,3.1,t)*(1-smooth(5.0,5.6,t));
-  p.left=[-62,203,30];p.right=blend([67,194,35],[-26,204+9*Math.sin(t*15),56],ring);
-  p.right=blend(p.right,[42,156,23],pocket);p.left=blend(p.left,[-110,272,12],horon);p.right=blend(p.right,[110,272,12],horon);
-  p.feet[0]=[-24-8*horon*beat,8+12*horon*Math.max(0,beat),0];p.feet[1]=[24-8*horon*beat,8+12*horon*Math.max(0,-beat),0];
-  p.shift=3*horon*Math.sin(t*10);p.prop=t<1.7?'bell':t<2.7?'coin':null;p.propAngle=ring;
+  // Daha doğal, tam-beden sevinç: kontrollü kol açılışı, hafif zıplama, ayak kaldırma.
+  // Kol hedefleri konforlu mesafede (dirsek kırılmış görünmez).
+  var open=smooth(.4,1.2,t)*(1-smooth(3.8,4.6,t));
+  var hop=smooth(1.3,2.0,t)*(1-smooth(2.6,3.2,t));
+  p.left=blend([-65,155,18],[-105,235,22],open);
+  p.right=blend([65,155,18],[105,235,22],open);
+  p.feet[0]=[-22,8+18*hop*Math.max(0,beat),0];
+  p.feet[1]=[22,8+18*hop*Math.max(0,-beat),0];
+  p.shift=4*hop*Math.sin(t*6);
+  p.turn=.18*open*Math.sin(t*1.2);
+  p.prop=null;
  }else if(id==='josh'){
   var rock=smooth(.25,.9,t)*(1-smooth(4.3,5.5,t));p.left=[-26,202,55];p.right=[30,210,55];p.prop='baby';
   p.turn=.12*rock*Math.sin(t*2.5);p.shift=2*rock*Math.cos(t*5);p.propAngle=.12*rock*Math.sin(t*2.5);
@@ -26,7 +32,6 @@ function pose(id,t){
  }else if(id==='meto'){
   // Badge touch -> grounded, open-arm salute -> turn to the stands -> relax.
   // Arms kept within comfortable reach so elbows never look broken or hyperextended.
-  // Previous targets (~158,260) forced extreme stretch; now softer open pose.
   var badge=smooth(.20,.65,t)*(1-smooth(.95,1.45,t)),eagle=smooth(1.15,2.35,t)*(1-smooth(4.45,5.75,t));
   p.left=blend([-65,155,18],[-120,245,18],eagle);
   p.right=blend([65,155,18],[-8,230,42],badge);p.right=blend(p.right,[120,245,18],eagle);
