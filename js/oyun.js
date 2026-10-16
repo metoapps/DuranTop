@@ -372,18 +372,27 @@
   function golMu(r) { return r.sonuc === 'gol' || r.sonuc === 'direk_gol' || r.sonuc === 'delik'; }
   var SONUC_SES = { gol: null, direk_gol: 'direk', direk_disari: 'direk', kurtaris: 'kurtaris', baraj: 'baraj', aut: null };
 
-  /* Yavaş çekim: gol, kurtarış ve direkten dönüşte olaydan A.yavasCekim.once sn önce başlar, .sonra sn sonra biter (sim zamanında), hız .hiz kat.
-   * Dünya zamanı (top, kaleci, şutçu, sesler, olaylar) aynı haritadan geçer; yalnız gerçek zaman uzar. Kaçan şutlarda (aut, kısa, baraj) yok. */
+  /* Presentation only: >120 km/h, at least four metres at full speed, then
+   * a short smoothly ramped bullet-time window. Physics samples stay intact. */
   function yavasPlan(r, olayT) {
-    var Y = A.yavasCekim; if (!Y || Y.acik === false) return null;
-    var tur = r.sonuc; if (!(tur === 'gol' || tur === 'direk_gol' || tur === 'kurtaris' || tur === 'direk_disari' || (d.pos && d.pos.tip === 'hedef' && r.delik))) return null;
-    return { a: Math.max(0, olayT - Y.once), b: olayT + Y.sonra, k: Y.hiz };
+    var Y=A.yavasCekim;if(!Y||Y.acik===false||!(r.speed>120/3.6))return null;
+    var origin=r.yol[0],start=r.yol.find(function(p){return p.t<olayT&&Math.hypot(p.x-origin.x,p.y-origin.y,p.z-origin.z)>=4;});
+    if(!start)return null;var a=start.t,b=Math.min(a+.24,olayT+.08),k=.35,ramp=Math.min(.08,(b-a)/(1+k)*.8),entry=ramp*(1+k)/2,hold=Math.max(0,b-a-2*entry);
+    return{a:a,b:b,k:k,ramp:ramp,entry:entry,hold:hold,real:2*ramp+hold/k,extra:2*ramp+hold/k-(b-a),cinematic:true};
   }
-  function simSure(e, y) {   // temastan beri gerçek süre → simülasyon süresi
-    if (!y || e <= y.a) return e;
-    var pencere = (y.b - y.a) / y.k;
-    if (e < y.a + pencere) return y.a + (e - y.a) * y.k;
-    return y.b + (e - y.a - pencere);
+  function simSure(e,y) {
+    if(!y||e<=y.a)return e;
+    if(!y.cinematic){var old=(y.b-y.a)/y.k;return e<y.a+old?y.a+(e-y.a)*y.k:y.b+e-y.a-old;}
+    var t=e-y.a,r=y.ramp,u;
+    if(t<r){u=t/r;return y.a+r*(u-(1-y.k)*(u*u*u-.5*u*u*u*u));}
+    t-=r;if(t<y.hold/y.k)return y.a+y.entry+t*y.k;
+    t-=y.hold/y.k;if(t<r){u=t/r;return y.b-y.entry+r*(y.k*u+(1-y.k)*(u*u*u-.5*u*u*u*u));}
+    return y.b+e-y.a-y.real;
+  }
+  function alevIzi(r,t){
+    if(!(r.speed>120/3.6)||t<=.015||t>r.olayT)return null;
+    var now=yolOrnek(r.yol,t),origin=r.yol[0];if(Math.hypot(now.x-origin.x,now.y-origin.y,now.z-origin.z)<.4)return null;
+    return{time:t,km:r.speed*3.6,points:[.075,.050,.025,0].map(function(ago){return yolOrnek(r.yol,Math.max(0,t-ago));})};
   }
   /* Tekrar: sonuç kartındaki "Tekrar" düğmesi atışı yeniden oynatır: koşunun son anı, vuruş ve sonuç yarı hızda; kamera (cizim.js zoom) topu izler.
    * Sonucu, puanı ve kayıtları etkilemez; ekrana dokunmak ya da süre dolması tekrarı bitirir. Tezahürat/alay tekrarlanmaz. */
@@ -408,7 +417,7 @@
     if (sim > 0) {
       if (!T.vurdu) { T.vurdu = true; if (H.ses !== false) DT.ses.cal('vurus'); }
       var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(sim, sonT);
-      out.top = yolOrnek(r.yol, tt); out.topAci = sim * ((r.spin && (r.spin[1] - 0.5 * r.spin[0])) || 0);
+      out.top = yolOrnek(r.yol, tt);out.alev=alevIzi(r,sim); out.topAci = sim * ((r.spin && (r.spin[1] - 0.5 * r.spin[0])) || 0);
       if (sim < 1.6) out.hizBalon = { km: Math.round(r.speed * 3.6), t: sim };
       out.kaleci = (!r.kaleci.onKarar && (r.sonuc === 'baraj' || r.sonuc === 'kisa')) ? { x: 0, y: 1, poz: 'bekle', yon: 0, ilerleme: 0 } : r.kaleci.cizimKonum(sim, r.olayT);
       var olayT = an.olayT;
@@ -444,7 +453,7 @@
         if (!an.vurdu) { an.vurdu = true; DT.ses.cal('vurus'); titret(14); if (DT.muzik) DT.muzik.kis(2.4, 0.4); }
         out.zaman=simT;var sonT = r.yol[r.yol.length - 1].t, tt = Math.min(simT, sonT);
         if (simT < 1.6) out.hizBalon = { km: Math.round(r.speed * 3.6), t: simT };   // vuruş hızı balonu
-        out.top = yolOrnek(r.yol, tt); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
+        out.top = yolOrnek(r.yol, tt);out.alev=alevIzi(r,simT); out.topAci = simT * ((r.spin && (r.spin[1] - .5*r.spin[0])) || 0);
         out.kaleci = (!r.kaleci.onKarar&&(r.sonuc === 'baraj'||r.sonuc === 'kisa')) ? {x:0,y:1,poz:'bekle',yon:0,ilerleme:0} : r.kaleci.cizimKonum(simT,r.olayT);
         var se = simT - an.olayT;
         if(r.direkTemas&&!an.direk&&simT>=r.direkTemas.t){an.direk=true;DT.ses.cal('direk',{hiz:r.speed});if(r.sonuc==='direk_disari'&&DT.tezahurat)an.uh=DT.tezahurat.uh();}   // direkten döndü: toplu "ahhh"
@@ -852,6 +861,6 @@
     root.requestAnimationFrame(dongu);
   }
 
-  DT.oyun = { baslat: baslat, _durum: d, _vur: vur, _devam: devam, _tekrar: tekrarBaslat, _tekrarBitir: tekrarBitir, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
+  DT.oyun = { _sinema:{plan:yavasPlan,time:simSure,trail:alevIzi},baslat: baslat, _durum: d, _vur: vur, _devam: devam, _tekrar: tekrarBaslat, _tekrarBitir: tekrarBitir, _kilitle: kilitle, _nisan: function (x, y) { d.aim = { x: x, y: y }; } };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', baslat); else baslat();
 })(typeof globalThis !== 'undefined' ? globalThis : window);

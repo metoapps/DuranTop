@@ -508,7 +508,8 @@
       var shot=durum.yol?{elapsed:elapsed3,windup:windup3,contact:durum.contact||null}:null;
       var placement=DT.futbolcu3d.placement(pos,{direction:dir,walk:walk3,shot:shot,path:durum.guide,turning:durum.donus});
       var ball=durum.renderTop,ballScreen=ball&&izdus(ball.x,ball.y,ball.z);
-      var ballLayer=ballScreen?{depth:ballScreen.d,draw:function(target){topCiz(target,ball,durum.topAci,true);}}:null;
+      var ballRadius=ballScreen?A.kale.topYaricap*ballScreen.olcek+4:0;
+      var ballLayer=ballScreen?{depth:ballScreen.d,rect:{left:ballScreen.x-ballRadius,top:ballScreen.y-ballRadius,right:ballScreen.x+ballRadius,bottom:ballScreen.y+ballRadius},draw:function(target){topCiz(target,ball,durum.topAci,true);}}:null;
       var rootX=placement.point[0],rootZ=placement.point[1],unit=placement.unit,yaw=placement.yaw;
       var anchor=izdus(rootX,0,rootZ),actorScale=unit*anchor.olcek;
       var worldProject=function(v){return izdus(rootX+v[0]*unit,(v[1]-8)*unit,rootZ+v[2]*unit);};
@@ -794,6 +795,16 @@
       g.drawImage(tribunTuval, 0, 0, W, tribunTuval.height / dpr);
     } catch (e) { tribunTuval = null; tribunBaglam = null; tribunDogrudan(g, d, supporter, saniye); }   // tuval yoksa eski yol: doğrudan çiz
   }
+  function alevCiz(g,fire){
+    if(!fire||!(fire.km>120))return;var pts=fire.points.map(function(p){return izdus(p.x,p.y,p.z);}).filter(Boolean);if(pts.length<2)return;
+    var last=pts[pts.length-1],width=Math.max(2,Math.min(15,last.olcek*.15)),pulse=1+.12*Math.sin(fire.time*65);
+    g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.lineJoin='round';
+    for(var layer=0;layer<3;layer++){
+      g.fillStyle=['rgba(255,68,8,.48)','rgba(255,158,20,.78)','rgba(255,243,161,.95)'][layer];var edge=[];
+      pts.forEach(function(p,i){var prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)],dx=next.x-prev.x,dy=next.y-prev.y,l=Math.hypot(dx,dy)||1,rad=width*pulse*[.95,.55,.21][layer]*(i/(pts.length-1)),wave=i&&i<pts.length-1?Math.sin(fire.time*60-i*2)*rad*.3:0;edge.push({x:p.x,y:p.y,nx:-dy/l,ny:dx/l,rad:rad,wave:wave});});
+      g.beginPath();edge.forEach(function(p,i){var x=p.x+p.nx*(p.rad+p.wave),y=p.y+p.ny*(p.rad+p.wave);if(i)g.lineTo(x,y);else g.moveTo(x,y);});edge.slice().reverse().forEach(function(p){g.lineTo(p.x-p.nx*(p.rad-p.wave),p.y-p.ny*(p.rad-p.wave));});g.closePath();g.fill();
+    }g.restore();
+  }
   function ciz(d) {
     kareNo++;
     if (!kam || !arka) return;
@@ -843,6 +854,7 @@
       }
       liste.push({z:depth,ciz:function(){var cache=kaleArkaCache;g.drawImage(face.canvas,cache.x,cache.y,cache.w,cache.h);}});
     });
+    if(d.top&&d.alev){var fireDepth=izdus(d.top.x,d.top.y,d.top.z);if(fireDepth)liste.push({z:fireDepth.d+.003,ciz:function(){alevCiz(g,d.alev);}});}
     var actorBall=!!(d.top&&d.oyuncu&&Math.hypot(d.top.x-pos.bx,d.top.z)<2);
     if (d.top && !actorBall) {
       var td = izdus(d.top.x, d.top.y, d.top.z);
@@ -850,7 +862,7 @@
     }
     // Top izi: hızlı topun arkasında sönen şerit (kademe 2'de yok)
     var Qi = DT.perf ? DT.perf.kalite() : 0, tNow = root.performance ? root.performance.now() : Date.now();
-    if (d.top && !actorBall && Qi < 2 && A.topIzi !== false && d.zaman > 0.02) {
+    if (d.top && !d.alev && !actorBall && Qi < 2 && A.topIzi !== false && d.zaman > 0.02) {
       var qi = izdus(d.top.x, d.top.y, d.top.z);
       if (qi) { var sonIz = izTop[izTop.length - 1]; if (!sonIz || Math.hypot(qi.x - sonIz.x, qi.y - sonIz.y) > 1.5) izTop.push({ x: qi.x, y: qi.y, r: Math.max(1.5, qi.olcek * A.kale.topYaricap), t: tNow }); }
       while (izTop.length && tNow - izTop[0].t > 260) izTop.shift();

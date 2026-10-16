@@ -8,12 +8,18 @@ let chromium;try{chromium=require('playwright').chromium;}catch{chromium=require
  for(const [w,h] of [[320,568],[430,932],[844,390],[1366,768]]){
  await page.setViewportSize({width:w,height:h});await page.evaluate(async([w,h])=>{document.body.innerHTML='<canvas id="modelQA"></canvas>';document.body.style='margin:0';const cv=document.getElementById('modelQA');DT.cizim.kur(cv,w,h,1);await DT.cizim.karakterYukle('meto');},[w,h]);
  const result=await page.evaluate(()=>{const C=DT.cizim,M=DT.meto3d,poses=[],before=performance.now();let calls=0,successful=0;const paint=M.draw;M.draw=(g,o)=>{calls++;let ok=paint(g,o);if(ok)successful++;return ok;};
+ const idle={zaman:0,top:{x:DT.AYAR.pozisyonlar[0].bx,y:.11,z:0},oyuncu:{karakter:'meto',durus:0}};C.sahneKur(DT.AYAR.pozisyonlar[0],0);C.ciz(idle);let draws=M._renderer().stats.drawCalls;for(let i=0;i<8;i++)C.ciz(idle);let idleExtraDraws=M._renderer().stats.drawCalls-draws;
  for(const pos of [DT.AYAR.pozisyonlar[0],DT.AYAR.pozisyonlar.find(p=>p.tip==='frikik')])for(const dir of [-1,0,1]){C.sahneKur(pos,dir);for(const t of [0,.6,1,1.12]){C.ciz({zaman:1,top:{x:pos.bx,y:.11,z:0},oyuncu:{karakter:'meto',durus:dir,...(t?{yol:[{}],sure:t*1.5,on:1.5}:{})}});poses.push(t);}}
- for(const variant of [0,1])C.ciz({onKarakter:{karakter:'meto',gol:true,sure:2.8,sevinc:variant}});
+ for(const variant of [0,1,2])C.ciz({onKarakter:{karakter:'meto',gol:true,sure:2.8,sevinc:variant}});
  M.draw=paint;const gl=M._renderer().gl,err=gl.getError(),canvas=document.getElementById('modelQA'),px=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
- const pixels=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,pixels);let modelPixels=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i])modelPixels++;return{calls,successful,modelPixels,err,ms:performance.now()-before,ink:px.some((v,i)=>i%4===3&&v>0),status:M.status.status};});
- assert.equal(result.status,'ready');assert.equal(result.err,0,'WebGL error');assert(result.calls>=24);assert.equal(result.successful,result.calls);assert(result.modelPixels>150,'actual model pixels present');assert(result.ink);if(process.env.DT_QA_OUTPUT){fs.mkdirSync(process.env.DT_QA_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-game-'+w+'x'+h+'.png')});}console.log(w+'x'+h,JSON.stringify(result));
+ const pixels=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,pixels);let modelPixels=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i])modelPixels++;return{calls,successful,idleExtraDraws,modelPixels,err,ms:performance.now()-before,ink:px.some((v,i)=>i%4===3&&v>0),status:M.status.status};});
+ assert.equal(result.status,'ready');assert.equal(result.err,0,'WebGL error');assert(result.calls>=24);assert.equal(result.idleExtraDraws,0,'idle/timing bar does no repeated GPU rendering');assert.equal(result.successful,result.calls);assert(result.modelPixels>150,'actual model pixels present');assert(result.ink);if(process.env.DT_QA_OUTPUT){fs.mkdirSync(process.env.DT_QA_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-game-'+w+'x'+h+'.png')});}console.log(w+'x'+h,JSON.stringify(result));
+ if(process.env.DT_QA_OUTPUT&&w===430){
+  for(const variant of [0,1,2]){await page.evaluate(variant=>{DT.cizim.ciz({onKarakter:{karakter:'meto',gol:true,sure:2.1,sevinc:variant}});},variant);await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-celebration-'+variant+'.png')});}
+  await page.evaluate(()=>{const p=DT.AYAR.pozisyonlar[0],points=[3,4,5,6].map(z=>({x:p.bx,y:1,z}));DT.cizim.sahneKur(p,0);DT.cizim.ciz({zaman:.2,top:points[3],alev:{km:140,time:.2,points},oyuncu:{karakter:'meto',durus:0,yol:[{}],sure:1.7,on:1.5}});});await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-fire.png')});
  }
- assert.deepEqual(errors,[],'browser JavaScript errors');console.log('PASS Meto WebGL: actual mesh, 4 viewports, 96 shot poses, two celebrations, no GL/JS errors');
+
+ }
+ assert.deepEqual(errors,[],'browser JavaScript errors');console.log('PASS Meto WebGL: actual mesh, 4 viewports, 96 shot poses, three celebrations, no GL/JS errors');
  }finally{await page?.close();await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exit(1)});
