@@ -25,10 +25,11 @@ function pose(id,t){
   p.feet[1][1]=8+Math.max(0,Math.sin(t*6))*8*travel;
  }else if(id==='meto'){
   // Badge touch -> grounded, open-arm salute -> turn to the stands -> relax.
-  // No prop, repetitive flapping or bobbing. Both feet stay planted.
+  // Arms kept within comfortable reach so elbows never look broken or hyperextended.
+  // Previous targets (~158,260) forced extreme stretch; now softer open pose.
   var badge=smooth(.20,.65,t)*(1-smooth(.95,1.45,t)),eagle=smooth(1.15,2.35,t)*(1-smooth(4.45,5.75,t));
-  p.left=blend([-65,155,18],[-158,260,8],eagle);
-  p.right=blend([65,155,18],[-17,237,57],badge);p.right=blend(p.right,[158,260,8],eagle);
+  p.left=blend([-65,155,18],[-120,245,18],eagle);
+  p.right=blend([65,155,18],[-8,230,42],badge);p.right=blend(p.right,[120,245,18],eagle);
   p.feet=[[-26,8,0],[26,8,0]];p.shift=-2*smooth(.1,.5,t)*(1-smooth(1.0,1.8,t));
   p.turn=.32*smooth(1.5,2.65,t)-.60*smooth(3.1,4.15,t)+.28*smooth(4.5,5.7,t);
   p.prop=null;
