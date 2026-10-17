@@ -31,3 +31,4 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261021a | Anatomik Meto kolları (çözücü + burulmasız kemik çerçevesi), tam-beden canlı Meto sevinci, hazırlıklı ve kendiliğinden vurmayan ibre (ortada büyük daire) |
 | 20261021b | Eksik ana oyun kodu geri yüklendi; girişsiz antrenman, karakter seçimi ve başlangıç akışı testi |
 | 20261021c | LORT: bedene bağlı forma kabuğu, bütünleşen kısa kollar, mavi şort ve beyaz çoraplar |
+| 20261022a | LORT boyun oranı; rules 13 ile ölçülü penaltı tahmini ve daha erken frikik kararı; rules 12 tekrar uyumu |

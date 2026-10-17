@@ -190,7 +190,7 @@ function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old
 // Balanced silhouette, longer legs and torso, smaller head/shoulder ratio.
 function gorunurGovde(nodes){var n={};function y(v){if(v<=8)return v;if(v<=141)return 8+(v-8)*164/133;if(v<=287)return 172+(v-141)*198/146;return 370+(v-287)*61/95;}
  Object.keys(nodes).forEach(function(k){var a=nodes[k];if(k==='fl'||k==='fr'){n[k]=a.slice();return;}n[k]=Array.isArray(a)?[a[0]*(k==='head'?1:1.12),y(a[1])-(k==='head'?12:0),a[2]]:a;});return n;}
-function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes),T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
+function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lortBody)n=D.lortBody.fitPose(n);var T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
  function project(p){if(o.project){var rotated=[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c];return o.project(rotated);}var xx=p[0]*c+p[2]*s,zz=-p[0]*s+p[2]*c,depth=zz+900,scale=900/depth;return{x:o.x+xx*o.scale*scale,y:o.y-(p[1]+zz*.12)*o.scale*scale,d:depth};}
  /* Ayrıntı düzeyi ekrandaki boya göre: uzak frikikte oyuncu birkaç on piksel; ~1200 üçgenin her biri için clip+drawImage boşuna. Yakın oyuncu (>=140 px) değişmez. */
  var LD={tube:8,ej:6,ei:10,patch:6,hj:10,hi:20};{var pt=project([n.head[0],n.head[1]+52,n.head[2]]),pf=project([(n.fl||n.hipl||n.hip)[0],(n.fl||n.hipl||n.hip)[1],(n.fl||n.hipl||n.hip)[2]]);

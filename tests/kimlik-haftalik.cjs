@@ -34,6 +34,14 @@ let first;for(let idx=0;idx<10;idx++){
  // Kaydedilmemiş eski sürüm (rules 4/5) isteği hak harcamadan reddedilir; sessizce farklı fizikle hesaplanmaz.
  for(const eski of [4,5,6,7,8,9,11]){const red=await api({...shot,rules:eski,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(red.status,400);assert.equal(red.data.code,'CLIENT_VERSION');assert.equal(members[0].idx,idx,'reddedilen eski sürüm isteği hak harcamadı');assert(/harcanmadı/.test(red.data.error),'kullanıcıya hakkın harcanmadığı söylenir');}
  const r=await api({...shot,rules:12,idx,contact:{x:idx>=5?.7:0,y:0}},A);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.data.entry.input.rules,12);const input=r.data.entry.input,physics=root.DT.fizik.hesapla({pos:root.DT.AYAR.pozisyonlar[idx],...input,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,falsoDenge:true,akilliFrikik:true,direkFizigi:true,sabitKol:true,antrenman:false}),score=root.DT.puan.puanla(root.DT.AYAR.pozisyonlar[idx].tip,physics);assert.equal(physics.sonuc,r.data.entry.sonuc);assert.equal(score.puan,r.data.entry.puan);assert.equal(score.gol,r.data.entry.gol,'server and client agree on all ten actual saved inputs');if(!idx)first=r.data.entry;}
+// Current rules 13 and legacy rules 12 can coexist without recomputing saved entries.
+for(let idx=0;idx<10;idx++){
+ const r=await api({...shot,player:'lort',rules:13,idx},B);assert.equal(r.status,200,JSON.stringify(r.data));
+ const input=r.data.entry.input;assert.equal(input.rules,13);
+ const physics=root.DT.fizik.hesapla({pos:root.DT.AYAR.pozisyonlar[idx],...input,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,falsoDenge:true,akilliFrikik:true,kaleciV13:true,direkFizigi:true,sabitKol:true,antrenman:false}),score=root.DT.puan.puanla(root.DT.AYAR.pozisyonlar[idx].tip,physics);
+ assert.equal(physics.sonuc,r.data.entry.sonuc);assert.equal(score.puan,r.data.entry.puan);assert.equal(score.gol,r.data.entry.gol,'rules 13 client and Edge agree');
+ if(idx===0){const retry=await api({...shot,player:'lort',rules:12,idx},B);assert.deepEqual(retry.data.entry,r.data.entry,'retry keeps the already saved rules-13 result');}
+}
 // Kaydedilmiş vuruşun tekrar isteği (eski sürüm olsa da) mevcut kaydı döndürür, yeniden hesaplamaz.
 for(const eski of [4,5,6,7,8,9,11]){const tekrar=await api({...shot,rules:eski,aim:{x:-3,y:2},zaman:.1},A);assert.equal(tekrar.status,200);assert.deepEqual(tekrar.data.entry,first,'kayıtlı vuruş, istenen sürümden bağımsız olarak aynı sonuçla döner');}
 assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].idx,10);assert.equal((await api({...shot,idx:10},A)).data.code,'INPUT');

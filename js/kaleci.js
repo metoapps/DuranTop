@@ -87,7 +87,7 @@ function penaltiPlan(practice,noise,o){
  var sv=o.kural10===true?clamp(o.seviye||0,0,1):0;   // hayatta kal modunda kaleci seviyesi (0..1)
  /* Kural 10 (antrenman/hedef; resmi kupa rules 9 aynı): kaleci daha sık yerinde kalır (%24), dalışlar kısa da olabilir (%45 oranında 1,0-1,9 m) ve yerinde kalan kaleci topu gördükten sonra yana kayabilir:
   * ortaya (falsolu da) giden şut artık %95 değil ~%65-75 gol. Rules 9 ve eski kayıtlar değişmez. */
- var k10=!!o.kural10,dir=k10?(decision<.24?0:decision<.62?-1:1):(decision<.14?0:decision<.57?-1:1),start=-.10,x=dir*2.20;
+ var k10=!!o.kural10,merkez=o.kaleciV13?(k10?.14:.08):(k10?.24:.14),dir=decision<merkez?0:decision<(1+merkez)/2?-1:1,start=-.10,x=dir*2.20;
  if(k10&&dir){var ex=o.preExtent===undefined?.5:o.preExtent;x=dir*(ex<.55?2.20:1.0+.9*((ex-.55)/.45));}
  /* Kaleci sezgisi (yalnız hayatta kal): seviye arttıkça, belli bir olasılıkla (en çok %45) kaleci doğru köşeyi seçer. Seçim yine vuruştan ÖNCE yapılmış olur (görüntüde değişmez), yalnız isabeti artar. */
  if(sv>0&&o.hedefX!==undefined&&(o.decision===undefined?1:o.decision)<.45*sv)dir=o.hedefX<-.9?-1:o.hedefX>.9?1:0,x=dir*2.20;
@@ -122,7 +122,7 @@ function penaltiPlan(practice,noise,o){
   gozlemler:reads,konum:konum,cizimKonum:konum};
 }
 function takipPlan(tip,practice,noise,o){
- var K=A.kaleci,sv=o.kural10===true?clamp(o.seviye||0,0,1):0,pYK=K.penaltiYanlisKose*(1-sv*.85),pFM=K.frikikMerkezHatasi*(1-sv*.85)*(o.frikikAI?.4:1),first=K.tepki[tip]+(o.kural10&&tip==='frikik'?(o.frikikAI?.02:.05):K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk*(1-sv):0)-sv*.04;   // seviye: tepki 0,04 sn kısalır, yanlış karar ihtimali %85'e kadar azalır   // kural 10: frikikte okuma 0,30→0,05 sn
+ var K=A.kaleci,sv=o.kural10===true?clamp(o.seviye||0,0,1):0,pYK=K.penaltiYanlisKose*(1-sv*.85),pFM=K.frikikMerkezHatasi*(1-sv*.85)*(o.frikikAI?.4:1),first=K.tepki[tip]+(o.kural10&&tip==='frikik'?(o.frikikAI?.02:.05):K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk*(1-sv):0)-sv*.04-(o.kaleciV13&&o.frikikAI?.05:0);   // rules 13: first read 50 ms earlier; historical rules untouched. // seviye: tepki 0,04 sn kısalır, yanlış karar ihtimali %85'e kadar azalır   // kural 10: frikikte okuma 0,30→0,05 sn
  var nx=noise()*K.hedefGurultuX*(o.frikikAI?.75:1),ny=noise()*K.hedefGurultuY*(o.frikikAI?.75:1),decision=o.decision===undefined?1:o.decision;
  var vmax=(tip==='frikik'?K.frikikHiz:K.penaltiHiz)-(practice?A.antrenman.hizAzalt*(1-sv):0)+sv*1.2;
  var segments=[],wrong=false,lapse=false,chosen=false,reads=[];
@@ -138,7 +138,7 @@ function takipPlan(tip,practice,noise,o){
    block:tip==='frikik'&&seg.central&&!lapse?(seg.blokT!==undefined?clamp((t-seg.blokT)/.25,0,1):Math.min(1,u*2)):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed,
    yuruyor:!!seg.walk&&u<1,adimFaz:t*2.4};
  }
- for(var t=first;t<=8;t+=(o.frikikAI?.075:.10)){
+ for(var t=first;t<=8;t+=(o.frikikAI?(o.kaleciV13?.06:.075):.10)){
   var old=segments[segments.length-1],current;
   if(o.kural10===true){while(segments.length&&segments[segments.length-1].at>t)segments.pop();current=konum(t);}   // henüz başlamamış dalış planı yenisiyle değişir
   else current=sample(old,t);
@@ -162,8 +162,8 @@ function takipPlan(tip,practice,noise,o){
     * (gözlem yer sekmesinde kesilse bile geç kalmaz), ama o ana kadar topun gideceği yana yan adımla yürür (2,8 m/sn) ve dalışa bulunduğu yerden başlar. */
    var YURU=2.8,wx=clamp(gx,-2.2,2.2);
    if(action==='dal'){
-    var xs=current.x,dur=duration,st=Math.max(t,seen.arrival-dur-.12);
-    for(var it=0;it<2;it++){var wd=wx-current.x;xs=current.x+(wd<0?-1:1)*Math.min(Math.abs(wd),YURU*Math.max(0,st-t));dur=K.hareketSabit+1.5*Math.hypot(x-xs,y-current.y)/vmax;st=Math.max(t,seen.arrival-dur-.12);}   // yavaş/sekmeli topta varış tahmini ±0,1 sn şaşar: 0,12 sn pay
+    var pay=o.kaleciV13&&o.frikikAI?.17:.12,xs=current.x,dur=duration,st=Math.max(t,seen.arrival-dur-pay);
+    for(var it=0;it<2;it++){var wd=wx-current.x;xs=current.x+(wd<0?-1:1)*Math.min(Math.abs(wd),YURU*Math.max(0,st-t));dur=K.hareketSabit+1.5*Math.hypot(x-xs,y-current.y)/vmax;st=Math.max(t,seen.arrival-dur-pay);}   // yavaş/sekmeli topta varış tahmini ±0,1 sn şaşar: 0,12 sn pay
     if(st>t+1e-6)segments.push({at:t,start:t,duration:Math.max(.02,Math.abs(xs-current.x)/YURU),origin:current,x:xs,y:current.y,gy:gy,dir:xs<current.x?-1:1,central:central,action:'bekle',walk:true,blokT:seen.arrival-.45});
     seg={at:st,start:st,duration:dur,origin:{x:xs,y:current.y},x:x,y:y,gy:gy,dir:dir,central:central,action:'dal',blokT:seen.arrival-.45};
    }else{

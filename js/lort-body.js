@@ -59,5 +59,12 @@ function build(n,segments){
  limb(add(n.hip,mul(up,5)),add(n.hip,mul(up,-25)),[45,44,40],blue);
  return out;
 }
-D.lortBody={build:build};
+function fitPose(nodes){
+ var n={};Object.keys(nodes).forEach(function(k){n[k]=nodes[k].slice();
+  // Keep head height and foot/contact anchors. Redistribute a small amount of
+  // vertical space to shoulders/torso, rather than lowering the tall player.
+  if(k!=='head'&&k!=='fl'&&k!=='fr')n[k][1]=8+(n[k][1]-8)*1.035;
+ });return n;
+}
+D.lortBody={build:build,fitPose:fitPose};
 })(typeof globalThis!=='undefined'?globalThis:window);

@@ -15,3 +15,5 @@ for(const dir of [-1,0,1])for(let i=0;i<=80;i++){
 const html=fs.readFileSync(__dirname+'/../index.html','utf8');assert(html.indexOf('js/lort-body.js')<html.indexOf('js/futbolcu3d.js'),'module loaded before renderer');
 const src=fs.readFileSync(__dirname+'/../js/futbolcu3d.js','utf8');assert(src.includes("o.id==='lort'&&D.lortBody"),'new body only used for LORT');
 console.log('PASS LORT: fitted mesh follows joints, 486 animated poses finite, readable back UVs, '+base.length+'/'+low.length+' triangles, other characters keep original renderer');
+
+const fitted=D.lortBody.fitPose(idle);assert.deepEqual(Array.from(fitted.head),Array.from(idle.head),'overall head height preserved');for(const k of ['fl','fr'])assert.deepEqual(Array.from(fitted[k]),Array.from(idle[k]),'foot/contact anchors preserved');assert(fitted.neck[1]>idle.neck[1]&&fitted.sl[1]>idle.sl[1],'raise collar/shoulders into the excessive neck gap');

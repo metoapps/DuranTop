@@ -103,7 +103,7 @@
     // Temas yalnızca son yarım metrede aranır; sahanın ortasındaki x,y çakışması kurtarış sayılmaz.
     var son = ornekler[ornekler.length - 1];
     var gecis = { x: son.x, y: son.y };
-    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{akilliFrikik:girdi.akilliFrikik===true,seviye:girdi.seviye,hedefX:gecis.x,decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,preExtent:(girdi.kural10===true&&girdi.penaltiTahmin)?mulberry32((girdi.seed|0)^0x7A3C15E9)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,kural10:girdi.kural10===true,D:D});
+    var plan = DT.kaleci.planla(gecis, pos.tip, !!girdi.antrenman, gauss, T,{kaleciV13:girdi.kaleciV13===true,akilliFrikik:girdi.akilliFrikik===true,seviye:girdi.seviye,hedefX:gecis.x,decision:rng(),penaltiTahmin:girdi.penaltiTahmin===true,preDecision:girdi.penaltiTahmin?mulberry32((girdi.seed|0)^0x50394B31)():undefined,preExtent:(girdi.kural10===true&&girdi.penaltiTahmin)?mulberry32((girdi.seed|0)^0x7A3C15E9)():undefined,quality:quality,speed:flight.speed,yol:ornekler,sabitKol:girdi.sabitKol===true,enerjiFizigi:girdi.enerjiFizigi===true,takipFizigi:girdi.takipFizigi===true,yerTakibi:girdi.yerTakibi===true,kural10:girdi.kural10===true,D:D});
     plan.D=D;var bolge = A.kale.direk / 2 + R;
     var kose = false;
     var direkYeri = null;
