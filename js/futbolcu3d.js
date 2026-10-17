@@ -190,21 +190,21 @@ function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old
 // Balanced silhouette, longer legs and torso, smaller head/shoulder ratio.
 function gorunurGovde(nodes){var n={};function y(v){if(v<=8)return v;if(v<=141)return 8+(v-8)*164/133;if(v<=287)return 172+(v-141)*198/146;return 370+(v-287)*61/95;}
  Object.keys(nodes).forEach(function(k){var a=nodes[k];if(k==='fl'||k==='fr'){n[k]=a.slice();return;}n[k]=Array.isArray(a)?[a[0]*(k==='head'?1:1.12),y(a[1])-(k==='head'?12:0),a[2]]:a;});return n;}
-function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lortBody)n=D.lortBody.fitPose(n);var T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
+function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lortBody)n=D.lortBody.pose(r.nodes,o);var T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
  function project(p){if(o.project){var rotated=[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c];return o.project(rotated);}var xx=p[0]*c+p[2]*s,zz=-p[0]*s+p[2]*c,depth=zz+900,scale=900/depth;return{x:o.x+xx*o.scale*scale,y:o.y-(p[1]+zz*.12)*o.scale*scale,d:depth};}
  /* Ayrıntı düzeyi ekrandaki boya göre: uzak frikikte oyuncu birkaç on piksel; ~1200 üçgenin her biri için clip+drawImage boşuna. Yakın oyuncu (>=140 px) değişmez. */
  var LD={tube:8,ej:6,ei:10,patch:6,hj:10,hi:20};{var pt=project([n.head[0],n.head[1]+52,n.head[2]]),pf=project([(n.fl||n.hipl||n.hip)[0],(n.fl||n.hipl||n.hip)[1],(n.fl||n.hipl||n.hip)[2]]);
   if(pt&&pf&&Number.isFinite(pt.y)&&Number.isFinite(pf.y)){var boyPx=Math.abs(pf.y-pt.y);if(boyPx<80)LD={tube:5,ej:3,ei:6,patch:3,hj:6,hi:12};else if(boyPx<140)LD={tube:6,ej:4,ei:8,patch:4,hj:8,hi:16};}}
  // LORT's added cloth detail shares the existing medium head budget; keep
  // portrait pixels while avoiding extra tessellation on a small on-pitch face.
- if(o.id==='lort'&&LD.hj>8){LD.hj=8;LD.hi=16;}
+ if(o.id==='lort'&&LD.hj>8){LD.hj=8;LD.hi=12;}
  function face(a,b,c,color,uv,texture){if(color){var N=unit(cross(sub(b,a),sub(c,a))),light=.66+.34*Math.max(0,-N[0]*.4+N[1]*.55-N[2]*.65),v=parseInt(color.slice(1),16);color='rgb('+[v>>16,(v>>8)&255,v&255].map(x=>Math.round(x*light)).join(',')+')';}tri.push({p:[a,b,c],color:color,uv:uv,texture:texture});}
  function tube(a,b,radius,color,endRadius,shirt){endRadius=endRadius===undefined?radius:endRadius;var w=unit(sub(b,a)),v=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),q=cross(w,v);for(var i=0;i<LD.tube;i++){var t=i*2*Math.PI/LD.tube,tt=(i+1)*2*Math.PI/LD.tube,off=add(mul(v,radius*Math.cos(t)),mul(q,radius*Math.sin(t))),next=add(mul(v,radius*Math.cos(tt)),mul(q,radius*Math.sin(tt)));var bo=mul(off,endRadius/radius),bn=mul(next,endRadius/radius);var u=(off[0]/radius+1)/2,un=(next[0]/radius+1)/2,tex=shirt?((off[2]+next[2])>0?T.shirtFront:T.shirtBack):null;face(add(a,off),add(b,bo),add(a,next),color,tex?[[u,1],[u,0],[un,1]]:null,tex);face(add(a,next),add(b,bo),add(b,bn),color,tex?[[un,1],[u,0],[un,0]]:null,tex);}}
  // Dönük elipsoid (krampon): ayağın yatması/yan yatması/dışa-içe dönmesi. roll = ayak ekseni (z), pitch = yan eksen (x; + = burun aşağı), yaw = dikey eksen.
  function ellipsoidRot(center,radius,color,a){a=a||{pitch:0,yaw:0,roll:0};var cp=Math.cos(a.pitch),sp=Math.sin(a.pitch),cyw=Math.cos(a.yaw),syw=Math.sin(a.yaw),cr=Math.cos(a.roll),sr=Math.sin(a.roll);
   function rot(v){var x=v[0]*cr-v[1]*sr,y=v[0]*sr+v[1]*cr,z=v[2];var y2=y*cp-z*sp,z2=y*sp+z*cp;var x3=x*cyw+z2*syw,z3=-x*syw+z2*cyw;return[x3,y2,z3];}
   function v(al,be){return add(center,rot([radius[0]*Math.sin(al)*Math.cos(be),radius[1]*Math.cos(al),radius[2]*Math.sin(al)*Math.sin(be)]));}
-  for(var j=0;j<6;j++)for(var i=0;i<10;i++){var al=j*Math.PI/6,bl=(j+1)*Math.PI/6,t=i*Math.PI/5,tt=(i+1)*Math.PI/5;face(v(al,t),v(bl,t),v(bl,tt),color);face(v(al,t),v(bl,tt),v(al,tt),color);}}
+  var bj=o.id==='lort'?4:6,bi=o.id==='lort'?8:10;for(var j=0;j<bj;j++)for(var i=0;i<bi;i++){var al=j*Math.PI/bj,bl=(j+1)*Math.PI/bj,t=i*2*Math.PI/bi,tt=(i+1)*2*Math.PI/bi;face(v(al,t),v(bl,t),v(bl,tt),color);face(v(al,t),v(bl,tt),v(al,tt),color);}}
  function ellipsoid(center,radius,color){function v(a,b){return add(center,[radius[0]*Math.sin(a)*Math.cos(b),radius[1]*Math.cos(a),radius[2]*Math.sin(a)*Math.sin(b)]);}for(var j=0;j<LD.ej;j++)for(var i=0;i<LD.ei;i++){var a=j*Math.PI/LD.ej,b=(j+1)*Math.PI/LD.ej,t=i*2*Math.PI/LD.ei,tt=(i+1)*2*Math.PI/LD.ei;face(v(a,t),v(b,t),v(b,tt),color);face(v(a,t),v(b,tt),v(a,tt),color);}}
  // Back and front curved surfaces share finite side volume; no whole-body reflection.
  function patch(center,width,height,depth,back,texture){function v(u,v){var x=(u-.5)*width;return add(center,[x,(.5-v)*height,(back?-1:1)*(depth+12*Math.sqrt(Math.max(0,1-x*x/(width*width/4))))]);}for(var j=0;j<LD.patch;j++)for(var i=0;i<LD.patch;i++){var u=i/LD.patch,vv=j/LD.patch,uu=(i+1)/LD.patch,vvv=(j+1)/LD.patch;face(v(u,vv),v(uu,vv),v(uu,vvv),null,[[u,vv],[uu,vv],[uu,vvv]],texture);face(v(u,vv),v(uu,vvv),v(u,vvv),null,[[u,vv],[uu,vvv],[u,vvv]],texture);}}
@@ -212,8 +212,8 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
   var pieces=D.lortBody.build(n,LD.tube<8?4:8);
   pieces.forEach(function(p){face(p.p[0],p.p[1],p.p[2],p.color,p.uv,p.texture?T[p.texture]:null);});
   // Neck starts inside the collar and ends inside the head: no exposed gap.
-  tube(add(n.neck,[0,-28,0]),add(n.head,[0,-43,0]),16,'#c99a7c',15);
-  ['l','r'].forEach(function(k,fi){ellipsoid(n['h'+k],[10,14,9],'#c99a7c');ellipsoidRot(add(n['f'+k],[0,-1,12]),[22,10,32],kit[0],r.ayak[fi]);});
+  tube(add(n.neck,[0,-28,0]),add(n.head,[0,-27,0]),14,'#c99a7c',13);
+  ['l','r'].forEach(function(k,fi){ellipsoid(n['h'+k],[8,12,8],'#c99a7c');ellipsoidRot(add(n['f'+k],[0,-1,12]),[18,10,32],kit[0],r.ayak[fi]);});
  }else{
  tube(n.hip,n.chest,43,kit[0],57,true);tube(n.chest,add(n.neck,[0,-18,0]),48,kit[0],19);tube(add(n.neck,[0,-18,0]),add(n.head,[0,-43,0]),16,'#c99a7c',15);
  ellipsoid(n.sl,[20,23,24],kit[0]);ellipsoid(n.sr,[20,23,24],kit[0]);tube(n.sl,n.el,18,kit[0],14);tube(n.sr,n.er,18,kit[0],14);
@@ -221,9 +221,16 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
  tube(n.el,n.hl,13,'#c99a7c',9);tube(n.er,n.hr,13,'#c99a7c',9);ellipsoid(n.hl,[10,14,9],'#c99a7c');ellipsoid(n.hr,[10,14,9],'#c99a7c');
  ['l','r'].forEach(function(k,fi){tube(n['hip'+k],n['k'+k],24,'#18191d',18);tube(n['k'+k],n['f'+k],17,kit[0],10);ellipsoidRot(add(n['f'+k],[0,-1,12]),[22,10,32],kit[1],r.ayak[fi]);});
  }
- function headVertex(lat,lon){return [40*Math.sin(lat)*Math.cos(lon),52*Math.cos(lat),37*Math.sin(lat)*Math.sin(lon)];}
+ var headR=o.id==='lort'?[29,35,27]:[40,52,37];
+ function headVertex(lat,lon){var x=headR[0]*Math.sin(lat)*Math.cos(lon),y=headR[1]*Math.cos(lat),z=headR[2]*Math.sin(lat)*Math.sin(lon);
+  if(o.id==='lort'){
+   // Jaw taper and nasal bridge alter the silhouette, not just its texture.
+   x*=1-.15*Math.max(0,-y/headR[1]);
+   if(z>0)z+=8*Math.exp(-x*x/65-(y+9)*(y+9)/85)*Math.pow(Math.sin(lon),2);
+  }return[x,y,z];}
+
  function headFace(a,b,cc){var center=mul(add(add(a,b),cc),1/3),normal=unit(center),visible=(-normal[0]*s+normal[2]*c)<.2;if(!visible)return;
-  var texture=center[2]>0?T.headFront:T.headBack,uv=[a,b,cc].map(p=>[(p[0]/40+1)/2,(1-p[1]/52)/2]);
+  var texture=center[2]>0?T.headFront:T.headBack,uv=[a,b,cc].map(p=>[(p[0]/headR[0]+1)/2,(1-p[1]/headR[1])/2]);
   if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),center[2]>0?'#c99a7c':o.id==='fero'?'#bc9275':'#392b25');
   face(add(n.head,a),add(n.head,b),add(n.head,cc),null,uv,texture);
  }

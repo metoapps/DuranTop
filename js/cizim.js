@@ -557,6 +557,14 @@
   }
 
   function onSpriteCiz(g, karakter, poz, cx, taban, boy, durum) {
+    // LORT keeps the same articulated body in the goal close-up.
+    if(karakter==='lort'&&durum&&durum.gol&&DT.lortBody&&DT.futbolcu3d&&gorseller.lort_bekle&&gorseller.lort_vurus1){
+      var lt=DT.AYAR&&DT.AYAR.hareket===false?2:(durum.sure||0);
+      DT.futbolcu3d.draw(g,{id:'lort',front:gorseller.lort_bekle,back:gorseller.lort_vurus1,makeCanvas:yerelCanvas,
+        x:cx,y:taban,scale:boy/463,yaw:Math.PI+.12*Math.sin(lt*1.8),
+        sevinc:{id:'lort',time:lt,variant:durum.sevinc||0}});
+      return;
+    }
     if(karakter==='meto'&&DT.meto3d&&DT.meto3d.portrait(g,{id:karakter,x:cx,y:taban,height:boy,time:durum&&durum.sure||0,goal:!!(durum&&durum.gol),variant:durum&&durum.sevinc,viewport:{width:W,height:H,dpr:dpr}}))return;
     if(durum&&durum.gol&&durum.sevinc===1&&DT.sevinc){
       if(DT.sevinc.draw(g,{id:karakter,time:durum.sure||0,x:cx,y:taban,height:boy,sprite:function(k){return sprite(karakter,k);},makeCanvas:yerelCanvas}))return;
