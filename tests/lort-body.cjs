@@ -29,5 +29,5 @@ assert(span(pelvic,0)<=80,'pelvis cannot flare outside the straight waist');
 const shirt=shaped.filter(t=>t.texture&&t.texture.indexOf('shirt')===0).flatMap(t=>t.p);
 assert(span(shirt,2)<=52,'chest stays shallow instead of a rounded barrel');
 assert(adult.sr[0]-adult.sl[0]>=100&&adult.sr[0]-adult.sl[0]<=110,'shoulder joints fit the rib cage');
-assert(shaped.length===816,'rounded joints stay within the revised fixed mesh budget');
+assert(shaped.length<=720,'rounded joints stay within the revised fixed mesh budget');
 console.log('PASS LORT silhouette: shallow pelvis/chest, straight waist, fitted shoulder span; bounded mesh budget');

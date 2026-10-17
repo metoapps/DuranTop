@@ -175,16 +175,21 @@ function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old
  var t={front:front,back:back,headFront:cut(front,crops[id].front),headBack:cut(back,[crops[id].back[0]+Math.round(crops[id].back[2]*.15),crops[id].back[1],Math.round(crops[id].back[2]*.70),156]),shirtFront:cut(front,[400,262,105,108]),shirtBack:cut(back,[410,248,65,95])};
  if(id==='lort'){
   if(D.lortBody&&D.lortBody.materials)Object.assign(t,D.lortBody.materials(makeCanvas));
-  // Rear reference is a three-quarter photo with a printed ear at its edge.
-  // Replace that patch with neighbouring hair before attaching real 3D ears.
-  var hair=makeCanvas(34,80),hp=hair.getContext('2d');hp.drawImage(t.headBack,34,76,34,80,0,0,34,80);
-  var hf=hp.createLinearGradient(0,0,34,0);hf.addColorStop(0,'rgba(0,0,0,1)');hf.addColorStop(.65,'rgba(0,0,0,1)');hf.addColorStop(1,'rgba(0,0,0,0)');
-  hp.globalCompositeOperation='destination-in';hp.fillStyle=hf;hp.fillRect(0,0,34,80);t.headBack.getContext('2d').drawImage(hair,0,76);
-
-  // A soft side transition reveals the modelled temples/ears instead of a cut-out mask edge.
-  var hg=t.headFront.getContext('2d'),fade=hg.createLinearGradient(0,0,t.headFront.width,0);
-  fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(.23,'rgba(0,0,0,1)');fade.addColorStop(.77,'rgba(0,0,0,1)');fade.addColorStop(1,'rgba(0,0,0,0)');
-  hg.globalCompositeOperation='destination-in';hg.fillStyle=fade;hg.fillRect(0,0,t.headFront.width,t.headFront.height);hg.globalCompositeOperation='source-over';
+  // One opaque cylindrical atlas: both photo references blend into the
+  // SAME temple colour. No transparent mask edge or duplicated printed ears.
+  var atlas=makeCanvas(256,192),ag=atlas.getContext('2d'),af=t.headFront.getContext('2d').getImageData(0,0,t.headFront.width,t.headFront.height),ab=t.headBack.getContext('2d').getImageData(0,0,t.headBack.width,t.headBack.height),pixels=ag.createImageData(256,192);
+  function sample(im,u,v){var x=Math.max(0,Math.min(im.width-1,Math.round(u*(im.width-1)))),y=Math.max(0,Math.min(im.height-1,Math.round(v*(im.height-1)))),k=(y*im.width+x)*4;return[im.data[k],im.data[k+1],im.data[k+2],im.data[k+3]/255];}
+  function easeAtlas(a,b,x){var q=Math.max(0,Math.min(1,(x-a)/(b-a)));return q*q*(3-2*q);}
+  for(var yy=0;yy<192;yy++)for(var xx=0;xx<256;xx++){
+   var v=yy/191,y=1-v*2,lon=xx/255*Math.PI*2-Math.PI/2,frontness=Math.sin(lon),u=(1+Math.cos(lon)*Math.sqrt(Math.max(0,1-y*y)))/2,
+    hairline=frontness>=0?-.25+.53*frontness:-.25+.35*frontness,hair=easeAtlas(hairline-.06,hairline+.06,y),base=[201*(1-hair)+57*hair,154*(1-hair)+43*hair,124*(1-hair)+37*hair],
+    source=frontness>=0?sample(af,u,v):sample(ab,.24+u*.52,v),weight=frontness>=0?easeAtlas(.15,.75,frontness):easeAtlas(.12,.70,-frontness)*(1-easeAtlas(.72,.92,v));
+   // Suppress printed ears at the photographed face's lateral boundary.
+   if(frontness>=0)weight*=easeAtlas(.04,.20,Math.min(u,1-u));weight*=source[3];var k=(yy*256+xx)*4;
+   for(var q=0;q<3;q++)pixels.data[k+q]=Math.round(base[q]*(1-weight)+source[q]*weight);pixels.data[k+3]=255;
+  }
+  for(var row=0;row<192;row++)for(var channel=0;channel<4;channel++)pixels.data[(row*256+255)*4+channel]=pixels.data[row*256*4+channel];
+  ag.putImageData(pixels,0,0);t.headAtlas=atlas;
   // Clean cloth-only UVs: the photographed torso/arms are never stretched over the mesh.
   ['shirtFront','shirtBack'].forEach(function(key){var cv=makeCanvas(96,128),p=cv.getContext('2d');p.scale(.5,.5);
    p.fillStyle='#165aca';p.fillRect(0,0,192,256);
@@ -208,7 +213,7 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
   if(pt&&pf&&Number.isFinite(pt.y)&&Number.isFinite(pf.y)){boyPx=Math.abs(pf.y-pt.y);if(boyPx<80)LD={tube:5,ej:3,ei:6,patch:3,hj:6,hi:12};else if(boyPx<140)LD={tube:6,ej:4,ei:8,patch:4,hj:8,hi:16};}}
  // LORT's added cloth detail shares the existing medium head budget; keep
  // portrait pixels while avoiding extra tessellation on a small on-pitch face.
- if(o.id==='lort'&&LD.hj>8){var closeFace=boyPx>=220&&(!o.shot&&!o.walk||o.sevinc);LD.hj=closeFace?9:8;LD.hi=closeFace?16:12;}
+ if(o.id==='lort'&&LD.hj>8){var closeFace=boyPx>=220&&(!o.shot&&!o.walk||o.sevinc);LD.hj=closeFace?12:8;LD.hi=closeFace?24:12;}
  function face(a,b,c,color,uv,texture,ambient,givenNormal){var light=1;if(color){var N=givenNormal||unit(cross(sub(b,a),sub(c,a))),base=ambient===undefined ? .66 : ambient;light=base+(ambient===undefined ? .34 : 1-base)*Math.max(0,-N[0]*.4+N[1]*.55-N[2]*.65);var v=parseInt(color.slice(1),16);color='rgb('+[v>>16,(v>>8)&255,v&255].map(x=>Math.round(x*light)).join(',')+')';}if(texture&&texture.levels)texture=texture.levels[Math.max(0,Math.min(3,Math.round((light-.7)*10)))];tri.push({p:[a,b,c],color:color,uv:uv,texture:texture});}
  function tube(a,b,radius,color,endRadius,shirt){endRadius=endRadius===undefined?radius:endRadius;var w=unit(sub(b,a)),v=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),q=cross(w,v);for(var i=0;i<LD.tube;i++){var t=i*2*Math.PI/LD.tube,tt=(i+1)*2*Math.PI/LD.tube,off=add(mul(v,radius*Math.cos(t)),mul(q,radius*Math.sin(t))),next=add(mul(v,radius*Math.cos(tt)),mul(q,radius*Math.sin(tt)));var bo=mul(off,endRadius/radius),bn=mul(next,endRadius/radius);var u=(off[0]/radius+1)/2,un=(next[0]/radius+1)/2,tex=shirt?((off[2]+next[2])>0?T.shirtFront:T.shirtBack):null;face(add(a,off),add(b,bo),add(a,next),color,tex?[[u,1],[u,0],[un,1]]:null,tex);face(add(a,next),add(b,bo),add(b,bn),color,tex?[[un,1],[u,0],[un,0]]:null,tex);}}
  // Dönük elipsoid (krampon): ayağın yatması/yan yatması/dışa-içe dönmesi. roll = ayak ekseni (z), pitch = yan eksen (x; + = burun aşağı), yaw = dikey eksen.
@@ -230,8 +235,8 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
    if(N&&(p.hand||p.texture&&p.texture.indexOf('skin')===0))N=[N[0]*c+N[2]*s,N[1],-N[0]*s+N[2]*c];
    face(p.p[0],p.p[1],p.p[2],p.color,p.uv,tex,p.hand ? .82 : undefined,N);
   });
-  // Neck starts inside the collar and ends inside the head: no exposed gap.
-  tube(add(n.neck,[0,-28,0]),add(n.head,[0,-27,0]),14,'#c99a7c',13);
+  // Neck overlaps collar and jaw; shorter exposed cervical segment.
+  tube(add(n.neck,[0,-24,0]),add(n.head,[0,-25,0]),14,'#c99a7c',13);
   ['l','r'].forEach(function(k,fi){ellipsoidRot(add(n['f'+k],[0,-1,12]),[18,10,32],kit[0],r.ayak[fi]);});
  }else{
  tube(n.hip,n.chest,43,kit[0],57,true);tube(n.chest,add(n.neck,[0,-18,0]),48,kit[0],19);tube(add(n.neck,[0,-18,0]),add(n.head,[0,-43,0]),16,'#c99a7c',15);
@@ -246,20 +251,26 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
  function headVertex(lat,lon){if(o.id==='lort'&&D.lortBody)return D.lortBody.headPoint(lat,lon);return[headR[0]*Math.sin(lat)*Math.cos(lon),headR[1]*Math.cos(lat),headR[2]*Math.sin(lat)*Math.sin(lon)];}
  function headFace(a,b,cc){var center=mul(add(add(a,b),cc),1/3),normal=unit(center),visible=(-normal[0]*s+normal[2]*c)<.2;if(!visible)return;
   var texture=center[2]>0?T.headFront:T.headBack,uv=[a,b,cc].map(p=>[(p[0]/headR[0]+1)/2,(1-p[1]/headR[1])/2]);
-  var headColor=center[2]>0?'#c99a7c':o.id==='fero'?'#bc9275':'#392b25';if(o.id==='lort'&&center[1]>17)headColor='#392b25';
+  if(o.id==='lort'){
+   texture=T.headAtlas;
+   uv=[a,b,cc].map(function(p){var lon=Math.atan2(p[2],p[0])+Math.PI/2;if(lon<0)lon+=Math.PI*2;return[lon/(Math.PI*2),(1-p[1]/35)/2];});
+   var us=uv.map(p=>p[0]);if(Math.max.apply(null,us)-Math.min.apply(null,us)>.5)uv.forEach(p=>{if(p[0]<.5)p[0]=1;});
+  }
+  var headColor=center[2]>0?'#c99a7c':o.id==='fero'?'#bc9275':'#392b25';
   a=headRotate(a);b=headRotate(b);cc=headRotate(cc);
-  if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),headColor);
-  face(add(n.head,a),add(n.head,b),add(n.head,cc),null,uv,texture);
+  if(o.id!=='lort'&&!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),headColor);
+  face(add(n.head,a),add(n.head,b),add(n.head,cc),o.id==='lort'?headColor:null,uv,texture,o.id==='lort'?1:undefined);
  }
- for(var hj=0;hj<LD.hj;hj++)for(var hi=0;hi<LD.hi;hi++){var levels=o.id==='lort'&&LD.hj===9?[35,28,17,9,4,-4,-9,-19,-28,-35]:null,ha=levels?Math.acos(levels[hj]/35):hj*Math.PI/LD.hj,hb=levels?Math.acos(levels[hj+1]/35):(hj+1)*Math.PI/LD.hj,longitudes=o.id==='lort'&&LD.hi===16?[0,.5,1.05,Math.PI/2-.2,Math.PI/2,Math.PI/2+.2,Math.PI-1.05,Math.PI-.5,Math.PI,Math.PI*9/8,Math.PI*10/8,Math.PI*11/8,Math.PI*12/8,Math.PI*13/8,Math.PI*14/8,Math.PI*15/8,Math.PI*2]:null,ht=longitudes?longitudes[hi]:hi*2*Math.PI/LD.hi,htt=longitudes?longitudes[hi+1]:(hi+1)*2*Math.PI/LD.hi;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
+ for(var hj=0;hj<LD.hj;hj++)for(var hi=0;hi<LD.hi;hi++){var levels=o.id==='lort'&&LD.hj===12?[35,30,23,17,10,4,-3,-9,-15,-20,-25,-30,-35]:null,ha=levels?Math.acos(levels[hj]/35):hj*Math.PI/LD.hj,hb=levels?Math.acos(levels[hj+1]/35):(hj+1)*Math.PI/LD.hj,longitudes=o.id==='lort'&&LD.hi===16?[0,.5,1.05,Math.PI/2-.2,Math.PI/2,Math.PI/2+.2,Math.PI-1.05,Math.PI-.5,Math.PI,Math.PI*9/8,Math.PI*10/8,Math.PI*11/8,Math.PI*12/8,Math.PI*13/8,Math.PI*14/8,Math.PI*15/8,Math.PI*2]:null,ht=longitudes?longitudes[hi]:hi*2*Math.PI/LD.hi,htt=longitudes?longitudes[hi+1]:(hi+1)*2*Math.PI/LD.hi;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
  if(o.id==='lort')[-1,1].forEach(function(side){
-  var outer=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*(30+1.2*Math.sin(a)),8*Math.cos(a)-3,4*Math.sin(a)-1];}),
-   inner=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*30.4,5.7*Math.cos(a)-3,2.5*Math.sin(a)-1];});
+  var outer=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*(28.5+1.5*Math.sin(a)),8*Math.cos(a)-3,4*Math.sin(a)-1];}),
+   inner=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*29.0,5.7*Math.cos(a)-3,2.5*Math.sin(a)-1];});
   function ear(p){return add(n.head,headRotate(p));}
+  tube(ear([side*23,5,16]),ear([side*29,4,-4]),.65,'#242329',.55);
   for(var i=0;i<8;i++){var j=(i+1)%8;
-   face(ear(outer[i]),ear(inner[i]),ear(outer[j]),'#c99a7c');face(ear(outer[j]),ear(inner[i]),ear(inner[j]),'#c99a7c');
-   face(ear([side*29.2,-3,-1]),ear(inner[j]),ear(inner[i]),'#a97d64');
-   face(ear([side*27,-3,-1]),ear(outer[j]),ear(outer[i]),'#c99a7c');
+   face(ear(outer[i]),ear(inner[i]),ear(outer[j]),'#c99a7c',null,null,.90);face(ear(outer[j]),ear(inner[i]),ear(inner[j]),'#c99a7c',null,null,.90);
+   face(ear([side*28.2,-3,-1]),ear(inner[j]),ear(inner[i]),'#a97d64',null,null,.90);
+   face(ear([side*27,-3,-1]),ear(outer[j]),ear(outer[i]),'#c99a7c',null,null,.90);
   }
  });
  // Only the camera-facing hemisphere is textured, avoiding a front face on the back of the head.
@@ -269,7 +280,7 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
  var ballPainted=false;
  tri.forEach(function(t){if(o.onlyNearDepth!==undefined&&t.depth>=o.onlyNearDepth)return;
   if(o.ball&&!ballPainted&&t.depth<o.ball.depth){o.ball.draw(g);ballPainted=true;}
-  var p=t.screen;var cx=(p[0].x+p[1].x+p[2].x)/3,cy=(p[0].y+p[1].y+p[2].y)/3;g.beginPath();p.forEach(function(v,i){var dx=v.x-cx,dy=v.y-cy,l=Math.hypot(dx,dy)||1,x=v.x+dx/l*.35,y=v.y+dy/l*.35;if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.closePath();
+  var p=t.screen;var cx=(p[0].x+p[1].x+p[2].x)/3,cy=(p[0].y+p[1].y+p[2].y)/3;g.beginPath();p.forEach(function(v,i){var dx=v.x-cx,dy=v.y-cy,l=Math.hypot(dx,dy)||1,pad=t.texture===T.headAtlas?1.1:.35,x=v.x+dx/l*pad,y=v.y+dy/l*pad;if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.closePath();
   if(t.texture){var uv=t.uv.map(v=>[v[0]*t.texture.width,v[1]*t.texture.height]),a=uv[0],b=sub(uv[1],a),cc=sub(uv[2],a),det=b[0]*cc[1]-cc[0]*b[1],dx1=p[1].x-p[0].x,dx2=p[2].x-p[0].x,dy1=p[1].y-p[0].y,dy2=p[2].y-p[0].y;
    if(Math.abs(det)<1e-9)return;var aa=(dx1*cc[1]-dx2*b[1])/det,bb=(dy1*cc[1]-dy2*b[1])/det,ccc=(b[0]*dx2-cc[0]*dx1)/det,dd=(b[0]*dy2-cc[0]*dy1)/det;
    g.save();g.clip();g.transform(aa,bb,ccc,dd,p[0].x-aa*a[0]-ccc*a[1],p[0].y-bb*a[0]-dd*a[1]);g.drawImage(t.texture,0,0);g.restore();
@@ -281,7 +292,7 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
 function render(g,o){
  if(D.meto3d&&D.meto3d.draw(g,o))return rig(o);
  if(o.walk||o.shot||o.sevinc)return draw(g,o);
- var density=Math.min(2,root.devicePixelRatio||1),key=[o.id,o.direction,o.scale,density,o.viewKey||''].join(':'),stored=idleCache.get(key);
+ var density=Math.min(2,root.devicePixelRatio||1),key=[o.id,o.direction,o.yaw,o.scale,density,o.viewKey||''].join(':'),stored=idleCache.get(key);
  if(!stored||stored.front!==o.front||stored.back!==o.back){
   var w=Math.ceil(260*o.scale),h=Math.ceil(510*o.scale),cv=o.makeCanvas(Math.ceil(w*density),Math.ceil(h*density)),ctx=cv.getContext('2d');ctx.scale(density,density);
   var options=Object.assign({},o,{x:w/2,y:h-15*o.scale,ball:null});

@@ -17,7 +17,7 @@ function build(n,segments){
  var shoulders=mul(add(n.sl,n.sr),.5),up=unit(sub(n.neck,n.hip)),right=unit(sub(n.sr,n.sl)),front=unit(cross(right,up));
  var hipRight=unit(sub(n.hipr,n.hipl));
  function at(t){return mix(n.hip,shoulders,t);}
- var collar=add(n.neck,mul(up,-25));
+ var collar=add(n.neck,mul(up,-20));
  // Broad upper back, straight lower torso, shallow chest. The pelvis must
  // never be a ball wider/deeper than the rib cage under the fitted shirt.
  var rings=[{c:add(n.hip,mul(up,-5)),w:42,d:24},
@@ -52,17 +52,21 @@ function build(n,segments){
    panel(rows[k][hn],rows[k+1][h],rows[k+1][hn],[[v,t],[u,tt],[v,tt]]);
   }
  }
- // Small joint shells close the wedges between differently oriented limb rings.
- function joint(c,r,proximal,distal){
-  // The old world-vertical double cone produced pointed, unreadable joints.
-  // Two rounded rings follow the limb's bend and close its moving seams.
-  var S=N===8?8:4,axis=unit(sub(distal,proximal)),x=sub(right,mul(axis,dot(right,axis)));
-  if(Math.hypot.apply(null,x)<.05)x=cross(axis,up);
-  x=unit(x);var z=cross(axis,x),rows=[-.4,.4].map(function(t){return Array.from({length:S},function(_,i){var a=i*2*Math.PI/S;return add(c,add(mul(axis,t*r),add(mul(x,.92*r*Math.cos(a)),mul(z,.92*r*Math.sin(a)))));});});
-  for(var i=0;i<S;i++){var j=(i+1)%S;
-   face(add(c,mul(axis,-r)),rows[0][i],rows[0][j],skin);
-   face(rows[0][i],rows[1][i],rows[0][j],skin);face(rows[0][j],rows[1][i],rows[1][j],skin);
-   face(add(c,mul(axis,r)),rows[1][j],rows[1][i],skin);
+ // One continuous bend surface shares the SAME elbow/knee ring on both
+ // sides. Bisector frames prevent overlapping joint caps and exposed wedges.
+ function bendSurface(points,radii,depths,part){
+  var S=N===8?10:4,rows=points.map(function(p,j){
+   var axis=unit(sub(points[Math.min(j+1,points.length-1)],points[Math.max(0,j-1)])),x=sub(right,mul(axis,dot(right,axis)));
+   if(Math.hypot.apply(null,x)<.05)x=cross(axis,up);
+   x=unit(x);var z=cross(axis,x);
+   return Array.from({length:S},function(_,i){var a=i*2*Math.PI/S;return add(p,add(mul(x,radii[j]*Math.cos(a)),mul(z,depths[j]*Math.sin(a))));});
+  });
+  for(var j=0;j<rows.length-1;j++)for(var i=0;i<S;i++){
+   var h=(i+1)%S,u=i/S,v=(i+1)/S,t=j/(rows.length-1),tt=(j+1)/(rows.length-1);
+   function panel(a,b,c,uv){var normal=unit(cross(sub(b,a),sub(c,a))),radial=sub(mul(add(add(a,b),c),1/3),mix(points[j],points[j+1],.5));if(dot(normal,radial)<0)normal=mul(normal,-1);
+    face(a,b,c,skin,uv,'skinArm',normal);out[out.length-1].joint=part;}
+   panel(rows[j][i],rows[j+1][i],rows[j][h],[[u,t],[u,tt],[v,t]]);
+   panel(rows[j][h],rows[j+1][i],rows[j+1][h],[[v,t],[u,tt],[v,tt]]);
   }
  }
  ['l','r'].forEach(function(k){
@@ -71,14 +75,11 @@ function build(n,segments){
   var cuff=mix(shoulder,elbow,.52),underCuff=mix(shoulder,elbow,.48);
   limb(add(mix(shoulder,shoulders,.32),mul(up,-4)),cuff,[11,16,14.5],blue);
   limb(underCuff,cuff,[14.9,14.6],white);
-  limb(mix(shoulder,elbow,.46),elbow,[14,15,11.5],skin,null,null,true);
-  limb(elbow,hand,[11.8,12,7.8],skin,null,null,true);
-  joint(elbow,11.5,shoulder,hand);joint(knee,12.5,hip,foot);
+  bendSurface([mix(shoulder,elbow,.46),mix(shoulder,elbow,.76),elbow,mix(elbow,hand,.35),hand],[14,14.5,11.7,12,7.8],[14,14.5,11.7,12,7.8],'elbow'+k);
   var hem=mix(hip,knee,.47);
   limb(add(mix(hip,n.hip,.20),mul(up,8)),hem,[23,23,21],blue,[21,20,19]);
   limb(mix(hip,knee,.44),hem,[21.5,21.2],white,[19.5,19.2]);
-  limb(mix(hip,knee,.43),knee,[20,18.5,12.5],skin,[18,17,12.5]);
-  limb(knee,mix(knee,foot,.37),[12.5,16,14.5],skin);
+  bendSurface([mix(hip,knee,.43),mix(hip,knee,.72),knee,mix(knee,foot,.18),mix(knee,foot,.37)],[20,18.5,12.5,15.5,14.5],[18,17,12.5,14.5,14.5],'knee'+k);
   limb(mix(knee,foot,.30),foot,[15.5,14,8.5],white);
   limb(mix(knee,foot,.33),mix(knee,foot,.39),[15.5,15],blue);
  });
@@ -97,8 +98,8 @@ function hands(n,segments,o){
   width=add(mul(width,Math.cos(twist)),mul(cross(axis,width),Math.sin(twist)));
   var normal=unit(cross(width,axis)),bend=m.wristFlex*(k==='l'?1:-1);
   axis=unit(add(mul(axis,Math.cos(bend)),mul(normal,Math.sin(bend))));normal=unit(cross(width,axis));
-  var curl=.18+.04*m.grip;
-  if(o&&o.sevinc&&o.sevinc.variant===1&&k==='r')curl+=.82*celebration(o.sevinc.time,1).fade;
+  var curl=.18+.22*m.grip;
+  if(o&&o.sevinc&&o.sevinc.variant===1&&k==='r')curl=Math.min(1,curl+.82*celebration(o.sevinc.time,1).fade);
   function at(length,spread,depth){return add(wrist,add(mul(axis,length),add(mul(width,spread),mul(normal,depth))));}
   function face(a,b,c,part,uv,texture){out.push({p:[a,b,c],color:'#d1a183',hand:k,part:part,uv:uv,texture:texture});}
   function chain(points,radii,depths,part){
@@ -113,10 +114,9 @@ function hands(n,segments,o){
   }
   if(detailed){
    chain([at(-2,0,0),at(9,0,0),at(24,0,0)],[6.5,10,8.8],[5,4.8,4],'palm');
-   [-6.8,-2.3,2.3,6.8].forEach(function(spread,i){var length=[18,24,23,18][i],a=.25+1.15*curl,b=a+.9*curl,
-    base=at(22,spread,0),mid=add(base,add(mul(axis,Math.cos(a)*length*.55),mul(normal,Math.sin(a)*length*.55))),
-    tip=add(mid,add(mul(axis,Math.cos(b)*length*.45),mul(normal,Math.sin(b)*length*.45)));
-    chain([base,mid,tip],[2.3,2.1,1.5],[2.5,2.3,1.6],'finger'+i);
+   [-6.8,-2.3,2.3,6.8].forEach(function(spread,i){var length=[22,24,22,17][i],angles=[.22+.8*curl,.22+1.6*curl,.22+2.0*curl],base=at(22,spread,0),points=[base];
+    [.46,.32,.22].forEach(function(f,j){points.push(add(points[points.length-1],add(mul(axis,Math.cos(angles[j])*length*f),mul(normal,Math.sin(angles[j])*length*f))));});
+    chain(points,[2.3,2.2,1.9,1.4],[2.5,2.4,2.0,1.5],'finger'+i);
    });
    chain([at(7,-side*8,1),at(15,-side*(14-4*curl),3+curl*8),at(23,-side*(14-12*curl),5+curl*10)],[3.5,3,2.1],[3.2,2.8,2],'thumb');
    // Thenar/web volume joins the opposed thumb to the palm. Without it the
@@ -239,6 +239,13 @@ function pose(raw,o){
  ['l','r'].forEach(function(k){var side=k==='l'?-1:1,hip=add(n.hip,rotateZ(rotateY([side*22,0,0],m.pelvisYaw),m.pelvisRoll));
   n['hip'+k]=hip;n['k'+k]=solve(hip,n['f'+k],110,108,rotateY([0,0,1],m.pelvisYaw));
   var shoulder=n['s'+k],target=add(shoulder,rotateZ(rotateY(mul(sub(raw['h'+k],raw['s'+k]),1.30),m.shoulderYaw),m.shoulderRoll));
+  if(o&&o.gait&&o.gait.kosu&&!o.devam){
+   var running=Math.max(0,Math.min(1,o.gait.armBlend||0))*(1-smooth(.65,.90,o.gait.u||0)),swing=Math.max(-1,Math.min(1,(o.gait.arm||0)/52))*side,
+    a=swing*.42,flex=(78+12*swing)*Math.PI/180,
+    upper=[side*.12,-Math.cos(a),Math.sin(a)],lower=[side*.12,-Math.cos(a+flex),Math.sin(a+flex)];
+   var runningTarget=add(shoulder,rotateY(add(mul(unit(upper),76),mul(unit(lower),72)),m.shoulderYaw));
+   target=mix(target,runningTarget,running*.60);
+  }
   // Wrist targets stay outside the rib cage; elbows flex forward, never invert.
   target[0]=side*Math.max(side*target[0],38);
   var v=sub(target,shoulder),length=Math.hypot.apply(null,v),lo=57,hi=147;

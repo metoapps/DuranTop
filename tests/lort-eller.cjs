@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),root={DT:{}};vm.createContext(root);
 for(const f of ['ayar','sevinc','lort-body','futbolcu3d'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+f+'.js','utf8'),root);
 const D=root.DT,F=D.futbolcu3d,B=D.lortBody,dot=(a,b)=>a.reduce((v,x,i)=>v+x*b[i],0),sub=(a,b)=>a.map((x,i)=>x-b[i]);let count=0;
-function check(n,o){for(const lod of [4,8]){const mesh=B.hands(n,lod,o);assert(mesh.length<=(lod===8?244:72),'bounded hand mesh replaces the old ellipsoids');
+function check(n,o){for(const lod of [4,8]){const mesh=B.hands(n,lod,o);assert(mesh.length<=(lod===8?308:72),'bounded hand mesh replaces the old ellipsoids');
  for(const side of ['l','r']){const parts=mesh.filter(t=>t.hand===side),w=n['h'+side],v=sub(w,n['e'+side]),len=Math.hypot(...v),axis=v.map(x=>x/len);
   assert(parts.some(t=>t.part==='palm')&&parts.some(t=>t.part==='thumb'),'both hands have a palm and opposed thumb');
   if(lod===8)for(let i=0;i<4;i++)assert(parts.some(t=>t.part==='finger'+i),'four fingers per hand');
