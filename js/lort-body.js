@@ -44,10 +44,16 @@ function build(n,segments){
   for(var k=0;k<rows.length-1;k++)for(var h=0;h<S;h++){var hn=(h+1)%S;face(rows[k][h],rows[k+1][h],rows[k][hn],color);face(rows[k][hn],rows[k+1][h],rows[k+1][hn],color);}
  }
  // Small joint shells close the wedges between differently oriented limb rings.
- function joint(c,r){var S=N===8?6:4;
-  for(var i=0;i<S;i++){var a=i*2*Math.PI/S,b=(i+1)*2*Math.PI/S,
-   p=add(c,[r*Math.cos(a),0,r*Math.sin(a)]),q=add(c,[r*Math.cos(b),0,r*Math.sin(b)]);
-   face(add(c,[0,r,0]),p,q,skin);face(add(c,[0,-r,0]),q,p,skin);
+ function joint(c,r,proximal,distal){
+  // The old world-vertical double cone produced pointed, unreadable joints.
+  // Two rounded rings follow the limb's bend and close its moving seams.
+  var S=N===8?6:4,axis=unit(sub(distal,proximal)),x=sub(right,mul(axis,dot(right,axis)));
+  if(Math.hypot.apply(null,x)<.05)x=cross(axis,up);
+  x=unit(x);var z=cross(axis,x),rows=[-.4,.4].map(function(t){return Array.from({length:S},function(_,i){var a=i*2*Math.PI/S;return add(c,add(mul(axis,t*r),add(mul(x,.92*r*Math.cos(a)),mul(z,.92*r*Math.sin(a)))));});});
+  for(var i=0;i<S;i++){var j=(i+1)%S;
+   face(add(c,mul(axis,-r)),rows[0][i],rows[0][j],skin);
+   face(rows[0][i],rows[1][i],rows[0][j],skin);face(rows[0][j],rows[1][i],rows[1][j],skin);
+   face(add(c,mul(axis,r)),rows[1][j],rows[1][i],skin);
   }
  }
  ['l','r'].forEach(function(k){
@@ -58,7 +64,7 @@ function build(n,segments){
   limb(underCuff,cuff,[14.9,14.6],white);
   limb(mix(shoulder,elbow,.46),elbow,[14,15,11.5],skin);
   limb(elbow,hand,[11.8,12,7.8],skin);
-  joint(elbow,11.5);joint(knee,12.5);
+  joint(elbow,11.5,shoulder,hand);joint(knee,12.5,hip,foot);
   var hem=mix(hip,knee,.47);
   limb(add(mix(hip,n.hip,.20),mul(up,8)),hem,[23,23,21],blue,[21,20,19]);
   limb(mix(hip,knee,.44),hem,[21.5,21.2],white,[19.5,19.2]);
@@ -70,6 +76,42 @@ function build(n,segments){
  // Pelvic fabric bridges both shorts legs and overlaps the shirt hem.
  limb(add(n.hip,mul(up,5)),add(n.hip,mul(up,-25)),[39,38,34],blue,[23,23,22]);
  return out;
+}
+// Wrist nodes are not hand centres. Palms extend past the wrist; four curled
+// fingers and an opposed thumb have real volume, including closed tips.
+function hands(n,segments,o){
+ var out=[],detailed=segments>=8,right=unit(sub(n.sr,n.sl)),up=unit(sub(n.neck,n.hip)),front=unit(cross(right,up));
+ ['l','r'].forEach(function(k){
+  var side=k==='l'?-1:1,wrist=n['h'+k],axis=unit(sub(wrist,n['e'+k])),guide=add(mul(right,.8),mul(front,side*.6)),width=sub(guide,mul(axis,dot(guide,axis)));
+  if(Math.hypot.apply(null,width)<.05)width=cross(axis,front);
+  width=unit(width);var normal=unit(cross(width,axis)),curl=.18;
+  if(o&&o.sevinc&&o.sevinc.variant===1&&k==='r')curl+=.82*celebration(o.sevinc.time,1).fade;
+  function at(length,spread,depth){return add(wrist,add(mul(axis,length),add(mul(width,spread),mul(normal,depth))));}
+  function face(a,b,c,part){out.push({p:[a,b,c],color:'#d1a183',hand:k,part:part});}
+  function chain(points,radii,depths,part){
+   var rows=points.map(function(p,j){var a=unit(sub(points[Math.min(j+1,points.length-1)],points[Math.max(0,j-1)])),v=unit(cross(width,a));
+    return [add(p,mul(width,radii[j])),add(p,mul(v,depths[j])),add(p,mul(width,-radii[j])),add(p,mul(v,-depths[j]))];});
+   for(var j=0;j<rows.length-1;j++)for(var i=0;i<4;i++){var h=(i+1)%4;face(rows[j][i],rows[j+1][i],rows[j][h],part);face(rows[j][h],rows[j+1][i],rows[j+1][h],part);}
+   var tip=rows[rows.length-1];face(tip[0],tip[1],tip[2],part);face(tip[0],tip[2],tip[3],part);
+  }
+  if(detailed){
+   chain([at(-2,0,0),at(9,0,0),at(24,0,0)],[6.5,10,8.8],[5,4.8,4],'palm');
+   [-6.8,-2.3,2.3,6.8].forEach(function(spread,i){var length=[18,24,23,18][i],a=.25+1.15*curl,b=a+.9*curl,
+    base=at(22,spread,0),mid=add(base,add(mul(axis,Math.cos(a)*length*.55),mul(normal,Math.sin(a)*length*.55))),
+    tip=add(mid,add(mul(axis,Math.cos(b)*length*.45),mul(normal,Math.sin(b)*length*.45)));
+    chain([base,mid,tip],[2.3,2.1,1.5],[2.5,2.3,1.6],'finger'+i);
+   });
+   chain([at(7,-side*8,1),at(15,-side*(14-4*curl),3+curl*8),at(23,-side*(14-12*curl),5+curl*10)],[3.5,3,2.1],[3.2,2.8,2],'thumb');
+   // Thenar/web volume joins the opposed thumb to the palm. Without it the
+   // closed hand reads as a floating thumb loop instead of a solid fist.
+   var wa=at(8,-side*6,1),wb=at(24,-side*7,3),wc=at(15,-side*(14-4*curl),3+curl*8),wd=at(14,-side*6,5+curl*4);
+   face(wa,wb,wc,'thumb');face(wa,wd,wb,'thumb');face(wb,wd,wc,'thumb');face(wc,wd,wa,'thumb');
+  }else{
+   // At phone/free-kick distance retain the palm/knuckle/thumb silhouette.
+   chain([at(-2,0,0),at(10,0,0),at(25,0,curl*5),at(39-17*curl,0,4+curl*7)],[6.5,10,9,5],[5,4.8,4.5,3],'palm');
+   chain([at(9,-side*8,1),at(22,-side*13,5+curl*3)],[3.5,2],[3.2,2],'thumb');
+  }
+ });return out;
 }
 function fitPose(nodes){
  var n={};Object.keys(nodes).forEach(function(k){n[k]=nodes[k].slice();
@@ -144,5 +186,5 @@ function pose(raw,o){
   n['e'+k]=elbow;n['h'+k]=target;
  });return n;
 }
-D.lortBody={build:build,fitPose:fitPose,pose:pose,celebration:celebration};
+D.lortBody={build:build,hands:hands,fitPose:fitPose,pose:pose,celebration:celebration};
 })(typeof globalThis!=='undefined'?globalThis:window);

@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');const root={DT:
 for(const f of ['futbolcu3d','lort-body'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+f+'.js','utf8'),root);
 const D=root.DT,R=D.futbolcu3d.rig,B=D.lortBody.build;
 const idle=R({direction:0}).nodes,base=B(idle,8),low=B(idle,4);
-assert(base.length<=720&&low.length<=370,'bounded cloth geometry, lower detail for distant players');
+assert(base.length<=752&&low.length<=392,'bounded cloth geometry, lower detail for distant players');
 function check(mesh){for(const t of mesh){assert(t.p.every(p=>p.length===3&&p.every(Number.isFinite)));if(t.uv){assert(t.uv.every(p=>p.every(v=>v>=0&&v<=1)));const [a,b,c]=t.uv;assert(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))>1e-9,'no collapsed UV triangles / invisible cloth side panels');}}}
 check(base);check(low);
 const delta=[19,31,-22],moved={};for(const [k,v] of Object.entries(idle))moved[k]=v.map((x,i)=>x+delta[i]);
@@ -29,5 +29,5 @@ assert(span(pelvic,0)<=80,'pelvis cannot flare outside the straight waist');
 const shirt=shaped.filter(t=>t.texture).flatMap(t=>t.p);
 assert(span(shirt,2)<=52,'chest stays shallow instead of a rounded barrel');
 assert(adult.sr[0]-adult.sl[0]>=100&&adult.sr[0]-adult.sl[0]<=110,'shoulder joints fit the rib cage');
-assert(shaped.length===704,'anatomical shaping does not increase triangle count');
-console.log('PASS LORT silhouette: shallow pelvis/chest, straight waist, fitted shoulder span; unchanged mesh budget');
+assert(shaped.length===752,'rounded joints stay within the revised fixed mesh budget');
+console.log('PASS LORT silhouette: shallow pelvis/chest, straight waist, fitted shoulder span; bounded mesh budget');
