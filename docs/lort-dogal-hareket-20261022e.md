@@ -1,0 +1,13 @@
+# LORT natural motion, facial volume and skin — 20261022e
+
+Shoulders and pelvis now counter-rotate from the same planted-foot trajectory, with small support-side roll and weight transfer. Torso rings blend pelvis and shoulder frames so the shirt follows that twist. Fixed-length leg IK is solved after the pelvis transform; gameplay feet/contact anchors remain exact. Arms follow the thorax, while wrist flexion/pronation and relaxed finger curl add bounded secondary movement. All motion is stateless and derived from the shot timeline rather than frame rate.
+
+Celebrations use independent arm variation, restrained head movement and short lifted steps. Each foot stays fixed while planted, and at least one foot supports the body throughout. No score, ball, keeper or other-player changes.
+
+Facial geometry adds brow ridges, recessed eye sockets, cheek, nasal bridge/tip, mouth/chin volumes and separate ear helix/concha geometry. The rear photo's printed ear is patched with neighbouring hair to avoid a duplicate ear. Frontal texture edges fade into the model. The existing reference photo remains the albedo; this is still stylized procedural geometry, not a scanned head. During active shots, head tessellation remains at the previous budget; cached idle/goal close-ups use denser feature rings.
+
+Arms and hands have stable cached skin atlases: low-contrast grain/follicles, palm creases and finger folds. Four pre-shaded levels avoid an extra lighting pass. Hidden sides retain solid shaded geometry. Skin texture calls are capped at 0/16/40/160 by projected player size; tiny finger triangles use solid shading. Near body/hands: 816/244 triangles; far: 392/72. No runtime asset downloads or new dependencies.
+
+Validation: 11 relevant groups passed (lort-dogallik, lort-anatomi, lort-eller, lort-body, lort-render, derinlik, cizim, oyun-baslangic, akis, tribun-sevinc, meto-anatomi). Includes 6,405 final skeleton poses, 1,338 hand pose/LOD cases, 1,442 supported celebration samples, facial-volume checks, deterministic material generation, 42 actual Canvas renders with cached/bounded skin textures, shot/result/next flow, and 7 viewport layouts. Physical-device FPS is not inferred from these checks.
+
+Review files: lort-yuz-20261022e.jpg, lort-ten-20261022e.jpg and lort-tam-beden-20261022e.jpg (top previous, bottom updated). lort-hareket-karsilastirma-20261022e.mp4 compares 20261022d (left, baseline 37686f7) with this version (right): 229 frames, 30 fps, 7.633 seconds, following the player during the approach/kick and then showing the fist celebration. Preview frame rate is not a measurement of game performance.

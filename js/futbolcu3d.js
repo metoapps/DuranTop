@@ -174,6 +174,17 @@ function textures(id,front,back,makeCanvas){var key=id,old=cache.get(key);if(old
  function cut(im,box){var c=makeCanvas(box[2],box[3]);c.getContext('2d').drawImage(im,...box,0,0,c.width,c.height);return c;}
  var t={front:front,back:back,headFront:cut(front,crops[id].front),headBack:cut(back,[crops[id].back[0]+Math.round(crops[id].back[2]*.15),crops[id].back[1],Math.round(crops[id].back[2]*.70),156]),shirtFront:cut(front,[400,262,105,108]),shirtBack:cut(back,[410,248,65,95])};
  if(id==='lort'){
+  if(D.lortBody&&D.lortBody.materials)Object.assign(t,D.lortBody.materials(makeCanvas));
+  // Rear reference is a three-quarter photo with a printed ear at its edge.
+  // Replace that patch with neighbouring hair before attaching real 3D ears.
+  var hair=makeCanvas(34,80),hp=hair.getContext('2d');hp.drawImage(t.headBack,34,76,34,80,0,0,34,80);
+  var hf=hp.createLinearGradient(0,0,34,0);hf.addColorStop(0,'rgba(0,0,0,1)');hf.addColorStop(.65,'rgba(0,0,0,1)');hf.addColorStop(1,'rgba(0,0,0,0)');
+  hp.globalCompositeOperation='destination-in';hp.fillStyle=hf;hp.fillRect(0,0,34,80);t.headBack.getContext('2d').drawImage(hair,0,76);
+
+  // A soft side transition reveals the modelled temples/ears instead of a cut-out mask edge.
+  var hg=t.headFront.getContext('2d'),fade=hg.createLinearGradient(0,0,t.headFront.width,0);
+  fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(.23,'rgba(0,0,0,1)');fade.addColorStop(.77,'rgba(0,0,0,1)');fade.addColorStop(1,'rgba(0,0,0,0)');
+  hg.globalCompositeOperation='destination-in';hg.fillStyle=fade;hg.fillRect(0,0,t.headFront.width,t.headFront.height);hg.globalCompositeOperation='source-over';
   // Clean cloth-only UVs: the photographed torso/arms are never stretched over the mesh.
   ['shirtFront','shirtBack'].forEach(function(key){var cv=makeCanvas(96,128),p=cv.getContext('2d');p.scale(.5,.5);
    p.fillStyle='#165aca';p.fillRect(0,0,192,256);
@@ -193,12 +204,12 @@ function gorunurGovde(nodes){var n={};function y(v){if(v<=8)return v;if(v<=141)r
 function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lortBody)n=D.lortBody.pose(r.nodes,o);var T=textures(o.id,o.front,o.back,o.makeCanvas),tri=[],kit=kits[o.id],c=Math.cos(o.yaw===undefined?r.yaw:o.yaw),s=Math.sin(o.yaw===undefined?r.yaw:o.yaw);
  function project(p){if(o.project){var rotated=[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c];return o.project(rotated);}var xx=p[0]*c+p[2]*s,zz=-p[0]*s+p[2]*c,depth=zz+900,scale=900/depth;return{x:o.x+xx*o.scale*scale,y:o.y-(p[1]+zz*.12)*o.scale*scale,d:depth};}
  /* Ayrıntı düzeyi ekrandaki boya göre: uzak frikikte oyuncu birkaç on piksel; ~1200 üçgenin her biri için clip+drawImage boşuna. Yakın oyuncu (>=140 px) değişmez. */
- var LD={tube:8,ej:6,ei:10,patch:6,hj:10,hi:20};{var pt=project([n.head[0],n.head[1]+52,n.head[2]]),pf=project([(n.fl||n.hipl||n.hip)[0],(n.fl||n.hipl||n.hip)[1],(n.fl||n.hipl||n.hip)[2]]);
-  if(pt&&pf&&Number.isFinite(pt.y)&&Number.isFinite(pf.y)){var boyPx=Math.abs(pf.y-pt.y);if(boyPx<80)LD={tube:5,ej:3,ei:6,patch:3,hj:6,hi:12};else if(boyPx<140)LD={tube:6,ej:4,ei:8,patch:4,hj:8,hi:16};}}
+ var boyPx=0,LD={tube:8,ej:6,ei:10,patch:6,hj:10,hi:20};{var pt=project([n.head[0],n.head[1]+52,n.head[2]]),pf=project([(n.fl||n.hipl||n.hip)[0],(n.fl||n.hipl||n.hip)[1],(n.fl||n.hipl||n.hip)[2]]);
+  if(pt&&pf&&Number.isFinite(pt.y)&&Number.isFinite(pf.y)){boyPx=Math.abs(pf.y-pt.y);if(boyPx<80)LD={tube:5,ej:3,ei:6,patch:3,hj:6,hi:12};else if(boyPx<140)LD={tube:6,ej:4,ei:8,patch:4,hj:8,hi:16};}}
  // LORT's added cloth detail shares the existing medium head budget; keep
  // portrait pixels while avoiding extra tessellation on a small on-pitch face.
- if(o.id==='lort'&&LD.hj>8){LD.hj=8;LD.hi=12;}
- function face(a,b,c,color,uv,texture,ambient){if(color){var N=unit(cross(sub(b,a),sub(c,a))),base=ambient===undefined ? .66 : ambient,light=base+(ambient===undefined ? .34 : 1-base)*Math.max(0,-N[0]*.4+N[1]*.55-N[2]*.65),v=parseInt(color.slice(1),16);color='rgb('+[v>>16,(v>>8)&255,v&255].map(x=>Math.round(x*light)).join(',')+')';}tri.push({p:[a,b,c],color:color,uv:uv,texture:texture});}
+ if(o.id==='lort'&&LD.hj>8){var closeFace=boyPx>=220&&(!o.shot&&!o.walk||o.sevinc);LD.hj=closeFace?9:8;LD.hi=closeFace?16:12;}
+ function face(a,b,c,color,uv,texture,ambient,givenNormal){var light=1;if(color){var N=givenNormal||unit(cross(sub(b,a),sub(c,a))),base=ambient===undefined ? .66 : ambient;light=base+(ambient===undefined ? .34 : 1-base)*Math.max(0,-N[0]*.4+N[1]*.55-N[2]*.65);var v=parseInt(color.slice(1),16);color='rgb('+[v>>16,(v>>8)&255,v&255].map(x=>Math.round(x*light)).join(',')+')';}if(texture&&texture.levels)texture=texture.levels[Math.max(0,Math.min(3,Math.round((light-.7)*10)))];tri.push({p:[a,b,c],color:color,uv:uv,texture:texture});}
  function tube(a,b,radius,color,endRadius,shirt){endRadius=endRadius===undefined?radius:endRadius;var w=unit(sub(b,a)),v=unit(cross(w,Math.abs(w[1])>.9?[1,0,0]:[0,1,0])),q=cross(w,v);for(var i=0;i<LD.tube;i++){var t=i*2*Math.PI/LD.tube,tt=(i+1)*2*Math.PI/LD.tube,off=add(mul(v,radius*Math.cos(t)),mul(q,radius*Math.sin(t))),next=add(mul(v,radius*Math.cos(tt)),mul(q,radius*Math.sin(tt)));var bo=mul(off,endRadius/radius),bn=mul(next,endRadius/radius);var u=(off[0]/radius+1)/2,un=(next[0]/radius+1)/2,tex=shirt?((off[2]+next[2])>0?T.shirtFront:T.shirtBack):null;face(add(a,off),add(b,bo),add(a,next),color,tex?[[u,1],[u,0],[un,1]]:null,tex);face(add(a,next),add(b,bo),add(b,bn),color,tex?[[un,1],[u,0],[un,0]]:null,tex);}}
  // Dönük elipsoid (krampon): ayağın yatması/yan yatması/dışa-içe dönmesi. roll = ayak ekseni (z), pitch = yan eksen (x; + = burun aşağı), yaw = dikey eksen.
  function ellipsoidRot(center,radius,color,a){a=a||{pitch:0,yaw:0,roll:0};var cp=Math.cos(a.pitch),sp=Math.sin(a.pitch),cyw=Math.cos(a.yaw),syw=Math.sin(a.yaw),cr=Math.cos(a.roll),sr=Math.sin(a.roll);
@@ -209,8 +220,16 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
  // Back and front curved surfaces share finite side volume; no whole-body reflection.
  function patch(center,width,height,depth,back,texture){function v(u,v){var x=(u-.5)*width;return add(center,[x,(.5-v)*height,(back?-1:1)*(depth+12*Math.sqrt(Math.max(0,1-x*x/(width*width/4))))]);}for(var j=0;j<LD.patch;j++)for(var i=0;i<LD.patch;i++){var u=i/LD.patch,vv=j/LD.patch,uu=(i+1)/LD.patch,vvv=(j+1)/LD.patch;face(v(u,vv),v(uu,vv),v(uu,vvv),null,[[u,vv],[uu,vv],[uu,vvv]],texture);face(v(u,vv),v(uu,vvv),v(u,vvv),null,[[u,vv],[uu,vvv],[u,vvv]],texture);}}
  if(o.id==='lort'&&D.lortBody){
-  var pieces=D.lortBody.build(n,LD.tube<8?4:8).concat(D.lortBody.hands(n,LD.tube<8?4:8,o));
-  pieces.forEach(function(p){face(p.p[0],p.p[1],p.p[2],p.color,p.uv,p.texture?T[p.texture]:null,p.hand ? .82 : undefined);});
+  var pieces=D.lortBody.hands(n,LD.tube<8?4:8,o).concat(D.lortBody.build(n,LD.tube<8?4:8)),skinBudget=boyPx>=420?160:boyPx>=220?40:boyPx>=140?16:0;
+  pieces.forEach(function(p){var tex=p.texture?T[p.texture]:null,N=p.normal;
+   if(tex&&tex.levels){N=N||unit(cross(sub(p.p[1],p.p[0]),sub(p.p[2],p.p[0])));
+    // Keep solid geometry on hidden sides. Only spend texture draws on visible,
+    // resolvable skin; tiny finger triangles stay shaded rather than shimmering.
+    if(!skinBudget||(-N[0]*s+N[2]*c)>.08||(p.part&&p.part.indexOf('finger')===0&&boyPx<420))tex=null;else skinBudget--;
+   }
+   if(N&&(p.hand||p.texture&&p.texture.indexOf('skin')===0))N=[N[0]*c+N[2]*s,N[1],-N[0]*s+N[2]*c];
+   face(p.p[0],p.p[1],p.p[2],p.color,p.uv,tex,p.hand ? .82 : undefined,N);
+  });
   // Neck starts inside the collar and ends inside the head: no exposed gap.
   tube(add(n.neck,[0,-28,0]),add(n.head,[0,-27,0]),14,'#c99a7c',13);
   ['l','r'].forEach(function(k,fi){ellipsoidRot(add(n['f'+k],[0,-1,12]),[18,10,32],kit[0],r.ayak[fi]);});
@@ -221,20 +240,28 @@ function draw(g,o){var r=rig(o),n=gorunurGovde(r.nodes);if(o.id==='lort'&&D.lort
  tube(n.el,n.hl,13,'#c99a7c',9);tube(n.er,n.hr,13,'#c99a7c',9);ellipsoid(n.hl,[10,14,9],'#c99a7c');ellipsoid(n.hr,[10,14,9],'#c99a7c');
  ['l','r'].forEach(function(k,fi){tube(n['hip'+k],n['k'+k],24,'#18191d',18);tube(n['k'+k],n['f'+k],17,kit[0],10);ellipsoidRot(add(n['f'+k],[0,-1,12]),[22,10,32],kit[1],r.ayak[fi]);});
  }
+ var headMotion=o.id==='lort'&&D.lortBody?D.lortBody.motion(n,o):null;
+ function headRotate(p){if(!headMotion)return p;var a=headMotion.headPitch,b=headMotion.headYaw,r=headMotion.headRoll,y=p[1]*Math.cos(a)-p[2]*Math.sin(a),z=p[1]*Math.sin(a)+p[2]*Math.cos(a),x=p[0]*Math.cos(b)+z*Math.sin(b);z=-p[0]*Math.sin(b)+z*Math.cos(b);return[x*Math.cos(r)-y*Math.sin(r),x*Math.sin(r)+y*Math.cos(r),z];}
  var headR=o.id==='lort'?[29,35,27]:[40,52,37];
- function headVertex(lat,lon){var x=headR[0]*Math.sin(lat)*Math.cos(lon),y=headR[1]*Math.cos(lat),z=headR[2]*Math.sin(lat)*Math.sin(lon);
-  if(o.id==='lort'){
-   // Jaw taper and nasal bridge alter the silhouette, not just its texture.
-   x*=1-.15*Math.max(0,-y/headR[1]);
-   if(z>0)z+=8*Math.exp(-x*x/65-(y+9)*(y+9)/85)*Math.pow(Math.sin(lon),2);
-  }return[x,y,z];}
-
+ function headVertex(lat,lon){if(o.id==='lort'&&D.lortBody)return D.lortBody.headPoint(lat,lon);return[headR[0]*Math.sin(lat)*Math.cos(lon),headR[1]*Math.cos(lat),headR[2]*Math.sin(lat)*Math.sin(lon)];}
  function headFace(a,b,cc){var center=mul(add(add(a,b),cc),1/3),normal=unit(center),visible=(-normal[0]*s+normal[2]*c)<.2;if(!visible)return;
   var texture=center[2]>0?T.headFront:T.headBack,uv=[a,b,cc].map(p=>[(p[0]/headR[0]+1)/2,(1-p[1]/headR[1])/2]);
-  if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),center[2]>0?'#c99a7c':o.id==='fero'?'#bc9275':'#392b25');
+  var headColor=center[2]>0?'#c99a7c':o.id==='fero'?'#bc9275':'#392b25';if(o.id==='lort'&&center[1]>17)headColor='#392b25';
+  a=headRotate(a);b=headRotate(b);cc=headRotate(cc);
+  if(!(o.id==='meto'&&o.sevinc))face(add(n.head,a),add(n.head,b),add(n.head,cc),headColor);
   face(add(n.head,a),add(n.head,b),add(n.head,cc),null,uv,texture);
  }
- for(var hj=0;hj<LD.hj;hj++)for(var hi=0;hi<LD.hi;hi++){var ha=hj*Math.PI/LD.hj,hb=(hj+1)*Math.PI/LD.hj,ht=hi*2*Math.PI/LD.hi,htt=(hi+1)*2*Math.PI/LD.hi;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
+ for(var hj=0;hj<LD.hj;hj++)for(var hi=0;hi<LD.hi;hi++){var levels=o.id==='lort'&&LD.hj===9?[35,28,17,9,4,-4,-9,-19,-28,-35]:null,ha=levels?Math.acos(levels[hj]/35):hj*Math.PI/LD.hj,hb=levels?Math.acos(levels[hj+1]/35):(hj+1)*Math.PI/LD.hj,longitudes=o.id==='lort'&&LD.hi===16?[0,.5,1.05,Math.PI/2-.2,Math.PI/2,Math.PI/2+.2,Math.PI-1.05,Math.PI-.5,Math.PI,Math.PI*9/8,Math.PI*10/8,Math.PI*11/8,Math.PI*12/8,Math.PI*13/8,Math.PI*14/8,Math.PI*15/8,Math.PI*2]:null,ht=longitudes?longitudes[hi]:hi*2*Math.PI/LD.hi,htt=longitudes?longitudes[hi+1]:(hi+1)*2*Math.PI/LD.hi;headFace(headVertex(ha,ht),headVertex(hb,ht),headVertex(hb,htt));headFace(headVertex(ha,ht),headVertex(hb,htt),headVertex(ha,htt));}
+ if(o.id==='lort')[-1,1].forEach(function(side){
+  var outer=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*(30+1.2*Math.sin(a)),8*Math.cos(a)-3,4*Math.sin(a)-1];}),
+   inner=Array.from({length:8},function(_,i){var a=i*Math.PI/4;return[side*30.4,5.7*Math.cos(a)-3,2.5*Math.sin(a)-1];});
+  function ear(p){return add(n.head,headRotate(p));}
+  for(var i=0;i<8;i++){var j=(i+1)%8;
+   face(ear(outer[i]),ear(inner[i]),ear(outer[j]),'#c99a7c');face(ear(outer[j]),ear(inner[i]),ear(inner[j]),'#c99a7c');
+   face(ear([side*29.2,-3,-1]),ear(inner[j]),ear(inner[i]),'#a97d64');
+   face(ear([side*27,-3,-1]),ear(outer[j]),ear(outer[i]),'#c99a7c');
+  }
+ });
  // Only the camera-facing hemisphere is textured, avoiding a front face on the back of the head.
 
  // Shirt UVs are attached to the same moving torso vertices; no floating patches.
