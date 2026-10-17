@@ -17,3 +17,17 @@ const src=fs.readFileSync(__dirname+'/../js/futbolcu3d.js','utf8');assert(src.in
 console.log('PASS LORT: fitted mesh follows joints, 486 animated poses finite, readable back UVs, '+base.length+'/'+low.length+' triangles, other characters keep original renderer');
 
 const fitted=D.lortBody.fitPose(idle);assert.deepEqual(Array.from(fitted.head),Array.from(idle.head),'overall head height preserved');for(const k of ['fl','fr'])assert.deepEqual(Array.from(fitted[k]),Array.from(idle[k]),'foot/contact anchors preserved');assert(fitted.neck[1]>idle.neck[1]&&fitted.sl[1]>idle.sl[1],'raise collar/shoulders into the excessive neck gap');
+
+// Regression: a circular pelvis previously projected behind the chest like
+// an inflated cushion. Measure the final mesh, not just its radius settings.
+const adult=D.lortBody.pose(idle),shaped=B(adult,8);
+const pelvic=shaped.filter(t=>!t.texture&&t.color==='#1455c7'&&t.p.every(p=>p[1]>=adult.hip[1]-25-1e-7&&p[1]<=adult.hip[1]+5+1e-7)).flatMap(t=>t.p);
+assert(pelvic.length>20,'pelvic fabric shell found');
+function span(points,k){return Math.max(...points.map(p=>p[k]))-Math.min(...points.map(p=>p[k]));}
+assert(span(pelvic,2)<=48,'pelvic depth cannot exceed the rib cage');
+assert(span(pelvic,0)<=80,'pelvis cannot flare outside the straight waist');
+const shirt=shaped.filter(t=>t.texture).flatMap(t=>t.p);
+assert(span(shirt,2)<=52,'chest stays shallow instead of a rounded barrel');
+assert(adult.sr[0]-adult.sl[0]>=100&&adult.sr[0]-adult.sl[0]<=110,'shoulder joints fit the rib cage');
+assert(shaped.length===704,'anatomical shaping does not increase triangle count');
+console.log('PASS LORT silhouette: shallow pelvis/chest, straight waist, fitted shoulder span; unchanged mesh budget');

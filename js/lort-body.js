@@ -15,10 +15,12 @@ function build(n,segments){
  var shoulders=mul(add(n.sl,n.sr),.5),up=unit(sub(n.neck,n.hip)),right=unit(sub(n.sr,n.sl)),front=unit(cross(right,up));
  function at(t){return mix(n.hip,shoulders,t);}
  var collar=add(n.neck,mul(up,-25));
- var rings=[{c:add(n.hip,mul(up,-5)),w:46,d:27},
-  {c:at(.16),w:44,d:27},{c:at(.75),w:55,d:32},
-  {c:mix(shoulders,collar,.44),w:49,d:24},{c:collar,w:18,d:17}];
- function vertex(r,a){var z=Math.cos(a),x=Math.sin(a);return add(r.c,add(mul(right,r.w*x),mul(front,r.d*z)));}
+ // Broad upper back, straight lower torso, shallow chest. The pelvis must
+ // never be a ball wider/deeper than the rib cage under the fitted shirt.
+ var rings=[{c:add(n.hip,mul(up,-5)),w:42,d:24},
+  {c:at(.16),w:42,d:24},{c:at(.92),w:52,d:25},
+  {c:mix(shoulders,collar,.05),w:52,d:23},{c:collar,w:16,d:14}];
+ function vertex(r,a){var z=Math.cos(a),x=Math.sin(a);if(z>0)z=Math.pow(z,.55);return add(r.c,add(mul(right,r.w*x),mul(front,r.d*z)));}
  function vcoord(j){return 1-Math.max(0,Math.min(1,(rings[j].c[1]-rings[0].c[1])/(collar[1]-rings[0].c[1])));}
  for(var j=0;j<rings.length-1;j++)for(var i=0;i<N;i++){
   var a=-Math.PI+i*2*Math.PI/N,b=a+2*Math.PI/N,isFront=Math.cos((a+b)/2)>=0;
@@ -34,9 +36,11 @@ function build(n,segments){
   var inner=add(collar,mul(sub(outer,collar),.85)),innerNext=add(collar,mul(sub(next,collar),.85));
   face(outer,inner,next,white);face(next,inner,innerNext,white);
  }
- function limb(a,b,radii,color){
-  var S=N,axis=unit(sub(b,a)),x=unit(cross(axis,Math.abs(axis[1])>.9?[1,0,0]:[0,1,0])),z=cross(axis,x);
-  var rows=radii.map(function(r,j){var c=mix(a,b,j/(radii.length-1));return Array.from({length:S},function(_,i){var t=i*2*Math.PI/S;return add(c,add(mul(x,Math.cos(t)*r),mul(z,Math.sin(t)*r)));});});
+ function limb(a,b,radii,color,depth){
+  var S=N,axis=unit(sub(b,a)),x=sub(right,mul(axis,dot(right,axis)));
+  if(Math.hypot.apply(null,x)<.05)x=cross(axis,up);
+  x=unit(x);var z=cross(axis,x);
+  var rows=radii.map(function(r,j){var c=mix(a,b,j/(radii.length-1)),d=depth?depth[j]:r;return Array.from({length:S},function(_,i){var t=i*2*Math.PI/S;return add(c,add(mul(x,Math.cos(t)*r),mul(z,Math.sin(t)*d)));});});
   for(var k=0;k<rows.length-1;k++)for(var h=0;h<S;h++){var hn=(h+1)%S;face(rows[k][h],rows[k+1][h],rows[k][hn],color);face(rows[k][hn],rows[k+1][h],rows[k+1][hn],color);}
  }
  // Small joint shells close the wedges between differently oriented limb rings.
@@ -50,21 +54,21 @@ function build(n,segments){
   var shoulder=n['s'+k],elbow=n['e'+k],hand=n['h'+k],hip=n['hip'+k],knee=n['k'+k],foot=n['f'+k];
   // Sleeve root overlaps the armhole; hem ends on the upper arm, not at the elbow.
   var cuff=mix(shoulder,elbow,.52),underCuff=mix(shoulder,elbow,.48);
-  limb(mix(shoulder,shoulders,.32),cuff,[13,20,18],blue);
-  limb(underCuff,cuff,[18.4,18.1],white);
-  limb(mix(shoulder,elbow,.46),elbow,[16,17,14],skin);
-  limb(elbow,hand,[14.2,13.4,9],skin);
-  joint(elbow,14);joint(knee,16);
+  limb(add(mix(shoulder,shoulders,.32),mul(up,-4)),cuff,[11,16,14.5],blue);
+  limb(underCuff,cuff,[14.9,14.6],white);
+  limb(mix(shoulder,elbow,.46),elbow,[14,15,11.5],skin);
+  limb(elbow,hand,[11.8,12,7.8],skin);
+  joint(elbow,11.5);joint(knee,12.5);
   var hem=mix(hip,knee,.47);
-  limb(add(hip,mul(up,8)),hem,[28,29,25],blue);
-  limb(mix(hip,knee,.44),hem,[25.5,25.2],white);
-  limb(mix(hip,knee,.43),knee,[22,21,16],skin);
-  limb(knee,mix(knee,foot,.37),[16,19,17],skin);
-  limb(mix(knee,foot,.30),foot,[18,17,10],white);
-  limb(mix(knee,foot,.33),mix(knee,foot,.39),[18.2,18],blue);
+  limb(add(mix(hip,n.hip,.20),mul(up,8)),hem,[23,23,21],blue,[21,20,19]);
+  limb(mix(hip,knee,.44),hem,[21.5,21.2],white,[19.5,19.2]);
+  limb(mix(hip,knee,.43),knee,[20,18.5,12.5],skin,[18,17,12.5]);
+  limb(knee,mix(knee,foot,.37),[12.5,16,14.5],skin);
+  limb(mix(knee,foot,.30),foot,[15.5,14,8.5],white);
+  limb(mix(knee,foot,.33),mix(knee,foot,.39),[15.5,15],blue);
  });
  // Pelvic fabric bridges both shorts legs and overlaps the shirt hem.
- limb(add(n.hip,mul(up,5)),add(n.hip,mul(up,-25)),[45,44,40],blue);
+ limb(add(n.hip,mul(up,5)),add(n.hip,mul(up,-25)),[39,38,34],blue,[23,23,22]);
  return out;
 }
 function fitPose(nodes){
@@ -105,22 +109,24 @@ function pose(raw,o){
  }
  var n={},dy=(raw.hip[1]-141)*1.45;
  if(anim)dy+=anim.crouch;
- var rest={hip:222,chest:342,neck:413,head:436,sl:365,sr:365};
+ var rest={hip:222,chest:342,neck:413,head:436,sl:372,sr:372};
  Object.keys(rest).forEach(function(k){var v=raw[k];
   var base=k==='head'?382:k==='neck'?287:k==='chest'?249:k==='hip'?141:251;
   n[k]=[v[0]*1.05,rest[k]+dy+(v[1]-raw.hip[1]-base+141)*.7,v[2]*.85];
+  if(k==='sl')n[k][0]+=5.75;
+  if(k==='sr')n[k][0]-=5.75;
  });
  n.fl=raw.fl.slice();n.fr=raw.fr.slice();
  if(anim){n.fl[2]+=anim.step;n.fr[2]-=anim.step;
   Object.keys(rest).forEach(function(k){n[k][0]+=anim.shift;});}
 
  // Lower the pelvis instead of stretching the support leg or moving its foot.
- var drop=0;['l','r'].forEach(function(k){var side=k==='l'?-1:1,f=n['f'+k],dx=side*24+n.hip[0]-f[0],dz=n.hip[2]-f[2];
+ var drop=0;['l','r'].forEach(function(k){var side=k==='l'?-1:1,f=n['f'+k],dx=side*22+n.hip[0]-f[0],dz=n.hip[2]-f[2];
   var reach=Math.sqrt(Math.max(1,217.5*217.5-dx*dx-dz*dz));
   drop=Math.max(drop,n.hip[1]-f[1]-reach);
  });
  Object.keys(rest).forEach(function(k){n[k][1]-=drop;});
- ['l','r'].forEach(function(k){var side=k==='l'?-1:1,hip=add(n.hip,[side*24,0,0]);
+ ['l','r'].forEach(function(k){var side=k==='l'?-1:1,hip=add(n.hip,[side*22,0,0]);
   n['hip'+k]=hip;n['k'+k]=solve(hip,n['f'+k],110,108,[0,0,1]);
   var shoulder=n['s'+k],target=add(shoulder,mul(sub(raw['h'+k],raw['s'+k]),1.30));
   // Wrist targets stay outside the rib cage; elbows flex forward, never invert.
