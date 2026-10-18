@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><body>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+/* Mixamo FBX -> ham veri: iskelet, ağ başına tepe ağırlıkları (dünya bağ konumuyla), 30 kare/sn kemik dönüşümleri (dünya, cm). */
+import * as THREE from 'three';import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+try{
+const o=await new FBXLoader().loadAsync('/girdi.fbx');o.updateMatrixWorld(true);
+const clip=o.animations[0],mix=new THREE.AnimationMixer(o);mix.clipAction(clip).play();
+const meshes=[];o.traverse(n=>{if(n.isSkinnedMesh&&n.skeleton&&n.skeleton.bones.length&&n.geometry.attributes.position.count)meshes.push(n);});
+const m0=meshes.reduce((a,b)=>b.skeleton.bones.length>a.skeleton.bones.length?b:a),ref=m0.skeleton.bones,names=ref.map(b=>b.name),parent=ref.map(b=>names.indexOf(b.parent&&b.parent.name));
+const out={names,parent,duration:clip.duration,meshes:[],frames:[]};
+for(const m of meshes){const g=m.geometry,P=g.attributes.position,I=g.attributes.skinIndex,W=g.attributes.skinWeight,mw=m.matrixWorld,v=new THREE.Vector3();
+ const pos=new Float32Array(P.count*3),j=new Int16Array(P.count*4),w=new Float32Array(P.count*4);
+ for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).applyMatrix4(m.bindMatrix).applyMatrix4(mw);pos.set([v.x,v.y,v.z],i*3);
+  for(let k=0;k<4;k++){j[i*4+k]=names.indexOf(m.skeleton.bones[I.getComponent(i,k)].name);w[i*4+k]=W.getComponent(i,k);}}
+ out.meshes.push({name:m.name,pos:Array.from(pos),j:Array.from(j),w:Array.from(w)});}
+/* Kemik dönüşümü (dünya): S = B(t) * B(0bağ)^-1 ; bağ tersleri referans ağdan */
+const inv=m0.skeleton.boneInverses,bm=m0.bindMatrix,bmi=m0.bindMatrixInverse,mw0=m0.matrixWorld,mwi=mw0.clone().invert();
+const fps=30,N=Math.round(clip.duration*fps)+1,M=new THREE.Matrix4();
+for(let f=0;f<N;f++){mix.setTime(Math.min(f/fps,clip.duration-1e-4));o.updateMatrixWorld(true);const row=[];
+ ref.forEach((b,k)=>{M.copy(mw0).multiply(bmi).multiply(b.matrixWorld).multiply(inv[k]).multiply(bm).multiply(mwi);row.push(...M.elements);});out.frames.push(row);}
+out.bindJoint=ref.map((b,k)=>{mix.setTime(0);const p=new THREE.Vector3().setFromMatrixPosition(inv[k].clone().invert());return p.applyMatrix4(bm).applyMatrix4(mw0).toArray();});
+window.SONUC=out;}catch(e){window.HATA=String(e.stack||e);}
+</script>

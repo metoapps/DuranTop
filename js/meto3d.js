@@ -14,6 +14,33 @@ function load(){
  }).catch(function(e){state.status='error';state.error=String(e.message||e);console.warn('Meto 3D:',state.error);return false;});return promise;
 }
 function check(r){if(!r.ok)throw Error('Meto HTTP '+r.status);return r;}
+/* MIXAMO SEVİNCİ (breakdance): ayrı küçük paket (≈270 KB). Geometri/doku aynı model.bin; pakette yalnız 4-kemik ağırlıkları ve 30 kare/sn kemik kareleri var.
+ * Meto modeli hazır olunca arka planda yüklenir; hazır değilse sevinç 0 (yumruk) oynar. Vuruş, fizik, kural DEĞİŞMEZ (yalnız görsel). */
+var DANS_SURUM='20261024a',dans={status:'idle',error:null,meta:null,bin:null},dansPromise;
+function loadDans(){
+ if(dansPromise)return dansPromise;if(!root.fetch||!model)return Promise.resolve(false);dans.status='loading';
+ dansPromise=Promise.all([fetch('assets/meto3d/sevinc-breakdance.json?v='+DANS_SURUM).then(check).then(r=>r.json()),fetch('assets/meto3d/sevinc-breakdance.bin?v='+DANS_SURUM).then(check).then(r=>r.arrayBuffer())]).then(function(pair){
+  var m=pair[0],bin=pair[1];if(bin.byteLength!==m.binaryBytes)throw Error('Incomplete Meto dance');
+  if(m.skinVertices.length!==model.meta.meshes.length||m.skinVertices.some((n,i)=>n!==model.meta.meshes[i].vertices))throw Error('Meto dance mesh mismatch');
+  dans.meta=m;dans.bin=bin;dans.frames=new Float32Array(bin,m.frameOffset,m.frames*m.frameStride);dans.status='ready';return true;
+ }).catch(function(e){dans.status='error';dans.error=String(e.message||e);console.warn('Meto dance:',dans.error);return false;});return dansPromise;
+}
+/* Kare örnekleme: kemik başına dördey nlerp; kalça dünya dönüşü + öteleme, diğer kemikler ebeveyne göre eklem etrafında döner (ara karelerde uzuv kopmaz).
+ * Bitince 0.5 sn'de ilk kareye yumuşakça döner ve baştan oynar (sonuç ekranı dokunuşa kadar açık kalır). */
+var DANS_GECIS=.5;
+function mat4mul(a,b){var o=new Array(16);for(var c=0;c<4;c++)for(var r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
+function dansPose(t,M,frames){
+ M=M||dans.meta;frames=frames||dans.frames;var B=M.bones.length,S=M.frameStride,dur=M.duration,cyc=dur+DANS_GECIS;t=Math.max(0,Number(t)||0)%cyc;
+ var a,b,u;if(t<=dur){var f=Math.min(t*M.fps,M.frames-1-1e-6);a=Math.floor(f);b=a+1;u=f-a;}else{a=M.frames-1;b=0;u=(t-dur)/DANS_GECIS;u=u*u*(3-2*u);}
+ var bones=new Float32Array(B*16),joints=[],world=[];
+ for(var k=0;k<B;k++){var o1=a*S+k*7,o2=b*S+k*7,sg=frames[o1]*frames[o2]+frames[o1+1]*frames[o2+1]+frames[o1+2]*frames[o2+2]+frames[o1+3]*frames[o2+3]<0?-1:1,q=[0,1,2,3].map(i=>frames[o1+i]*(1-u)+sg*frames[o2+i]*u),n=Math.hypot(q[0],q[1],q[2],q[3])||1,x=q[0]/n,y=q[1]/n,z=q[2]/n,w=q[3]/n,j=M.joints[k];
+  var m=[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w),0,2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w),0,2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y),0,0,0,0,1],p=M.parents[k];
+  if(p<0){m[12]=frames[o1+4]*(1-u)+frames[o2+4]*u;m[13]=frames[o1+5]*(1-u)+frames[o2+5]*u;m[14]=frames[o1+6]*(1-u)+frames[o2+6]*u;}
+  else{m[12]=j[0]-(m[0]*j[0]+m[4]*j[1]+m[8]*j[2]);m[13]=j[1]-(m[1]*j[0]+m[5]*j[1]+m[9]*j[2]);m[14]=j[2]-(m[2]*j[0]+m[6]*j[1]+m[10]*j[2]);m=mat4mul(world[p],m);}
+  world[k]=m;bones.set(m,k*16);joints.push([m[0]*j[0]+m[4]*j[1]+m[8]*j[2]+m[12],m[1]*j[0]+m[5]*j[1]+m[9]*j[2]+m[13],m[2]*j[0]+m[6]*j[1]+m[10]*j[2]+m[14]]);}
+ return{bones:bones,joints:joints};
+}
+
 function ik(a,b,L1,L2,pole){var axis=unit(sub(b,a)),d=clamp(len(sub(b,a)),.001,L1+L2-.001),x=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-x*x)),hint=pole||[0,0,1],perp=sub(hint,mul(axis,dot(hint,axis)));perp=len(perp)<1e-3?unit(cross(axis,[0,1,0])):unit(perp);return add(add(a,mul(axis,x)),mul(perp,h));}
 /* ANATOMİK KOL ÇÖZÜCÜ: dirsek yalnız tek eksende, yalnız ÖNE doğru bükülür (kol geriye katlanamaz); bükülme 10°–140° ile sınırlıdır (insanda ≈0–145°); omuz, kolu yatayın en çok ≈15° üstüne kaldırır (koşu/vuruşta kol baş üstüne sarkmaz).
  * Hedef el konumu bu sınırlara çekilir; kemik boyları sabit kalır. Dirsek, omuz–el doğrusunun ARKASINA/AŞAĞISINA/DIŞINA düşer (kuş kanadı gibi değil, insan gibi). */
@@ -123,18 +150,22 @@ function matrices(r,meta){var p=pose(r,meta),b=meta.rest,all=[];meta.bones.forEa
 function createRenderer(data){
  var canvas=document.createElement('canvas'),gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true,preserveDrawingBuffer:false});if(!gl)throw Error('WebGL unavailable');if(!gl.getExtension('OES_element_index_uint'))throw Error('32 bit mesh indices unavailable');
  var lost=false;canvas.addEventListener('webglcontextlost',function(e){e.preventDefault();lost=true;state.status='context-lost';});canvas.addEventListener('webglcontextrestored',function(){renderer=createRenderer(model);state.status='ready';});
- var vs='precision highp float;attribute vec3 aP,aN,aC;attribute vec2 aUV,aJ,aW;uniform mat4 uB[14];uniform vec4 uPX,uPY,uPD;uniform vec2 uSize,uDepth;uniform vec2 uOrigin;uniform float uYaw;varying vec2 vUV;varying vec3 vC;varying float vL,vD;void main(){mat4 m=uB[int(aJ.x)]*aW.x+uB[int(aJ.y)]*aW.y;vec3 p=(m*vec4(aP,1.)).xyz;vec3 n=normalize(mat3(m)*aN);float c=cos(uYaw),s=sin(uYaw);p=vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);n=vec3(c*n.x+s*n.z,n.y,-s*n.x+c*n.z);vec4 q=vec4(p,1.);float d=dot(uPD,q);float x=dot(uPX,q),y=dot(uPY,q);gl_Position=vec4(2.*(x-uOrigin.x*d)/uSize.x-d,d-2.*(y-uOrigin.y*d)/uSize.y,uDepth.x*d+uDepth.y,d);vD=d;vUV=aUV;vC=aC;vL=.64+.36*max(0.,dot(n,normalize(vec3(-.4,.7,.8))));}';
+ function vertexShader(dance){return'precision highp float;attribute vec3 aP,aN,aC;attribute vec2 aUV;'+(dance?'attribute vec4 aJ4,aW4;uniform mat4 uB['+dance+'];':'attribute vec2 aJ,aW;uniform mat4 uB[14];')+'uniform vec4 uPX,uPY,uPD;uniform vec2 uSize,uDepth;uniform vec2 uOrigin;uniform float uYaw;varying vec2 vUV;varying vec3 vC;varying float vL,vD;void main(){mat4 m='+(dance?'uB[int(aJ4.x)]*aW4.x+uB[int(aJ4.y)]*aW4.y+uB[int(aJ4.z)]*aW4.z+uB[int(aJ4.w)]*aW4.w':'uB[int(aJ.x)]*aW.x+uB[int(aJ.y)]*aW.y')+';vec3 p=(m*vec4(aP,1.)).xyz;vec3 n=normalize(mat3(m)*aN);float c=cos(uYaw),s=sin(uYaw);p=vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);n=vec3(c*n.x+s*n.z,n.y,-s*n.x+c*n.z);vec4 q=vec4(p,1.);float d=dot(uPD,q);float x=dot(uPX,q),y=dot(uPY,q);gl_Position=vec4(2.*(x-uOrigin.x*d)/uSize.x-d,d-2.*(y-uOrigin.y*d)/uSize.y,uDepth.x*d+uDepth.y,d);vD=d;vUV=aUV;vC=aC;vL=.64+.36*max(0.,dot(n,normalize(vec3(-.4,.7,.8))));}';}
  var fs='precision mediump float;uniform sampler2D uTex;uniform float uNear;varying vec2 vUV;varying vec3 vC;varying float vL,vD;void main(){if(uNear>0.&&vD>=uNear)discard;vec3 t=pow(texture2D(uTex,vUV).rgb,vec3(2.2));gl_FragColor=vec4(pow(max(vec3(0.),t*vC*vL),vec3(1./2.2)),1.);}';
  function shader(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
- var prog=gl.createProgram();gl.attachShader(prog,shader(gl.VERTEX_SHADER,vs));gl.attachShader(prog,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(prog));gl.useProgram(prog);
- var locations={};['uB[0]','uPX','uPY','uPD','uSize','uOrigin','uDepth','uYaw','uNear','uTex'].forEach(k=>locations[k]=gl.getUniformLocation(prog,k));
- var attrib=[['aP',3,0],['aN',3,12],['aUV',2,24],['aC',3,32],['aJ',2,44],['aW',2,52]].map(a=>[gl.getAttribLocation(prog,a[0]),a[1],a[2]]);
+ function program(dance){var prog=gl.createProgram();gl.attachShader(prog,shader(gl.VERTEX_SHADER,vertexShader(dance)));gl.attachShader(prog,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(prog));
+  var loc={};['uB[0]','uPX','uPY','uPD','uSize','uOrigin','uDepth','uYaw','uNear','uTex'].forEach(k=>loc[k]=gl.getUniformLocation(prog,k));
+  var at=[['aP',3,0],['aN',3,12],['aUV',2,24],['aC',3,32]].concat(dance?[]:[['aJ',2,44],['aW',2,52]]).map(a=>[gl.getAttribLocation(prog,a[0]),a[1],a[2]]);
+  return{prog:prog,loc:loc,attrib:at,j4:dance?gl.getAttribLocation(prog,'aJ4'):-1,w4:dance?gl.getAttribLocation(prog,'aW4'):-1};}
+ var main=program(0),danceProg=null;gl.useProgram(main.prog);
+ // Dans programı ve ağırlık tamponları ilk dans karesinde kurulur (bağlam yenilenince yeniden).
+ function danceSetup(){if(danceProg)return danceProg;var M=dans.meta;danceProg=program(M.bones.length);data.meta.meshes.forEach(function(m,i){var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Uint8Array(dans.bin,M.skinOffsets[i],M.skinVertices[i]*8),gl.STATIC_DRAW);meshes[i].skin=b;});return danceProg;}
  var tex={};function texture(name){if(tex[name||'white'])return tex[name||'white'];var t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);if(name)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,data.images[name]);else gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);tex[name||'white']=t;return t;}
  var meshes=data.meta.meshes.map(function(m){var vb=gl.createBuffer(),ib=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data.bin,m.vertexOffset,m.vertices*15),gl.STATIC_DRAW);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(data.bin,m.indexOffset,m.indices),gl.STATIC_DRAW);return{vb:vb,ib:ib,count:m.indices,tex:texture(m.texture)};});
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.clearColor(0,0,0,0);
  var cache=[null,null],stats={drawCalls:0,cacheHits:0,pixels:0};
- function bounds(o,r){
-  var ps=pose(r,data.meta),all=Object.values(ps),lo=[0,1,2].map(k=>Math.min(...all.map(p=>p[k]))-60),hi=[0,1,2].map(k=>Math.max(...all.map(p=>p[k]))+60),yaw=o.yaw===undefined?r.yaw:o.yaw,c=Math.cos(yaw),s=Math.sin(yaw),points=[];
+ function bounds(o,r,pts){
+  var all=pts||Object.values(pose(r,data.meta)),lo=[0,1,2].map(k=>Math.min(...all.map(p=>p[k]))-60),hi=[0,1,2].map(k=>Math.max(...all.map(p=>p[k]))+60),yaw=o.yaw===undefined?r.yaw:o.yaw,c=Math.cos(yaw),s=Math.sin(yaw),points=[];
   for(var x of [lo[0],hi[0]])for(var y of [lo[1],hi[1]])for(var z of [lo[2],hi[2]]){var q=o.project([x*c+z*s,y,-x*s+z*c]);if(q)points.push(q);}
   return{left:Math.floor(Math.min(...points.map(q=>q.x)))-2,top:Math.floor(Math.min(...points.map(q=>q.y)))-2,right:Math.ceil(Math.max(...points.map(q=>q.x)))+2,bottom:Math.ceil(Math.max(...points.map(q=>q.y)))+2,minDepth:Math.min(...points.map(q=>q.d)),maxDepth:Math.max(...points.map(q=>q.d))};
  }
@@ -146,8 +177,8 @@ function createRenderer(data){
   if(key&&cache[slot]&&cache[slot].key===key){stats.cacheHits++;g.drawImage(cache[slot].canvas,left,top,cw,ch);return true;}
   var points=[[0,0,0],[1,0,0],[0,1,0],[0,0,1]].map(v=>o.project(v));if(points.some(p=>!p))return false;
   function row(fn){var b=fn(points[0]);return new Float32Array([fn(points[1])-b,fn(points[2])-b,fn(points[3])-b,b]);}
-  if(!near&&(canvas.width!==W||canvas.height!==H)){canvas.width=W;canvas.height=H;}gl.viewport(0,canvas.height-H,W,H);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(prog);gl.uniformMatrix4fv(locations['uB[0]'],false,prepared.bones);gl.uniform4fv(locations.uPX,row(p=>p.x*p.d));gl.uniform4fv(locations.uPY,row(p=>p.y*p.d));gl.uniform4fv(locations.uPD,row(p=>p.d));gl.uniform2f(locations.uSize,cw,ch);gl.uniform2f(locations.uOrigin,left,top);var dr=row(p=>p.d),spread=Math.max(.5,600*Math.hypot(dr[0],dr[1],dr[2])),nearZ=Math.max(.05,dr[3]-spread),farZ=Math.max(nearZ+1,dr[3]+spread);gl.uniform2f(locations.uDepth,(farZ+nearZ)/(farZ-nearZ),-2*farZ*nearZ/(farZ-nearZ));gl.uniform1f(locations.uYaw,o.yaw===undefined?r.yaw:o.yaw);gl.uniform1f(locations.uNear,near||0);gl.uniform1i(locations.uTex,0);
-  meshes.forEach(function(m){gl.bindBuffer(gl.ARRAY_BUFFER,m.vb);attrib.forEach(a=>{gl.enableVertexAttribArray(a[0]);gl.vertexAttribPointer(a[0],a[1],gl.FLOAT,false,60,a[2]);});gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);gl.bindTexture(gl.TEXTURE_2D,m.tex);gl.drawElements(gl.TRIANGLES,m.count,gl.UNSIGNED_INT,0);stats.drawCalls++;});stats.pixels+=W*H;
+  if(!near&&(canvas.width!==W||canvas.height!==H)){canvas.width=W;canvas.height=H;}gl.viewport(0,canvas.height-H,W,H);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var P=prepared.dans?danceSetup():main,locations=P.loc;gl.useProgram(P.prog);gl.uniformMatrix4fv(locations['uB[0]'],false,prepared.bones);gl.uniform4fv(locations.uPX,row(p=>p.x*p.d));gl.uniform4fv(locations.uPY,row(p=>p.y*p.d));gl.uniform4fv(locations.uPD,row(p=>p.d));gl.uniform2f(locations.uSize,cw,ch);gl.uniform2f(locations.uOrigin,left,top);var dr=row(p=>p.d),spread=Math.max(.5,600*Math.hypot(dr[0],dr[1],dr[2])),nearZ=Math.max(.05,dr[3]-spread),farZ=Math.max(nearZ+1,dr[3]+spread);gl.uniform2f(locations.uDepth,(farZ+nearZ)/(farZ-nearZ),-2*farZ*nearZ/(farZ-nearZ));gl.uniform1f(locations.uYaw,o.yaw===undefined?r.yaw:o.yaw);gl.uniform1f(locations.uNear,near||0);gl.uniform1i(locations.uTex,0);
+  meshes.forEach(function(m){gl.bindBuffer(gl.ARRAY_BUFFER,m.vb);P.attrib.forEach(a=>{gl.enableVertexAttribArray(a[0]);gl.vertexAttribPointer(a[0],a[1],gl.FLOAT,false,60,a[2]);});if(prepared.dans){gl.bindBuffer(gl.ARRAY_BUFFER,m.skin);gl.enableVertexAttribArray(P.j4);gl.vertexAttribPointer(P.j4,4,gl.UNSIGNED_BYTE,false,8,0);gl.enableVertexAttribArray(P.w4);gl.vertexAttribPointer(P.w4,4,gl.UNSIGNED_BYTE,true,8,4);}gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);gl.bindTexture(gl.TEXTURE_2D,m.tex);gl.drawElements(gl.TRIANGLES,m.count,gl.UNSIGNED_INT,0);stats.drawCalls++;});for(var ai=0;ai<8;ai++)gl.disableVertexAttribArray(ai);stats.pixels+=W*H;
   if(key){var cv=cache[slot]?cache[slot].canvas:document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(canvas,0,0,W,H,0,0,W,H);cache[slot]={key:key,canvas:cv};g.drawImage(cv,left,top,cw,ch);}else g.drawImage(canvas,0,0,W,H,left,top,cw,ch);return true;
  }
 
@@ -155,16 +186,19 @@ function createRenderer(data){
 }
 function draw(g,o){
  if(o.id!=='meto'||!o.project)return false;if(state.status==='idle')load();if(state.status!=='ready')return false;
- var r=D.futbolcu3d.rig(o);r.celebration=o.metoCelebration;var prepared={bones:matrices(r,model.meta),box:renderer.bounds(o,r)};
+ if(dans.status==='idle')loadDans();
+ var r=D.futbolcu3d.rig(o),celeb=o.metoCelebration,prepared;
+ if(celeb&&celeb.variant===3){if(dans.status==='ready'){var dp=dansPose(celeb.time);prepared={bones:dp.bones,box:renderer.bounds(o,r,dp.joints),dans:true};}else celeb={time:celeb.time,variant:0};}
+ if(!prepared){r.celebration=celeb;prepared={bones:matrices(r,model.meta),box:renderer.bounds(o,r)};}
  if(o.ball&&o.ball.depth>=prepared.box.maxDepth){o.ball.draw(g);return renderer.paint(g,o,r,0,prepared);}
  if(!renderer.paint(g,o,r,0,prepared))return false;
  if(o.ball){o.ball.draw(g);if(o.ball.depth>prepared.box.minDepth)renderer.paint(g,o,r,o.ball.depth,prepared);}return true;
 }
 function portrait(g,o){
  if(o.id!=='meto')return false;
- var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:null,c=celebrate?celebration(t,o.variant):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
+ var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:null,c=celebrate&&o.variant!==3?celebration(t,o.variant):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
  return draw(g,{id:'meto',direction:0,yaw:.12+(c?c.turn:0),metoCelebration:celebrate,viewport:o.viewport,project:function(v){var d=900-v[2],q=900/d;return{x:o.x+v[0]*scale*q,y:o.y-(v[1]-8)*scale*q,d:d};}});
 }
-D.meto3d={load:load,draw:draw,portrait:portrait,status:state,_pose:pose,_celebration:celebration,_armAnatomy:armAnatomy,_solveArm:solveArm,_matrices:matrices,_boneMatrix:boneMatrix,_model:()=>model,_renderer:()=>renderer};
+D.meto3d={load:load,draw:draw,portrait:portrait,status:state,_pose:pose,_celebration:celebration,_armAnatomy:armAnatomy,_solveArm:solveArm,_matrices:matrices,_boneMatrix:boneMatrix,_model:()=>model,_renderer:()=>renderer,_dans:dans,_dansPose:dansPose,_loadDans:loadDans};
 // Loaded with Meto's selected character assets; other players do not download this model.
 })(typeof globalThis!=='undefined'?globalThis:window);

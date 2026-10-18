@@ -41,7 +41,7 @@ function pose(id,t){
  }
  p.left=blend([-65,155,18],p.left,inU);p.right=blend([65,155,18],p.right,inU);return p;
 }
-function next(id){var key='dt_cosmetic_celebrations',m=counts,n=0;try{var stored=JSON.parse(root.localStorage.getItem(key)||'null');if(stored&&typeof stored==='object'&&!Array.isArray(stored))m=stored;}catch(e){}n=Number(m[id]);if(!Number.isFinite(n)||n<0)n=0;var choice=id==='meto'?n%3:(n%2===0?1:0);m[id]=(n+1)%(id==='meto'?999999:1000000);counts=m;try{root.localStorage.setItem(key,JSON.stringify(m));}catch(e){}return choice;}
+function next(id){var key='dt_cosmetic_celebrations',m=counts,n=0;try{var stored=JSON.parse(root.localStorage.getItem(key)||'null');if(stored&&typeof stored==='object'&&!Array.isArray(stored))m=stored;}catch(e){}n=Number(m[id]);if(!Number.isFinite(n)||n<0)n=0;var choice=id==='meto'?n%4:(n%2===0?1:0);m[id]=(n+1)%(id==='meto'?999999:1000000);counts=m;try{root.localStorage.setItem(key,JSON.stringify(m));}catch(e){}return choice;}
 /* İkinci sevinç: kişinin kendi fotoğraf kareleri (bekle, sevinc, sevinc2-4) ile 2B hareket.
  * Kareler bükülmez ya da 3B gövdeye sarılmaz; yalnız taşınır, eğilir, hafifçe ezilir/esner. */
 var KITS={meto:['#16191d','#d83243'],lort:['#1455c7','#eeeeee'],fero:['#ededed','#c74b3f'],latte:['#ba2230','#f0dfcc'],josh:['#522580','#e8bc56']};
