@@ -1,5 +1,6 @@
 """Mixamo ham verisini (cikar.cjs çıktısı) Meto'nun oyun ağına bağlı küçük bir sevinç paketine çevirir.
-Kullanım: python tools/mixamo/paketle.py HAM.json AD [--bas SN] [--son SN]
+Kullanım: python tools/mixamo/paketle.py HAM.json AD [--bas SN] [--son SN] [--bekle SN]
+--bekle: hareket bitince son karede bekleme süresi (sonra başa yumuşak dönüş).
 Çıktı: assets/meto3d/sevinc-AD.json + .bin
 - Geometri indirilmez: oyundaki model.bin aynen kullanılır; pakette yalnız tepe başına 4 kemik/ağırlık (8 bayt) ve kareler var.
 - Parmak kemikleri ele katılır (22 kemik; telefonda WebGL1 tekdüzen sınırı 128 vec4'ün altında kalır).
@@ -106,9 +107,9 @@ def ekle(a):
     while len(body) % 4: body.append(0)
     o = len(body); body.extend(a.tobytes()); return o
 skinOff = [ekle(x) for x in skin]; kareOff = ekle(kare)
-out = {'version': '20261024a', 'ad': ad, 'fps': fps, 'frames': len(kare), 'duration': (len(kare) - 1) / fps, 'bones': TUT,
+out = {'version': arg.get('--surum', '20261024a'), 'ad': ad, 'fps': fps, 'frames': len(kare), 'duration': (len(kare) - 1) / fps, 'bones': TUT,
        'joints': np.round(bj, 3).tolist(), 'parents': PARENT, 'local': 'kalca dunya; digerleri ebeveyne gore donus (eklem etrafinda)', 'skinOffsets': skinOff, 'skinVertices': [len(x) for x in skin], 'frameOffset': kareOff,
-       'frameStride': len(TUT) * 7, 'binaryBytes': len(body), 'rootDrift': 'removed (0.8 s moving average)',
+       'frameStride': len(TUT) * 7, 'binaryBytes': len(body), 'hold': float(arg.get('--bekle', 0)), 'rootDrift': 'removed (0.8 s moving average)',
        'source': 'Adobe Mixamo animasyonu, Meto modeline (MakeHuman CC0 tabanı) Mixamo otomatik iskeleti. Ham FBX depoya konmaz.'}
 d = root / 'assets/meto3d'
 (d / ('sevinc-%s.bin' % ad)).write_bytes(body); (d / ('sevinc-%s.json' % ad)).write_text(json.dumps(out, separators=(',', ':')))

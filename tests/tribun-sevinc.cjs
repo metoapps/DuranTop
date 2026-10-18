@@ -9,7 +9,7 @@ for(const id of ['meto','lort','latte','josh','fero']){
  }
 }
 for(let t=0;t<8;t+=.01){const p=D.sevinc.pose('meto',t);assert.equal(p.prop,null);assert.deepEqual(p.feet,[[-26,8,0],[26,8,0]],'Meto keeps both feet planted');}assert.equal(JSON.stringify(D.sevinc.pose('meto',8)),JSON.stringify(D.sevinc.pose('meto',9)),'Meto relaxes instead of resetting abruptly');
-assert.equal(world(storage).sevinc.next('meto'),0,'four celebrations survive reload');
+assert.equal(world(storage).sevinc.next('meto'),4,'five celebrations survive reload (sayaç kalıcı)');assert.equal(world(storage).sevinc.next('meto'),0,'beşinciden sonra başa döner');
 const blocked=world({getItem(){throw Error()},setItem(){throw Error()}});assert.deepEqual([blocked.sevinc.next('meto'),blocked.sevinc.next('meto')],[0,1],'private/storage disabled still rotates');
 const T=D.tribun,base=[-1.0,1.6,31],m=T.newMesh(12,8,T.pole(0,base));let maxStretch=0,maxLag=0;
 for(let i=0;i<=1200;i++){const t=i/60;T.advance(m,t,base,false);const pole=T.pole(t,base);
@@ -19,4 +19,4 @@ for(let i=0;i<=1200;i++){const t=i/60;T.advance(m,t,base,false);const pole=T.pol
 assert(maxStretch<1.12,'cloth remains inextensible: '+maxStretch);assert(maxLag>.15,'free cloth bends behind moving pole');
 T.advance(m,1200,base,false);assert(m.pts.every(n=>n.p.every(Number.isFinite)),'resume after tab pause remains stable');
 T.advance(m,0,base,true);const stationary=JSON.stringify(m.pts.map(n=>n.p));T.advance(m,8,base,true);assert.equal(stationary,JSON.stringify(m.pts.map(n=>n.p)),'reduced motion is stationary');
-assert.equal(T.slogans.meto,'Meto Forever');console.log('PASS 5 distinct fixed-bone celebrations; durable independent 4-way Meto / 2-way other celebrations; disabled storage; moving anchored pole; bounded cloth strain '+maxStretch.toFixed(3)+'; inertia '+maxLag.toFixed(2)+'m; long-pause recovery; reduced motion; Meto banner');
+assert.equal(T.slogans.meto,'Meto Forever');console.log('PASS 5 distinct fixed-bone celebrations; durable independent 5-way Meto / 2-way other celebrations; disabled storage; moving anchored pole; bounded cloth strain '+maxStretch.toFixed(3)+'; inertia '+maxLag.toFixed(2)+'m; long-pause recovery; reduced motion; Meto banner');

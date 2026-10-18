@@ -7,17 +7,17 @@ let chromium;for(const m of ['playwright','playwright-core','/opt/codex/runtimes
  await new Promise(r=>server.listen(0,'127.0.0.1',r));let page;const errors=[];
  try{page=await browser.newPage();await page.addInitScript(()=>{window.requestAnimationFrame=()=>0;window.cancelAnimationFrame=()=>{};});page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/');assert(await page.evaluate(()=>DT.meto3d.load()),'Meto modeli hazır');
-  assert(await page.evaluate(()=>DT.meto3d._loadDans()),'breakdance paketi hazır');
+  assert(await page.evaluate(()=>DT.meto3d._loadDans()),'breakdance paketi hazır');assert(await page.evaluate(()=>DT.meto3d._loadDans('flyingkick')),'flying kick paketi hazır');
   const W=430,H=932;await page.setViewportSize({width:W,height:H});await page.evaluate(async([w,h])=>{document.body.innerHTML='<canvas id="qa"></canvas>';document.body.style='margin:0';DT.cizim.kur(document.getElementById('qa'),w,h,1);await DT.cizim.karakterYukle('meto');},[W,H]);
-  const times=[0,.8,1.6,2.4,3.2,4.0,4.8,5.6,6.4];const res=[];
-  for(const t of times){const r=await page.evaluate(t=>{const M=DT.meto3d,R=M._renderer(),d0=R.stats.drawCalls;let used=null;const paint=R.paint;R.paint=function(g,o,r,near,prep){used=!!prep.dans;return paint(g,o,r,near,prep);};
-    DT.cizim.ciz({onKarakter:{karakter:'meto',poz:'sevinc',gol:true,sure:t,sevinc:3}});R.paint=paint;const gl=R.gl,px=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,px);let n=0;for(let i=3;i<px.length;i+=4)if(px[i])n++;
-    return{t,dans:used,draws:R.stats.drawCalls-d0,pixels:n,err:gl.getError()};},t);res.push(r);
-   if(process.env.DT_QA_OUTPUT){fs.mkdirSync(process.env.DT_QA_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-breakdance-'+t.toFixed(1)+'.png')});}}
+  const times=[[3,0],[3,.8],[3,1.6],[3,2.4],[3,3.2],[3,4.0],[3,4.8],[3,5.6],[3,6.4],[4,0],[4,.3],[4,.4],[4,.7],[4,1.0],[4,1.5],[4,2.2],[4,2.7]];const res=[];
+  for(const [v,t] of times){const r=await page.evaluate(([v,t])=>{const M=DT.meto3d,R=M._renderer(),d0=R.stats.drawCalls;let used=null;const paint=R.paint;R.paint=function(g,o,r,near,prep){used=!!prep.dans;return paint(g,o,r,near,prep);};
+    DT.cizim.ciz({onKarakter:{karakter:'meto',poz:'sevinc',gol:true,sure:t,sevinc:v}});R.paint=paint;const gl=R.gl,px=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,px);let n=0;for(let i=3;i<px.length;i+=4)if(px[i])n++;
+    return{v,t,dans:used,draws:R.stats.drawCalls-d0,pixels:n,err:gl.getError()};},[v,t]);res.push(r);
+   if(process.env.DT_QA_OUTPUT){fs.mkdirSync(process.env.DT_QA_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.DT_QA_OUTPUT,'meto-'+(v===3?'breakdance':'flyingkick')+'-'+t.toFixed(1)+'.png')});}}
   // eski üç sevinç aynı tuvalde bozulmadan çizilir (program geçişi)
   const eski=await page.evaluate(()=>{const out=[];for(const v of [0,1,2]){DT.cizim.ciz({onKarakter:{karakter:'meto',poz:'sevinc',gol:true,sure:2,sevinc:v}});out.push(DT.meto3d._renderer().gl.getError());}return out;});
   for(const r of res){assert.equal(r.dans,true,'dans yolu kullanıldı t='+r.t);assert.equal(r.err,0,'WebGL hatası t='+r.t);assert(r.draws>=4,'tüm ağ parçaları');assert(r.pixels>2000,'model pikselleri t='+r.t+': '+r.pixels);}
   assert.deepEqual(eski,[0,0,0],'eski sevinçler');assert.deepEqual(errors,[],'tarayıcı JS hatası');
-  console.log('PASS Meto breakdance WebGL: '+res.length+' kare gerçek ağ, 22 kemik GPU, GL/JS hatası yok, eski üç sevinç sağlam; piksel '+res.map(r=>r.pixels).join('/'));
+  console.log('PASS Meto Mixamo WebGL (breakdance + flying kick): '+res.length+' kare gerçek ağ, 22 kemik GPU, GL/JS hatası yok, eski üç sevinç sağlam; piksel '+res.map(r=>r.pixels).join('/'));
  }finally{await page?.close();await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exit(1)});

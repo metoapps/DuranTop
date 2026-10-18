@@ -16,22 +16,27 @@ function load(){
 function check(r){if(!r.ok)throw Error('Meto HTTP '+r.status);return r;}
 /* MIXAMO SEVİNCİ (breakdance): ayrı küçük paket (≈270 KB). Geometri/doku aynı model.bin; pakette yalnız 4-kemik ağırlıkları ve 30 kare/sn kemik kareleri var.
  * Meto modeli hazır olunca arka planda yüklenir; hazır değilse sevinç 0 (yumruk) oynar. Vuruş, fizik, kural DEĞİŞMEZ (yalnız görsel). */
-var DANS_SURUM='20261024a',dans={status:'idle',error:null,meta:null,bin:null},dansPromise;
-function loadDans(){
- if(dansPromise)return dansPromise;if(!root.fetch||!model)return Promise.resolve(false);dans.status='loading';
- dansPromise=Promise.all([fetch('assets/meto3d/sevinc-breakdance.json?v='+DANS_SURUM).then(check).then(r=>r.json()),fetch('assets/meto3d/sevinc-breakdance.bin?v='+DANS_SURUM).then(check).then(r=>r.arrayBuffer())]).then(function(pair){
+/* Mixamo sevinçleri: sevinç numarası -> paket adı. 3: breakdance, 4: flying kick (20261025a). Her paket ayrı yüklenir; hazır değilse sevinç 0 oynar. */
+var DANS_SURUM='20261025a',DANSLAR={3:'breakdance',4:'flyingkick'},dansDurum={};
+function dansNesne(ad){return dansDurum[ad]||(dansDurum[ad]={ad:ad,status:'idle',error:null,meta:null,bin:null,promise:null});}
+var dans=dansNesne('breakdance');
+function loadDans(ad){
+ var dans=dansNesne(ad||'breakdance');
+ if(dans.promise)return dans.promise;if(!root.fetch||!model)return Promise.resolve(false);dans.status='loading';
+ return dans.promise=Promise.all([fetch('assets/meto3d/sevinc-'+dans.ad+'.json?v='+DANS_SURUM).then(check).then(r=>r.json()),fetch('assets/meto3d/sevinc-'+dans.ad+'.bin?v='+DANS_SURUM).then(check).then(r=>r.arrayBuffer())]).then(function(pair){
   var m=pair[0],bin=pair[1];if(bin.byteLength!==m.binaryBytes)throw Error('Incomplete Meto dance');
   if(m.skinVertices.length!==model.meta.meshes.length||m.skinVertices.some((n,i)=>n!==model.meta.meshes[i].vertices))throw Error('Meto dance mesh mismatch');
   dans.meta=m;dans.bin=bin;dans.frames=new Float32Array(bin,m.frameOffset,m.frames*m.frameStride);dans.status='ready';return true;
- }).catch(function(e){dans.status='error';dans.error=String(e.message||e);console.warn('Meto dance:',dans.error);return false;});return dansPromise;
+ }).catch(function(e){dans.status='error';dans.error=String(e.message||e);console.warn('Meto dance '+dans.ad+':',dans.error);return false;});
 }
 /* Kare örnekleme: kemik başına dördey nlerp; kalça dünya dönüşü + öteleme, diğer kemikler ebeveyne göre eklem etrafında döner (ara karelerde uzuv kopmaz).
  * Bitince 0.5 sn'de ilk kareye yumuşakça döner ve baştan oynar (sonuç ekranı dokunuşa kadar açık kalır). */
 var DANS_GECIS=.5;
 function mat4mul(a,b){var o=new Array(16);for(var c=0;c<4;c++)for(var r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
 function dansPose(t,M,frames){
- M=M||dans.meta;frames=frames||dans.frames;var B=M.bones.length,S=M.frameStride,dur=M.duration,cyc=dur+DANS_GECIS;t=Math.max(0,Number(t)||0)%cyc;
- var a,b,u;if(t<=dur){var f=Math.min(t*M.fps,M.frames-1-1e-6);a=Math.floor(f);b=a+1;u=f-a;}else{a=M.frames-1;b=0;u=(t-dur)/DANS_GECIS;u=u*u*(3-2*u);}
+ M=M||dans.meta;frames=frames||dans.frames;var B=M.bones.length,S=M.frameStride,dur=M.duration,hold=M.hold||0,cyc=dur+hold+DANS_GECIS;t=Math.max(0,Number(t)||0)%cyc;
+ // hold: hareket bitince son karede bekleme (flying kick yere iner ve durur), sonra başa yumuşak dönüş
+ var a,b,u;if(t<=dur){var f=Math.min(t*M.fps,M.frames-1-1e-6);a=Math.floor(f);b=a+1;u=f-a;}else if(t<=dur+hold){a=b=M.frames-1;u=0;}else{a=M.frames-1;b=0;u=(t-dur-hold)/DANS_GECIS;u=u*u*(3-2*u);}
  var bones=new Float32Array(B*16),joints=[],world=[];
  for(var k=0;k<B;k++){var o1=a*S+k*7,o2=b*S+k*7,sg=frames[o1]*frames[o2]+frames[o1+1]*frames[o2+1]+frames[o1+2]*frames[o2+2]+frames[o1+3]*frames[o2+3]<0?-1:1,q=[0,1,2,3].map(i=>frames[o1+i]*(1-u)+sg*frames[o2+i]*u),n=Math.hypot(q[0],q[1],q[2],q[3])||1,x=q[0]/n,y=q[1]/n,z=q[2]/n,w=q[3]/n,j=M.joints[k];
   var m=[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w),0,2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w),0,2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y),0,0,0,0,1],p=M.parents[k];
@@ -159,7 +164,8 @@ function createRenderer(data){
   return{prog:prog,loc:loc,attrib:at,j4:dance?gl.getAttribLocation(prog,'aJ4'):-1,w4:dance?gl.getAttribLocation(prog,'aW4'):-1};}
  var main=program(0),danceProg=null;gl.useProgram(main.prog);
  // Dans programı ve ağırlık tamponları ilk dans karesinde kurulur (bağlam yenilenince yeniden).
- function danceSetup(){if(danceProg)return danceProg;var M=dans.meta;danceProg=program(M.bones.length);data.meta.meshes.forEach(function(m,i){var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Uint8Array(dans.bin,M.skinOffsets[i],M.skinVertices[i]*8),gl.STATIC_DRAW);meshes[i].skin=b;});return danceProg;}
+ var danceProgs={},skinBufs={};
+ function danceSetup(d){var M=d.meta,n=M.bones.length;danceProg=danceProgs[n]||(danceProgs[n]=program(n));if(!skinBufs[d.ad])skinBufs[d.ad]=data.meta.meshes.map(function(m,i){var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Uint8Array(d.bin,M.skinOffsets[i],M.skinVertices[i]*8),gl.STATIC_DRAW);return b;});meshes.forEach(function(m,i){m.skin=skinBufs[d.ad][i];});return danceProg;}
  var tex={};function texture(name){if(tex[name||'white'])return tex[name||'white'];var t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);if(name)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,data.images[name]);else gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);tex[name||'white']=t;return t;}
  var meshes=data.meta.meshes.map(function(m){var vb=gl.createBuffer(),ib=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data.bin,m.vertexOffset,m.vertices*15),gl.STATIC_DRAW);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(data.bin,m.indexOffset,m.indices),gl.STATIC_DRAW);return{vb:vb,ib:ib,count:m.indices,tex:texture(m.texture)};});
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.clearColor(0,0,0,0);
@@ -177,7 +183,7 @@ function createRenderer(data){
   if(key&&cache[slot]&&cache[slot].key===key){stats.cacheHits++;g.drawImage(cache[slot].canvas,left,top,cw,ch);return true;}
   var points=[[0,0,0],[1,0,0],[0,1,0],[0,0,1]].map(v=>o.project(v));if(points.some(p=>!p))return false;
   function row(fn){var b=fn(points[0]);return new Float32Array([fn(points[1])-b,fn(points[2])-b,fn(points[3])-b,b]);}
-  if(!near&&(canvas.width!==W||canvas.height!==H)){canvas.width=W;canvas.height=H;}gl.viewport(0,canvas.height-H,W,H);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var P=prepared.dans?danceSetup():main,locations=P.loc;gl.useProgram(P.prog);gl.uniformMatrix4fv(locations['uB[0]'],false,prepared.bones);gl.uniform4fv(locations.uPX,row(p=>p.x*p.d));gl.uniform4fv(locations.uPY,row(p=>p.y*p.d));gl.uniform4fv(locations.uPD,row(p=>p.d));gl.uniform2f(locations.uSize,cw,ch);gl.uniform2f(locations.uOrigin,left,top);var dr=row(p=>p.d),spread=Math.max(.5,600*Math.hypot(dr[0],dr[1],dr[2])),nearZ=Math.max(.05,dr[3]-spread),farZ=Math.max(nearZ+1,dr[3]+spread);gl.uniform2f(locations.uDepth,(farZ+nearZ)/(farZ-nearZ),-2*farZ*nearZ/(farZ-nearZ));gl.uniform1f(locations.uYaw,o.yaw===undefined?r.yaw:o.yaw);gl.uniform1f(locations.uNear,near||0);gl.uniform1i(locations.uTex,0);
+  if(!near&&(canvas.width!==W||canvas.height!==H)){canvas.width=W;canvas.height=H;}gl.viewport(0,canvas.height-H,W,H);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var P=prepared.dans?danceSetup(prepared.dans):main,locations=P.loc;gl.useProgram(P.prog);gl.uniformMatrix4fv(locations['uB[0]'],false,prepared.bones);gl.uniform4fv(locations.uPX,row(p=>p.x*p.d));gl.uniform4fv(locations.uPY,row(p=>p.y*p.d));gl.uniform4fv(locations.uPD,row(p=>p.d));gl.uniform2f(locations.uSize,cw,ch);gl.uniform2f(locations.uOrigin,left,top);var dr=row(p=>p.d),spread=Math.max(.5,600*Math.hypot(dr[0],dr[1],dr[2])),nearZ=Math.max(.05,dr[3]-spread),farZ=Math.max(nearZ+1,dr[3]+spread);gl.uniform2f(locations.uDepth,(farZ+nearZ)/(farZ-nearZ),-2*farZ*nearZ/(farZ-nearZ));gl.uniform1f(locations.uYaw,o.yaw===undefined?r.yaw:o.yaw);gl.uniform1f(locations.uNear,near||0);gl.uniform1i(locations.uTex,0);
   meshes.forEach(function(m){gl.bindBuffer(gl.ARRAY_BUFFER,m.vb);P.attrib.forEach(a=>{gl.enableVertexAttribArray(a[0]);gl.vertexAttribPointer(a[0],a[1],gl.FLOAT,false,60,a[2]);});if(prepared.dans){gl.bindBuffer(gl.ARRAY_BUFFER,m.skin);gl.enableVertexAttribArray(P.j4);gl.vertexAttribPointer(P.j4,4,gl.UNSIGNED_BYTE,false,8,0);gl.enableVertexAttribArray(P.w4);gl.vertexAttribPointer(P.w4,4,gl.UNSIGNED_BYTE,true,8,4);}gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);gl.bindTexture(gl.TEXTURE_2D,m.tex);gl.drawElements(gl.TRIANGLES,m.count,gl.UNSIGNED_INT,0);stats.drawCalls++;});for(var ai=0;ai<8;ai++)gl.disableVertexAttribArray(ai);stats.pixels+=W*H;
   if(key){var cv=cache[slot]?cache[slot].canvas:document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(canvas,0,0,W,H,0,0,W,H);cache[slot]={key:key,canvas:cv};g.drawImage(cv,left,top,cw,ch);}else g.drawImage(canvas,0,0,W,H,left,top,cw,ch);return true;
  }
@@ -186,9 +192,10 @@ function createRenderer(data){
 }
 function draw(g,o){
  if(o.id!=='meto'||!o.project)return false;if(state.status==='idle')load();if(state.status!=='ready')return false;
- if(dans.status==='idle')loadDans();
+ Object.keys(DANSLAR).forEach(function(k){if(dansNesne(DANSLAR[k]).status==='idle')loadDans(DANSLAR[k]);});
  var r=D.futbolcu3d.rig(o),celeb=o.metoCelebration,prepared;
- if(celeb&&celeb.variant===3){if(dans.status==='ready'){var dp=dansPose(celeb.time);prepared={bones:dp.bones,box:renderer.bounds(o,r,dp.joints),dans:true};}else celeb={time:celeb.time,variant:0};}
+ var dk=celeb&&DANSLAR[celeb.variant]?dansNesne(DANSLAR[celeb.variant]):null;
+ if(dk){if(dk.status==='ready'){var dp=dansPose(celeb.time,dk.meta,dk.frames);prepared={bones:dp.bones,box:renderer.bounds(o,r,dp.joints),dans:dk};}else celeb={time:celeb.time,variant:0};}
  if(!prepared){r.celebration=celeb;prepared={bones:matrices(r,model.meta),box:renderer.bounds(o,r)};}
  if(o.ball&&o.ball.depth>=prepared.box.maxDepth){o.ball.draw(g);return renderer.paint(g,o,r,0,prepared);}
  if(!renderer.paint(g,o,r,0,prepared))return false;
@@ -196,9 +203,9 @@ function draw(g,o){
 }
 function portrait(g,o){
  if(o.id!=='meto')return false;
- var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:null,c=celebrate&&o.variant!==3?celebration(t,o.variant):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
+ var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:null,c=celebrate&&!DANSLAR[o.variant]?celebration(t,o.variant):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
  return draw(g,{id:'meto',direction:0,yaw:.12+(c?c.turn:0),metoCelebration:celebrate,viewport:o.viewport,project:function(v){var d=900-v[2],q=900/d;return{x:o.x+v[0]*scale*q,y:o.y-(v[1]-8)*scale*q,d:d};}});
 }
-D.meto3d={load:load,draw:draw,portrait:portrait,status:state,_pose:pose,_celebration:celebration,_armAnatomy:armAnatomy,_solveArm:solveArm,_matrices:matrices,_boneMatrix:boneMatrix,_model:()=>model,_renderer:()=>renderer,_dans:dans,_dansPose:dansPose,_loadDans:loadDans};
+D.meto3d={load:load,draw:draw,portrait:portrait,status:state,_pose:pose,_celebration:celebration,_armAnatomy:armAnatomy,_solveArm:solveArm,_matrices:matrices,_boneMatrix:boneMatrix,_model:()=>model,_renderer:()=>renderer,_dans:dans,_dansDurum:dansDurum,_danslar:DANSLAR,_dansPose:dansPose,_loadDans:loadDans};
 // Loaded with Meto's selected character assets; other players do not download this model.
 })(typeof globalThis!=='undefined'?globalThis:window);
