@@ -24,7 +24,7 @@ async function shot(player,idx,input){await ensure();if(player!==who.player)thro
  var result;try{result=await api(pending);}catch(e){if(e.code==='CLOSED'){pending=null;put('dt_live_pending',null);}throw e;}   // kupa kapalı: vuruş kaydedilmedi, bekleyen istek tutulmaz
  pending=null;put('dt_live_pending',null);set(result.state);return result.entry;}
 function records(){var out={};if(state)(state.weekly||[]).forEach(function(p){out[p.player]={id:p.player,idx:p.idx,puan:p.puan,gol:p.gol,yesil:p.yesil};});return out;}
-function allowed(player){if(!who||player!==who.player||!state||!state.active)return false;var slot=state.players.find(function(p){return p.player===player;});return !slot||(slot.mine&&slot.idx<10);}
+function allowed(player){if(!who||player!==who.player||!state||!state.active)return false;var slot=state.players.find(function(p){return p.player===player;});return !slot||(slot.mine&&slot.idx<(state.oyun?state.oyun.hak*state.oyun.vurus:10));}
 function link(){return 'https://metoapps.github.io/DuranTop/?oda='+state.room.id+'&v=20261004s';}
 DT.live={init:init,ensure:ensure,create:create,join:join,shot:shot,records:records,allowed:allowed,current:current,login:login,logout:logout,identity:function(){return who;},link:link,getState:function(){return state;}};
 })(window);

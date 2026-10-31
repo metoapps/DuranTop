@@ -7,7 +7,7 @@ assert.throws(()=>K.requirePlayer(null,'meto'),/LOGIN/);assert.throws(()=>K.requ
 const code='ABCDEFGHJKLMNPQRSTUV',salt='fake-test-salt',accounts=['meto','lort','fero','latte','josh'].map(player=>({player,id:player,salt,attempts:0}));
 for(const a of accounts)a.credential_hash=await K.passwordHash(code,salt);
 assert(K.equalHash(accounts[0].credential_hash,await K.passwordHash(code,salt)));assert(!K.equalHash(accounts[0].credential_hash,await K.passwordHash(code+'A',salt)));
-let kupa='1';const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,...L,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':k==='DT_CUP_OPEN'?kupa:'fake-secret'},serve:f=>handler=f},console};
+let kupa='1';const sessions=[],rooms=[],members=[];let handler;const root={DT:{},crypto,TextEncoder,Uint8Array,DataView,URL,Date,Request,Response,...K,...G,...L,Deno:{env:{get:k=>k==='SUPABASE_URL'?'https://fake.invalid':k==='DT_CUP_OPEN'?kupa:k==='DT_CUP_MODE'?(kupa==='1'?'acik':'kapali'):'fake-secret'},serve:f=>handler=f},console};
 function selected(rows,u){return rows.filter(r=>{for(const [k,v] of u.searchParams){if(k==='select')continue;if(v.startsWith('eq.')&&String(r[k])!==v.slice(3))return false;if(v.startsWith('gt.')&&!(r[k]>v.slice(3)))return false;}return true;});}
 const sum=es=>({gol:es.filter(e=>e.gol).length,puan:es.reduce((n,e)=>n+e.puan,0)});
 root.fetch=async(url,opt)=>{const u=new URL(url),path=u.pathname.split('/rest/v1/')[1],body=opt.body?JSON.parse(opt.body):null;let out;
@@ -44,7 +44,7 @@ for(let idx=0;idx<10;idx++){
 }
 // Kaydedilmiş vuruşun tekrar isteği (eski sürüm olsa da) mevcut kaydı döndürür, yeniden hesaplamaz.
 for(const eski of [4,5,6,7,8,9,11]){const tekrar=await api({...shot,rules:eski,aim:{x:-3,y:2},zaman:.1},A);assert.equal(tekrar.status,200);assert.deepEqual(tekrar.data.entry,first,'kayıtlı vuruş, istenen sürümden bağımsız olarak aynı sonuçla döner');}
-assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].idx,10);assert.equal((await api({...shot,idx:10},A)).data.code,'INPUT');
+assert.deepEqual((await api(shot,A)).data.entry,first);assert.equal(members[0].idx,10);assert.equal((await api({...shot,idx:30},A)).data.code,'INPUT');   // 3 oyun × 10 = 30 vuruş sınırı
 const C=(await api({action:'login',player:'meto',password:code})).data.session;const st=(await api({action:'create'},C)).data;assert.equal(st.players.find(p=>p.mine).idx,10,'second device cannot reset weekly rights');
 const publicState=(await api({action:'state',room})).data;assert.equal(publicState.weekly.find(p=>p.player==='meto').idx,10);assert(!JSON.stringify(publicState).includes('"input"'));assert(!JSON.stringify(publicState).includes('credential_hash'));
 await api({action:'logout'},A);assert.equal((await api({action:'me'},A)).data.code,'LOGIN');

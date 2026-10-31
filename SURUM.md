@@ -33,3 +33,4 @@ Ayrıntı için `DEGISIKLIK-<sürüm>.md` dosyalarına bak. Sıra: eskiden yeniy
 | 20261021c | LORT: bedene bağlı forma kabuğu, bütünleşen kısa kollar, mavi şort ve beyaz çoraplar |
 | 20261022a | LORT boyun oranı; rules 13 ile ölçülü penaltı tahmini ve daha erken frikik kararı; rules 12 tekrar uyumu |
 | 20261026a | Kural 14 (penaltı ortası açığı, gerçekçi kaleci dalışı), canlı Meto/LORT kaçırma tepkileri, kırık kol, kupa dışı modlar girişsiz, ağır çekim ≥120, alev 120+ ve yeşil, baraj kolları aşağıda |
+| 20261031a | Haftalık otomatik kupa (Cmt 13:00 – Pazar 19:00), 3 oyun ve toplam puan, gizli sıralama Pazar 19:00'da açıklanır, geçen hafta sonucu |

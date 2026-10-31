@@ -6,12 +6,12 @@ let callback,state={room:{id:'test',code:'ABC123'},players:[],kupaAcik:false};fu
 D.live={identity:()=>({player:'meto'}),init(cb){callback=cb;cb(state);return Promise.resolve(state)},ensure:()=>Promise.resolve(state),current:()=>state.players[0],allowed:()=>true,getState:()=>state,records,async join(player){if(!state.players[0])state.players=[{player,idx:0,entries:[],mine:true}];return state.players[0]},async shot(player,idx,input){shots++;const p=D.puan.puanla(input.pos,D.fizik.hesapla(input));const physics=D.fizik.hesapla(input);const entry={ad:input.pos.ad,sonuc:physics.sonuc,puan:D.puan.puanla(input.pos.tip,physics).puan,gol:['gol','direk_gol'].includes(physics.sonuc),yesil:physics.bandaGirdi,input:{...input,rules:13}};state.players[0].entries.push(entry);state.players[0].idx++;callback(state);return entry},create:()=>Promise.resolve(state),link:()=>''};
 vm.runInContext(fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),root);D.oyun.baslat();const d=D.oyun._durum;function fire(id,k,v={}){for(const f of el(id).events[k]||[])f.call(el(id),v)}async function flush(){for(let i=0;i<6;i++)await Promise.resolve();}
 
-// Kupa kapalı: menüde "Kupa kapalı", düğme pasif, tıklama tur başlatmaz; antrenman açık.
+// Kupa kapalı: menüde "Kupa Cumartesi 13:00'te açılır", düğme pasif, tıklama tur başlatmaz; antrenman açık.
 await flush();D.oyun._durum;fire('turMenu','click');
-assert.equal(el('btnResmi').textContent,'Kupa kapalı');assert.equal(el('btnResmi').disabled,true);assert(/kapalı/.test(el('menuNot').textContent));
+assert.equal(el('btnResmi').textContent,'Kupa Cumartesi 13:00\'te açılır');assert.equal(el('btnResmi').disabled,true);assert(/kapalı/.test(el('menuNot').textContent));
 fire('btnResmi','click');await flush();assert.equal(d.ekran,'menu','kapalı kupada tur başlamaz');assert.equal(el('btnAntrenman').disabled,false,'antrenman açık');
 // Sunucu açıkken (alan yok ya da true) eski davranış.
-state.kupaAcik=undefined;fire('turMenu','click');assert.notEqual(el('btnResmi').textContent,'Kupa kapalı');
+state.kupaAcik=undefined;fire('turMenu','click');assert.notEqual(el('btnResmi').textContent,'Kupa Cumartesi 13:00\'te açılır');
 // Tur sırasında kupa kapanırsa: CLOSED hatası menüye döndürür, hak harcanmaz.
 let uyari='';root.alert=m=>uyari=m;D.live.shot=async()=>{const e=Error('Juninho Kupası şu an kapalı. Vuruş hakkın harcanmadı.');e.code='CLOSED';throw e;};
 fire('btnResmi','click');await flush();assert.equal(d.ekran,'oyun');

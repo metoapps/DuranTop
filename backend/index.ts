@@ -1,6 +1,6 @@
 import {createLoginGuard} from './giris-koruma.mjs';
 import '../js/ayar.js';import '../js/model3d.js';import '../js/baraj.js';import '../js/kaleci.js';import '../js/ucus.js';import '../js/fizik.js';import '../js/puan.js';
-import {tohum,oyuncular} from './guvenlik.mjs';import {normalCode,passwordHash,equalHash,requirePlayer,weekKey} from './kimlik.mjs';
+import {tohum,oyuncular} from './guvenlik.mjs';import {normalCode,passwordHash,equalHash,requirePlayer,weekKey,KUPA,kupaDurum} from './kimlik.mjs';
 const guardedLogin=createLoginGuard();
 const D=(globalThis as any).DT,players=['meto','lort','fero','latte','josh'];
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type,x-player-token,x-player-session','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'600','Content-Type':'application/json','Cache-Control':'no-store'};
@@ -12,9 +12,14 @@ async function identity(req:Request){const token=req.headers.get('x-player-sessi
 function owner(who:any){return who?'identity:'+who.player:'';}
 async function room(id:string){if(!/^[a-f0-9-]{36}$/.test(id))fail('ROOM');const rs=await db('dt_live_rooms?id=eq.'+id+'&select=id,code,version,week_start,expires_at');if(!rs[0])fail('ROOM');if(rs[0].version!==8||!rs[0].week_start)fail('VERSION');return rs[0];}
 function summary(p:any){const es=p?.entries||[];return {player:p?.player,idx:p?.idx||0,gol:es.filter((e:any)=>e.gol).length,puan:es.reduce((n:number,e:any)=>n+(e.puan||0),0),yesil:es.filter((e:any)=>e.yesil).length};}
-/* Kupa anahtarı: yeni katılım ve vuruş yalnız DT_CUP_OPEN=1 iken kabul edilir. Varsayılan KAPALI. Kayıtlar, puanlar ve giriş korunur. */
-const kupaAcik=()=>Deno.env.get('DT_CUP_OPEN')==='1';
-async function state(r:any,who:any){const rows=await db('dt_live_players?room_id=eq.'+r.id+'&select=player,idx,entries,token_hash');const totals=await db('rpc/dt_goal_standings','POST',{});return {kupaAcik:kupaAcik(),kurallar:14,room:r,identity:who,active:r.week_start===weekKey(),players:oyuncular(rows,owner(who),10),weekly:players.map(player=>({...summary(rows.find((p:any)=>p.player===player)),player})),totals};}
+/* Kupa takvimi (kimlik.mjs): Cumartesi 13:00 – Pazar 19:00 (İstanbul) otomatik açık; sıralama Pazar 19:00'da açıklanır. DT_CUP_MODE: otomatik (varsayılan) | acik | kapali. */
+const kupaMod=()=>{const m=Deno.env.get('DT_CUP_MODE');return m==='acik'||m==='kapali'||m==='otomatik'?m:(Deno.env.get('DT_CUP_OPEN')==='1'?'acik':'otomatik');},kupaAcik=()=>kupaDurum(Date.now(),kupaMod()).acik,TOPLAM=KUPA.oyun*KUPA.vurus;
+async function oncekiHafta(){const hafta=weekKey(Date.now()-7*86400000),rooms=await db('dt_live_rooms?week_start=eq.'+hafta+'&select=id&limit=1');if(!rooms[0])return null;const rows=await db('dt_live_players?room_id=eq.'+rooms[0].id+'&select=player,idx,entries');return {hafta,siralama:rows.map(summary).sort((a:any,b:any)=>b.puan-a.puan||b.gol-a.gol)};}
+async function state(r:any,who:any){const rows=await db('dt_live_players?room_id=eq.'+r.id+'&select=player,idx,entries,token_hash');const k=kupaDurum(Date.now(),kupaMod()),buHafta=r.week_start===weekKey(),aciklandi=buHafta?k.aciklandi:true,h=owner(who);
+ // Sıralama GİZLİ (Pazar 19:00'a kadar): başkalarının puanı, sonuçları ve tüm zamanlar tablosu gönderilmez; yalnız kaç vuruş attıkları görünür. Kendi sonuçların hep görünür.
+ const liste=oyuncular(rows,h,TOPLAM,aciklandi),totals=aciklandi?await db('rpc/dt_goal_standings','POST',{}):null;
+ const weekly=players.map(player=>{const row=rows.find((p:any)=>p.player===player);return aciklandi||(row&&row.token_hash===h)?{...summary(row),player}:{player,idx:row?.idx||0,gizli:true};});
+ return {kupaAcik:k.acik,kurallar:14,oyun:{hak:KUPA.oyun,vurus:KUPA.vurus},takvim:{acilis:new Date(k.acilis).toISOString(),kapanis:new Date(k.kapanis).toISOString()},aciklandi,room:r,identity:who,active:buHafta,players:liste,weekly,totals,onceki:aciklandi?null:await oncekiHafta()};}
 async function weekly(who:any){if(!who)fail('LOGIN');let r;for(let i=0;i<3;i++){try{const code=randomToken().slice(0,6).toUpperCase();r=await db('rpc/dt_weekly_room','POST',{p_code:code,p_creator_hash:owner(who)});break;}catch(e){if((e as Error).message!=='TAKEN')throw e;}}if(!r)fail('DB');return state(r,who);}
 Deno.serve(async(req:Request)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});if(req.method!=='POST')return new Response('{}',{status:405,headers});
@@ -46,12 +51,12 @@ Deno.serve(async(req:Request)=>{
      result=await state(r,who);
     }else if(b.action==='shot'){
      requirePlayer(who,b.player);if(!kupaAcik())fail('CLOSED');if(r.week_start!==weekKey())fail('WEEK_ENDED');
-     if(!Number.isInteger(b.idx)||b.idx<0||b.idx>=10)fail('INPUT');
+     if(!Number.isInteger(b.idx)||b.idx<0||b.idx>=TOPLAM)fail('INPUT');   // 3 oyun × 10 vuruş
      const rows=await db('dt_live_players?room_id=eq.'+r.id+'&player=eq.'+b.player+'&token_hash=eq.'+h+'&select=idx,entries');if(!rows[0])fail('AUTH');
      if(b.idx<rows[0].idx)result={entry:rows[0].entries[b.idx],state:await state(r,who)};
      else{
       if(b.idx!==rows[0].idx)fail('ORDER');if(b.rules!==12&&b.rules!==13&&b.rules!==14)fail('CLIENT_VERSION');/* kaydedilmemiş eski sürüm isteği hak harcamadan reddedilir; kayıtlı vuruşun tekrarı yukarıda mevcut sonucu döndürür */const a=b.aim,c=b.contact;if(!a||!c||![a.x,a.y,c.x,c.y,b.zaman].every(Number.isFinite)||Math.abs(a.x)>4.5||a.y<.11||a.y>3.2||Math.hypot(c.x,c.y)>.851||b.zaman<0||b.zaman>1||!Number.isFinite(b.guc)||b.guc<.3||b.guc>1||![-1,0,1].includes(b.durus))fail('INPUT');
-      const pos=D.AYAR.pozisyonlar[b.idx],seed=await tohum((Deno.env.get('DT_SEED_SECRET')||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,r.id,b.idx),physics=D.fizik.hesapla({pos,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,falsoDenge:true,akilliFrikik:true,kaleciV13:b.rules>=13,kaleciV14:b.rules>=14,balistikDalis:b.rules>=14,direkFizigi:true,sabitKol:true,antrenman:false}),p=D.puan.puanla(pos.tip,physics);   // Rules 12 replays/older clients keep their keeper; rules 13 opts into the quicker keeper.
+      const pos=D.AYAR.pozisyonlar[b.idx%KUPA.vurus],seed=await tohum((Deno.env.get('DT_SEED_SECRET')||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,r.id,b.idx),physics=D.fizik.hesapla({pos,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,falsoDenge:true,akilliFrikik:true,kaleciV13:b.rules>=13,kaleciV14:b.rules>=14,balistikDalis:b.rules>=14,direkFizigi:true,sabitKol:true,antrenman:false}),p=D.puan.puanla(pos.tip,physics);   // Rules 12 replays/older clients keep their keeper; rules 13 opts into the quicker keeper.
       const entry={ad:pos.ad,sonuc:physics.sonuc,puan:p.puan,zaman:p.zaman,zor:p.zor,taban:p.taban,gol:p.gol,yesil:physics.bandaGirdi,quality:physics.quality,speed:physics.speed,input:{rules:b.rules,aim:a,contact:c,zaman:b.zaman,seed,guc:b.guc,durus:b.durus}};
       const saved=await db('rpc/dt_live_save_shot','POST',{p_room:r.id,p_player:b.player,p_hash:h,p_idx:b.idx,p_entry:entry});result={entry:saved.entry,state:await state(r,who)};
      }
@@ -59,5 +64,5 @@ Deno.serve(async(req:Request)=>{
    }
   }
   return new Response(JSON.stringify(result),{headers});
- }catch(e){const errors:any={CLOSED:'Juninho Kupası şu an kapalı. Vuruş hakkın harcanmadı. Antrenman modunda oynayabilirsin.',CLIENT_VERSION:'Oyun güncellendi. Vuruş hakkın harcanmadı. Oyunu güncelle: sayfayı yenileyip bu vuruşu tekrar dene.',LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Giriş yoğun. Kısa süre sonra tekrar dene.',LOGIN_BUSY:'Giriş yoğun. Birkaç saniye sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='LOGIN_BUSY'?429:msg==='DB'?503:400,headers});}
+ }catch(e){const errors:any={CLOSED:'Juninho Kupası şu an kapalı. Her hafta Cumartesi 13:00 – Pazar 19:00 arası açık. Vuruş hakkın harcanmadı.',CLIENT_VERSION:'Oyun güncellendi. Vuruş hakkın harcanmadı. Oyunu güncelle: sayfayı yenileyip bu vuruşu tekrar dene.',LOGIN:'Karakterini seçip özel giriş kodunu yaz.',LOGIN_LIMIT:'Giriş yoğun. Kısa süre sonra tekrar dene.',LOGIN_BUSY:'Giriş yoğun. Birkaç saniye sonra tekrar dene.',FORBIDDEN:'Bu oyuncu sana ait değil.',WEEK_ENDED:'Bu haftanın turu sona erdi. Güncel haftayı aç.',VERSION:'Bu kupa eski sürümde. Bu haftanın kupasını aç.',AUTH:'Oyuncu oturumu geçersiz.',ROOM:'Kupa bulunamadı.',TAKEN:'Bu oyuncu başka oturuma ait.',ORDER:'Vuruş sırası değişti. Sayfayı yenile.',INPUT:'Vuruş bilgisi geçersiz.'};const msg=(e as Error).message;return new Response(JSON.stringify({code:msg==='DB'?'CONNECTION':msg,error:errors[msg]||'Bağlantı kurulamadı. Yeniden dene.'}),{status:msg==='LOGIN_BUSY'?429:msg==='DB'?503:400,headers});}
 });
