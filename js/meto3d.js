@@ -74,17 +74,33 @@ function bendNormal(s,e,h){var n=cross(sub(e,s),sub(h,e));return len(n)<1e-6?[1,
 /* METO SEVİNCİ: üç tam-beden sevinç (dönüşümlü). Eskiden yalnız kollar oynuyor, ayaklar ve gövde sabit duruyordu ("put gibi").
  * Şimdi: çömelip zıplama, ayakların yerden kalkması (dizler bükülür), gövde eğimi/yalpası, baş geri atma, yumruk ve kol hareketleri; bittikten sonra nefes/ağırlık aktarma ile CANLI bekleme.
  * Dönen: arms (omuz/dirsek açıları), body (m cinsinden lift/shift, lean/roll/headBack radyan, footL/footR m), turn (gövde yönü). Kollar armAnatomy ile üretilir (pozitif dirsek bükümü). */
-function celebration(t,variant){
- t=Math.max(0,Number(t)||0);variant=((variant||0)%3+3)%3;
+function celebration(t,variant,kind){
+ t=Math.max(0,Number(t)||0);variant=((variant||0)%3+3)%3;var tepki=kind==='near'||kind==='miss';if(tepki)variant=-1;
  function ease(a,b){var q=clamp((t-a)/(b-a),0,1);return q*q*(3-2*q);}
  function pulse(a,b){var q=clamp((t-a)/(b-a),0,1);return Math.sin(Math.PI*q);}
  function mix(a,b,u){return{abduction:a.abduction+(b.abduction-a.abduction)*u,flex:a.flex+(b.flex-a.flex)*u,elbow:a.elbow+(b.elbow-a.elbow)*u,bendUp:(a.bendUp||0)+((b.bendUp||0)-(a.bendUp||0))*u};}
  var rest={abduction:10,flex:5,elbow:20,bendUp:0},fade=ease(.1,.4)*(1-ease(4.7,5.5)),idle=1-fade;
  var L=rest,R=rest,body={lift:0,shift:0,lean:0,roll:0,headBack:0,footL:0,footR:0},turn=0;
- if(variant===0){   // YUMRUK: iki çömelip-zıplama, sağ yumruk havada, sol el rozete
+ if(tepki){
+  /* GOL OLMAYAN SONUÇ (eskiden kıpırtısız "put" gibi duruyordu). Kısa bir doğal tepki, sonra toparlanıp MUTLU ve enerjik bekleme. Yüz mimiği modelde yok: duygu beden diliyle. */
+  if(kind==='near'){   // DİREKTEN DÖNDÜ: "olamaz, çok yakındı!" (eller başta) → alkışla toparlanma → "bir daha!" yumruğu ve küçük sekme
+   var bas=ease(.08,.42)*(1-ease(1.35,1.75)),alk=ease(1.7,1.95)*(1-ease(2.75,3.1)),yum=ease(2.9,3.25)*(1-ease(3.9,4.4)),cl=Math.max(0,Math.sin((t-1.7)*Math.PI*3.2));
+   var basta={abduction:100,flex:12,elbow:128,bendUp:1},alkis={abduction:6+14*cl,flex:36,elbow:100,bendUp:0},fist={abduction:30,flex:140,elbow:30,bendUp:1};
+   L=mix(mix(rest,basta,bas),alkis,alk);R=mix(mix(mix(rest,basta,bas),alkis,alk),fist,yum);
+   body.lean=-.10*bas+.06*alk;body.headBack=-.25*bas+.05*alk;body.lift=.10*pulse(3.0,3.45);body.footL=body.footR=Math.max(0,body.lift)*.95;turn=.10*Math.sin(t*1.7)*(bas+alk);
+  }else{   // KAÇIRMA: omuz silkme ve "yok yok" baş sallama → alkışla kendini toparlama → "hadi!" sekmesi
+   var silk=ease(.08,.38)*(1-ease(1.2,1.6)),alk2=ease(1.5,1.75)*(1-ease(2.6,2.95)),cl2=Math.max(0,Math.sin((t-1.5)*Math.PI*3.2)),hop=pulse(2.8,3.2);
+   var shrug={abduction:38,flex:22,elbow:82,bendUp:0},alkis2={abduction:6+14*cl2,flex:36,elbow:100,bendUp:0};
+   L=mix(mix(rest,shrug,silk),alkis2,alk2);R=mix(mix(rest,shrug,silk),alkis2,alk2);
+   turn=.22*Math.sin(t*7.5)*silk;body.lean=.05*silk;body.lift=.08*hop;body.footL=body.footR=Math.max(0,body.lift)*.95;
+  }
+  var mutlu=kind==='near'?ease(3.6,4.4):ease(3.0,3.8);fade=1-mutlu;idle=mutlu;
+ }else if(variant===0){   // YUMRUK: iki çömelip-zıplama, sağ yumruk havada, sol el rozete
   var C=Math.max(pulse(.10,.32),pulse(.95,1.17),pulse(1.80,2.02)),J=Math.max(pulse(.32,.82),pulse(1.17,1.67),pulse(2.02,2.52)),pump=ease(.28,.72)*(1-ease(4.2,4.9));   // yumruk yumuşakça kalkar ve sevinç boyunca havada kalır
   body.lift=.22*J-.05*C;body.lean=.16*C-.12*J;body.shift=.02*Math.sin(t*2.2)*fade;body.headBack=-.35*Math.max(J,pump*.7);
-  R=mix(rest,{abduction:14,flex:158,elbow:110,bendUp:0},pump);L=mix(rest,{abduction:22,flex:30,elbow:105,bendUp:0},ease(1.7,2.3)*(1-ease(4.0,4.6)));L=mix(L,{abduction:35,flex:60,elbow:70,bendUp:0},J*.6);
+  // Kollar (eskiden: dirsek havadayken önkol yüzün önüne sarkıyordu: "kırık kol"). Sağ kol zıplamalarda dümdüz göğe, aralarda "bicep" duruşu; sol kol belde "evet!".
+  var up={abduction:32,flex:152,elbow:20,bendUp:1},bicep={abduction:84,flex:14,elbow:100,bendUp:1},evet={abduction:24,flex:-12,elbow:100,bendUp:0},reach=Math.max(J,ease(2.4,2.9)*(1-ease(4.2,4.9)));
+  R=mix(rest,mix(bicep,up,reach),pump);L=mix(rest,evet,ease(.25,.6)*(1-ease(4.2,4.9)));
   turn=.18*Math.sin(t*1.4)*fade;
  }else if(variant===1){   // UÇAK: kollar açık, sağa-sola yatarak adım adım sekme
   var h=ease(.15,.55)*(1-ease(3.9,4.8)),w=t*6.4,bank=Math.sin(t*2.2);
@@ -98,9 +114,12 @@ function celebration(t,variant){
   L=mix(mix(rest,bi,biP),up,armsU);R=mix(mix(rest,bi,biP),up,armsU);turn=.10*Math.sin(t*1.8)*fade;
  }
  if(variant===0){body.footL=body.footR=Math.max(0,body.lift)*.95;}
- // canlı bekleme (heykel gibi durmasın): nefes, ağırlık aktarma, küçük kol salınımı, baş hafif döner
- body.lift+=idle*.004*Math.sin(t*1.9);body.shift+=idle*.014*Math.sin(t*.75);body.roll+=idle*.025*Math.sin(t*.75);turn+=idle*.06*Math.sin(t*.6);
- L=mix(L,{abduction:rest.abduction+3*Math.sin(t*1.3),flex:rest.flex+5*Math.sin(t*1.3),elbow:rest.elbow,bendUp:0},idle*.5);R=mix(R,{abduction:rest.abduction+3*Math.sin(t*1.3+3),flex:rest.flex+5*Math.sin(t*1.3+3),elbow:rest.elbow,bendUp:0},idle*.5);
+ // CANLI ve MUTLU bekleme (heykel gibi durmasın): parmak ucunda hafif ritmik sekme, nefes, ağırlık aktarma, kollar gevşek sallanır, baş hafif döner
+ var sek=Math.abs(Math.sin(t*Math.PI*1.1));body.lift+=idle*(.010*sek+.003*Math.sin(t*1.9));body.shift+=idle*.02*Math.sin(t*.75);body.roll+=idle*.03*Math.sin(t*.75);turn+=idle*.08*Math.sin(t*.6);
+ L=mix(L,{abduction:rest.abduction+5*Math.sin(t*2.2),flex:rest.flex+9*Math.sin(t*2.2),elbow:rest.elbow+8,bendUp:0},idle*.6);R=mix(R,{abduction:rest.abduction+5*Math.sin(t*2.2+Math.PI),flex:rest.flex+9*Math.sin(t*2.2+Math.PI),elbow:rest.elbow+8,bendUp:0},idle*.6);
+ // bekleme uzarsa her ~4,2 sn'de kısa bir alkış (sonuç ekranında beklerken bile canlı ve neşeli)
+ var dongu=t>5.2?(t-5.2)%4.2:9,ia=idle*(dongu<.9?Math.sin(Math.PI*dongu/.9):0);
+ if(ia>0){var ap=Math.max(0,Math.sin(dongu*Math.PI*3.2)),ak={abduction:6+14*ap,flex:36,elbow:100,bendUp:0};L=mix(L,ak,ia);R=mix(R,ak,ia);}
  return{arms:[L,R],body:body,turn:turn,variant:variant};
 }
 function armAnatomy(shoulder,side,upper,lower,angles){
@@ -121,7 +140,7 @@ function pose(r,meta){
  ['hip','chest','neck','head','sl','sr'].forEach(k=>p[k]=add(b[k],mul(sub(n[k],neutral[k]),.94)));
  // Keep the reconstructed face rigid; its orientation follows the upper spine.
  var headAxis=add(sub(b.head,b.neck),mul(sub(sub(n.head,n.neck),sub(neutral.head,neutral.neck)),.4));p.head=add(p.neck,mul(unit(headAxis),len(sub(b.head,b.neck))));
- var celeb=r.celebration?celebration(r.celebration.time,r.celebration.variant):null;
+ var celeb=r.celebration?celebration(r.celebration.time,r.celebration.variant,r.celebration.kind):null;
  if(celeb)applyBody(p,celeb.body,meta);
  ['l','r'].forEach(function(s,i){
   p['hip'+s]=add(b['hip'+s],sub(p.hip,b.hip));
@@ -203,7 +222,7 @@ function draw(g,o){
 }
 function portrait(g,o){
  if(o.id!=='meto')return false;
- var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:null,c=celebrate&&!DANSLAR[o.variant]?celebration(t,o.variant):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
+ var t=o.time||0,celebrate=o.goal?{time:t,variant:o.variant||0}:{time:t,variant:0,kind:o.tur==='direk_disari'?'near':'miss'},c=(celebrate.kind||!DANSLAR[o.variant])?celebration(t,celebrate.variant,celebrate.kind):null,scale=o.height/(1.71024522529/D.futbolcu3d.UNIT);
  return draw(g,{id:'meto',direction:0,yaw:.12+(c?c.turn:0),metoCelebration:celebrate,viewport:o.viewport,project:function(v){var d=900-v[2],q=900/d;return{x:o.x+v[0]*scale*q,y:o.y-(v[1]-8)*scale*q,d:d};}});
 }
 D.meto3d={load:load,draw:draw,portrait:portrait,status:state,_pose:pose,_celebration:celebration,_armAnatomy:armAnatomy,_solveArm:solveArm,_matrices:matrices,_boneMatrix:boneMatrix,_model:()=>model,_renderer:()=>renderer,_dans:dans,_dansDurum:dansDurum,_danslar:DANSLAR,_dansPose:dansPose,_loadDans:loadDans};

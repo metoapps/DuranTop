@@ -82,19 +82,22 @@ function gozlem(path,t,D,yerTakibi){
 }
 // Rules 9: choose BEFORE the kick from an independent seeded draw. No aim,
 // final target, flight duration or future samples can affect the lateral dive.
+var MERKEZ14=.38;
 function penaltiPlan(practice,noise,o){
  var K=A.kaleci,decision=o.preDecision===undefined?.5:o.preDecision;
  var sv=o.kural10===true?clamp(o.seviye||0,0,1):0;   // hayatta kal modunda kaleci seviyesi (0..1)
  /* Kural 10 (antrenman/hedef; resmi kupa rules 9 aynı): kaleci daha sık yerinde kalır (%24), dalışlar kısa da olabilir (%45 oranında 1,0-1,9 m) ve yerinde kalan kaleci topu gördükten sonra yana kayabilir:
   * ortaya (falsolu da) giden şut artık %95 değil ~%65-75 gol. Rules 9 ve eski kayıtlar değişmez. */
- var k10=!!o.kural10,merkez=o.kaleciV13?(k10?.14:.08):(k10?.24:.14),dir=decision<merkez?0:decision<(1+merkez)/2?-1:1,start=-.10,x=dir*2.20;
+ /* Kural 14 (kaleciV14): ortaya atılan penaltı her güçte %93-100 gol oluyordu (kaleci %8-14 ihtimalle yerinde kalıyor, kalınca da topa kaymıyordu). Artık kaleci daha sık yerinde kalır
+  * (MERKEZ14) ve yerinde kalınca topu görüp ona kayar; ortası köşelerden daha kolay değildir. Kural 13 ve öncesi kayıtlar aynen tekrarlanır. */
+ var V14=o.kaleciV14===true,k10=!!o.kural10,merkez=V14?MERKEZ14:o.kaleciV13?(k10?.14:.08):(k10?.24:.14),dir=decision<merkez?0:decision<(1+merkez)/2?-1:1,start=-.10,x=dir*2.20;
  if(k10&&dir){var ex=o.preExtent===undefined?.5:o.preExtent;x=dir*(ex<.55?2.20:1.0+.9*((ex-.55)/.45));}
  /* Kaleci sezgisi (yalnız hayatta kal): seviye arttıkça, belli bir olasılıkla (en çok %45) kaleci doğru köşeyi seçer. Seçim yine vuruştan ÖNCE yapılmış olur (görüntüde değişmez), yalnız isabeti artar. */
  if(sv>0&&o.hedefX!==undefined&&(o.decision===undefined?1:o.decision)<.45*sv)dir=o.hedefX<-.9?-1:o.hedefX>.9?1:0,x=dir*2.20;
  var vmax=K.penaltiHiz-(practice?A.antrenman.hizAzalt*(1-sv):0)+sv*1.2;   // hayatta kal modunda kaleci seviyesi (0..1): +1,2 m/sn'ye kadar hız
  var duration=K.hareketSabit+1.5*Math.abs(x)/vmax,end=start+duration;
  var readT=.13+(practice?.025:0),seen=gozlem(o.yol||[],readT,o.D,true);
- if(k10&&!dir&&seen){x=clamp(seen.x,-.9,.9);start=readT;duration=K.hareketSabit+1.5*Math.abs(x)/vmax;end=start+duration;}   // yerinde kalan kaleci topun yönüne kayar (kural 10)
+ if((k10||V14)&&!dir&&seen){x=clamp(seen.x,-.9,.9);start=readT;duration=K.hareketSabit+1.5*Math.abs(x)/vmax;end=start+duration;}   // yerinde kalan kaleci topun yönüne kayar (kural 10)
  // Only height is read after the shot. Lateral commitment cannot be corrected.
  var heightNoise=noise()*K.hedefGurultuY,reads=[];
  for(var rt=readT;rt<=1.3;rt+=.10){var observed=gozlem(o.yol||[],rt,o.D,true);if(observed)reads.push({t:rt,x:observed.x,y:clamp(observed.y+heightNoise,.15,2.6)});}
@@ -103,16 +106,18 @@ function penaltiPlan(practice,noise,o){
  var heightDuration=Math.max(.22,1.5*Math.abs(targetY-1)/4.0),heightEnd=readT+heightDuration;
  var fallStart=Math.max(end,heightEnd)+.04,ground=dir?.30:(gy<.6?.72:1);
  var landingT=fallStart+Math.sqrt(2*Math.max(0,targetY-ground)/A.yercekimi);
+ var bal=(dir&&o.balistik===true)?dalisK10(1,targetY,start,Math.max(end,heightEnd)-start,.30):null;   // yalnız kupa dışı modlar
  function konum(t){
   var u=clamp((t-start)/duration,0,1),e=u*u*(3-2*u),v=clamp((t-readT)/heightDuration,0,1),ve=v*v*(3-2*v);
   var y=1+(targetY-1)*ve;
   if(t<readT)y=1+.035*Math.sin(Math.PI*u);
   if(t>fallStart)y=Math.max(ground,y-.5*A.yercekimi*Math.pow(t-fallStart,2));
-  var landed=t>=landingT,recovery=landed?clamp((t-landingT-.25)/1.15,0,1):0;
+  var landed=t>=landingT,recovery=landed?clamp((t-landingT-.25)/1.15,0,1):0,egim;
+  if(bal){y=bal.y(t);landed=t>=bal.iniz;recovery=landed?clamp((t-bal.iniz-.25)/1.15,0,1):0;egim=bal.egim(t);}
   if(recovery)y=ground+(1-ground)*recovery;
-  var dive=dir!==0&&u>.08&&recovery<1,observed=t>=readT,handY=1;
+  var dive=dir!==0&&(bal?t>=bal.tDal:u>.08)&&recovery<1,observed=t>=readT,handY=1;
   for(var i=0;i<reads.length&&reads[i].t<=t;i++){var hu=clamp((t-reads[i].t)/.10,0,1);handY+=(reads[i].y-handY)*hu*hu*(3-2*hu);}
-  return {x:x*e,y:y,poz:dive?'dal':'bekle',yon:dive?dir:0,ilerleme:u,eylem:dir?'dal':'bekle',eskiKol:false,
+  return {x:x*e,y:y,poz:dive?'dal':'bekle',yon:dive?dir:0,ilerleme:u,egim:egim,eylem:dir?'dal':'bekle',eskiKol:false,
     low:observed&&gy<.6&&recovery<1,high:observed&&gy>1.75&&t<fallStart+.4,block:0,
     reachHeight:observed?handY:undefined,reachBlend:clamp((t-readT)/.14,0,1),
     landing:landed&&dir!==0,recovery:recovery,airborne:dive&&!landed};
@@ -121,6 +126,17 @@ function penaltiPlan(practice,noise,o){
   eylem:dir?'dal':'bekle',tepki:start,okumaT:readT,sans:true,hedefX:x,hedefY:targetY,okunanX:seen?seen.x:0,okunanY:gy,
   gozlemler:reads,konum:konum,cizimKonum:konum};
 }
+/* BALİSTİK DALIŞ (options.balistik===true: oyun bunu yalnız kupa DIŞI modlarda gönderir; kupa ve sunucu hesabı DEĞİŞMEZ).
+ * Eskiden kalecinin merkezi hedef yüksekliğine "yumuşak ara değer"le çıkıyor, gövde yan hareketin ilerleyişiyle hızla yatıyordu: kaleci yere paralel hâlde yerden ≈1 m yüksekte
+ * yan yan YÜKSELİYORDU (itiş yok, fiziksel olarak imkânsız). Şimdi: çömelme → itiş → yerçekimi altında parabol; gövde itişle birlikte yatar (kalkışta dik, zirvede yatay). */
+function dalisK10(y0,yT,tS,dur,yer){var g=A.yercekimi,tH=tS+Math.max(.14,dur),h=yT-y0,vy=0,tj,tau,zirve=0,iniz;
+ if(h>.03){tau=Math.max(.16,Math.min(.46,dur*.9));tj=Math.max(tS-.02,tH-tau);tau=Math.max(.1,tH-tj);vy=(h+.5*g*tau*tau)/tau;zirve=vy/g;iniz=tj+(vy+Math.sqrt(vy*vy+2*g*Math.max(0,y0-yer)))/g;}
+ else{var dusus=Math.max(0,y0-yT);tj=Math.max(tS,tH-Math.sqrt(2*dusus/g));zirve=0;iniz=tj+Math.sqrt(2*Math.max(0,y0-yer)/g);}
+ function sm(x){x=x<0?0:x>1?1:x;return x*x*(3-2*x);}
+ var egimBas=tj-.05,egimSure=Math.max(.16,zirve>0?zirve+.06:tH-tj+.06);
+ return{tj:tj,vy:vy,iniz:iniz,zirve:zirve,tDal:tj-.05,
+  y:function(t){if(t<tj){var d=t>tj-.12?.09*Math.sin(Math.PI*(t-(tj-.12))/.12):0;return y0-d;}var u=t-tj,y=y0+vy*u-.5*g*u*u;return y<yer?yer:y;},
+  egim:function(t){return sm((t-egimBas)/egimSure);}};}
 function takipPlan(tip,practice,noise,o){
  var K=A.kaleci,sv=o.kural10===true?clamp(o.seviye||0,0,1):0,pYK=K.penaltiYanlisKose*(1-sv*.85),pFM=K.frikikMerkezHatasi*(1-sv*.85)*(o.frikikAI?.4:1),first=K.tepki[tip]+(o.kural10&&tip==='frikik'?(o.frikikAI?.02:.05):K.okumaGecikme[tip])+(practice?A.antrenman.tepkiEk*(1-sv):0)-sv*.04-(o.kaleciV13&&o.frikikAI?.05:0);   // rules 13: first read 50 ms earlier; historical rules untouched. // seviye: tepki 0,04 sn kısalır, yanlış karar ihtimali %85'e kadar azalır   // kural 10: frikikte okuma 0,30→0,05 sn
  var nx=noise()*K.hedefGurultuX*(o.frikikAI?.75:1),ny=noise()*K.hedefGurultuY*(o.frikikAI?.75:1),decision=o.decision===undefined?1:o.decision;
@@ -129,12 +145,14 @@ function takipPlan(tip,practice,noise,o){
  function idle(){return {x:0,y:1,poz:'bekle',yon:0,ilerleme:0,eylem:'bekle',eskiKol:false,low:false,high:false,block:0,landing:false,recovery:0,airborne:false};}
  function sample(seg,t){
   if(!seg)return idle();var u=clamp((t-seg.start)/seg.duration,0,1),e=seg.walk?u:u*u*(3-2*u),dive=seg.action==='dal'&&u>.18;
-  var ground=dive?.30:(seg.gy<.6?.72:1),y=seg.origin.y+(seg.y-seg.origin.y)*e,end=seg.start+seg.duration;
+  var ground=dive?.30:(seg.gy<.6?.72:1),y=seg.origin.y+(seg.y-seg.origin.y)*e,end=seg.start+seg.duration,bal=null,egim;
+  if(o.balistik===true&&seg.action==='dal'&&!seg.walk){if(!seg.bal)seg.bal=dalisK10(seg.origin.y,seg.y,seg.start,seg.duration,.30);bal=seg.bal;dive=t>=bal.tDal;ground=dive?.30:ground;}   // balistik dalış (kupa dışı)
   if(u===1)y=Math.max(ground,y-.5*A.yercekimi*Math.pow(Math.max(0,t-end-.04),2));
   var landingT=end+.04+Math.sqrt(2*Math.max(0,seg.y-ground)/A.yercekimi),landed=u===1&&y<=ground+1e-6;
+  if(bal){y=bal.y(t);landingT=bal.iniz;landed=t>=bal.iniz;egim=bal.egim(t);}
   var recovery=landed?clamp((t-landingT-.22)/1.15,0,1):0;if(recovery)y=ground+(1-ground)*recovery;
   return {x:seg.origin.x+(seg.x-seg.origin.x)*e,y:y,poz:dive&&recovery<1?'dal':'bekle',yon:dive?seg.dir:0,
-   ilerleme:u,eylem:seg.action,eskiKol:false,low:seg.gy<.6&&recovery<1,high:seg.gy>1.75&&t<end+.6,
+   ilerleme:u,egim:egim,eylem:seg.action,eskiKol:false,low:seg.gy<.6&&recovery<1,high:seg.gy>1.75&&t<end+.6,
    block:tip==='frikik'&&seg.central&&!lapse?(seg.blokT!==undefined?clamp((t-seg.blokT)/.25,0,1):Math.min(1,u*2)):0,landing:landed&&dive,recovery:recovery,airborne:dive&&!landed,
    yuruyor:!!seg.walk&&u<1,adimFaz:t*2.4};
  }

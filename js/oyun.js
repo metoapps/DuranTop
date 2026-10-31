@@ -100,7 +100,7 @@
 
   /* ---------- seçim ve tur ---------- */
   function secimGoster(mod) {
-    var me=DT.live&&DT.live.identity&&DT.live.identity();if(!me && mod!=='antrenman'){root.alert('Önce kendi oyuncuna giriş yap.');return;}
+    var me=DT.live&&DT.live.identity&&DT.live.identity();if(!me && mod==='resmi'){root.alert('Önce kendi oyuncuna giriş yap.');return;}   // yalnız kupa giriş ister; antrenman, hedef ağı, günlük ve hayatta kal girişsiz (karakter seçilir)
     d.mod = mod;
     ekranGoster('secim');
     $('secimNot').textContent = mod === 'resmi'
@@ -110,7 +110,7 @@
     DT.KARAKTER.forEach(function (k) {
       var b = doc.createElement('button'); b.type = 'button'; b.className = 'secim-kart';
       b.innerHTML = '<img alt="" src="assets/menu/' + k.id + '_bekle.webp"><span>' + k.ad + '</span>';
-      b.disabled = mod!=='antrenman' && (k.id!==me.player || (mod==='resmi'&&!DT.live.allowed(k.id)));
+      b.disabled = mod==='resmi' && (!me || k.id!==me.player || !DT.live.allowed(k.id));   // kupa dışı modlarda herkes istediği karakteri seçer
       b.addEventListener('click', function () { turBaslat(k.id, mod, null); });
       iz.appendChild(b);
     });
@@ -318,14 +318,14 @@
     var zaman = typeof zamanVerilen === 'number' ? zamanVerilen : (zamanVerilen === null ? null : (cubukAktif() ? cubukDegeri(now) : null));
     if (fifaMod() && !(d.fifa && d.fifa.atis)) return;   // FIFA frikikte yalnız sayaç vurdurur
     d.fifa = { faz: null }; fifaYaz();
-    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,kaleciV13:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,kaleciV13:true,kaleciV14:true,balistikDalis:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
       d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
       DT.live.shot(d.karakter,d.idx,girdi).then(function(entry){
         if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
-        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;girdi.direkFizigi=actual.rules>=12;girdi.kaleciV13=actual.rules>=13;
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;girdi.direkFizigi=actual.rules>=12;girdi.kaleciV13=actual.rules>=13;girdi.kaleciV14=actual.rules>=14;girdi.balistikDalis=actual.rules>=14;
         vurusUygula(girdi,entry);
       }).catch(function(e){if(e&&e.code==='CLOSED'){root.alert(e.message);menuGoster();return;}d.faz='nisan';$('vurBtn').disabled=false;if(e&&e.code==='CLIENT_VERSION'){d.guncelle=true;$('vurBtn').textContent='Oyunu güncelle';$('ucusDurum').textContent=e.message;return;}$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
@@ -375,7 +375,7 @@
   /* Presentation only: >120 km/h, at least four metres at full speed, then
    * a short smoothly ramped bullet-time window. Physics samples stay intact. */
   function yavasPlan(r, olayT) {
-    var Y=A.yavasCekim;if(!Y||Y.acik===false||!(r.speed>120/3.6))return null;
+    var Y=A.yavasCekim;if(!Y||Y.acik===false||!(r.speed>=120/3.6))return null;   // ağır çekim 120 km/sa VE ÜZERİ
     var origin=r.yol[0],start=r.yol.find(function(p){return p.t<olayT&&Math.hypot(p.x-origin.x,p.y-origin.y,p.z-origin.z)>=4;});
     if(!start)return null;var a=start.t,b=Math.min(a+.24,olayT+.08),k=.35,ramp=Math.min(.08,(b-a)/(1+k)*.8),entry=ramp*(1+k)/2,hold=Math.max(0,b-a-2*entry);
     return{a:a,b:b,k:k,ramp:ramp,entry:entry,hold:hold,real:2*ramp+hold/k,extra:2*ramp+hold/k-(b-a),cinematic:true};
@@ -390,7 +390,7 @@
     return y.b+e-y.a-y.real;
   }
   function alevIzi(r,t){
-    if(!(r.speed>120/3.6)||t<=.015||t>r.olayT)return null;
+    if(!(r.speed>120/3.6)||!r.bandaGirdi||t<=.015||t>r.olayT)return null;   // alev YALNIZ 120 km/sa üstü VE ibre yeşili yakaladıysa
     var now=yolOrnek(r.yol,t),origin=r.yol[0];if(Math.hypot(now.x-origin.x,now.y-origin.y,now.z-origin.z)<.4)return null;
     return{time:t,km:r.speed*3.6,points:[.075,.050,.025,0].map(function(ago){return yolOrnek(r.yol,Math.max(0,t-ago));})};
   }
@@ -482,7 +482,7 @@
       out.zaman=d.son.zaman+(now-d.sonucBasla)/1000;out.top=gecerliSonuc.r.sonuc==='direk_disari'?yolOrnek(gecerliSonuc.r.yol,out.zaman):d.son.top;out.kaleci=(!gecerliSonuc.r.kaleci.onKarar&&(gecerliSonuc.r.sonuc==='baraj'||gecerliSonuc.r.sonuc==='kisa'))?d.son.kaleci:gecerliSonuc.r.kaleci.cizimKonum(out.zaman);out.kaleci.saved=gecerliSonuc.r.tuttu;
       var gol = golMu(gecerliSonuc.r);
       out.oyuncu = null;
-      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0 };
+      out.onKarakter = { karakter: d.karakter, poz: gol ? 'sevinc' : 'kacirma', sure: (now - d.sonucBasla) / 1000, gol: gol, sevinc:d.sevincVaryant||0, tur: gecerliSonuc.r.sonuc };
     }
     if(d.pos&&d.pos.tip==='hedef'&&gecerliSonuc&&gecerliSonuc.r.delik&&(d.faz==='sonuc'||d.faz==='vurus'&&d.an&&(d.an.simT===undefined?(now-d.an.t0)/1000-d.an.on:d.an.simT)>=gecerliSonuc.r.olayT))out.hedefVurulan=gecerliSonuc.r.delik.i;
     if(d.pos&&d.pos.tip==='hedef'&&d.aim&&DT.hedef&&d.faz==='nisan'){var yb=-1,yd=1e9;DT.hedef.delikler.forEach(function(h,i){var u=Math.hypot(d.aim.x-h.x,d.aim.y-h.y);if(u<yd){yd=u;yb=i;}});out.hedefSecili=yb;}   // oka en yakın delik sarı yanar
@@ -625,7 +625,7 @@
   function kupaKayit(){return DT.live ? DT.live.records() : oku('dt6_kupa_' + kupaKod,{});}
   function kimlikGoster(){
     var me=DT.live&&DT.live.identity&&DT.live.identity();$('kimlikForm').hidden=!!me;$('kimlikAcik').hidden=!me;$('kimlikAd').textContent=me?me.player.toUpperCase()+' ile giriş yaptın':'';
-    var mine=DT.live&&DT.live.current&&DT.live.current();$('btnResmi').disabled=!me||!!(mine&&mine.idx>=VURUS_SAYISI)||kupaKapali();$('btnAntrenman').disabled=false;if($('btnHedef'))$('btnHedef').disabled=!me;if($('btnGunluk'))$('btnGunluk').disabled=!me;if($('btnHayat'))$('btnHayat').disabled=!me;modDurumYaz();if(me)d.karakter=me.player;
+    var mine=DT.live&&DT.live.current&&DT.live.current();$('btnResmi').disabled=!me||!!(mine&&mine.idx>=VURUS_SAYISI)||kupaKapali();$('btnAntrenman').disabled=false;if($('btnHedef'))$('btnHedef').disabled=false;if($('btnGunluk'))$('btnGunluk').disabled=false;if($('btnHayat'))$('btnHayat').disabled=false;modDurumYaz();if(me)d.karakter=me.player;   // kupa dışı modlar girişsiz
   }
   function kupaGoster(){
     if(!kupaKod)return;var r=kupaKayit(), rows=DT.KARAKTER.map(function(k){return r[k.id]||{id:k.id,idx:0,puan:0,gol:0,yesil:0};});
@@ -828,9 +828,9 @@
     kupaKur(); temasKur();
     $('yukleme').addEventListener('click', function () { root.location.reload(); });
     $('btnAntrenman').addEventListener('click', function () { var me=DT.live.identity();if(me)turBaslat(me.player,'antrenman',null);else secimGoster('antrenman'); });
-    if($('btnHedef'))$('btnHedef').addEventListener('click', function () { var me=DT.live.identity();if(me&&DT.hedef)turBaslat(me.player,'hedef',null); });
-    if($('btnGunluk'))$('btnGunluk').addEventListener('click', function () { var me=DT.live.identity();if(me&&DT.hedef&&DT.modlar)turBaslat(me.player,'gunluk',null); });
-    if($('btnHayat'))$('btnHayat').addEventListener('click', function () { var me=DT.live.identity();if(me&&DT.hedef&&DT.modlar)turBaslat(me.player,'hayat',null); });
+    if($('btnHedef'))$('btnHedef').addEventListener('click', function () { var me=DT.live.identity();if(!DT.hedef)return;if(me)turBaslat(me.player,'hedef',null);else secimGoster('hedef'); });
+    if($('btnGunluk'))$('btnGunluk').addEventListener('click', function () { var me=DT.live.identity();if(!DT.hedef||!DT.modlar)return;if(me)turBaslat(me.player,'gunluk',null);else secimGoster('gunluk'); });
+    if($('btnHayat'))$('btnHayat').addEventListener('click', function () { var me=DT.live.identity();if(!DT.hedef||!DT.modlar)return;if(me)turBaslat(me.player,'hayat',null);else secimGoster('hayat'); });
     $('btnResmi').addEventListener('click', function () {
       if (kupaKapali()) return;
       var k = oku(ANAHTAR.resmi, null);

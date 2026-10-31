@@ -2,7 +2,7 @@
  * Player walking preserves the complete original clothed sprite on a deforming 3D mesh; no external model downloads. */
 (function(root){'use strict';var D=root.DT,faceTexture=null;
 function add(a,b){return a.map(function(x,i){return x+b[i];});}function sub(a,b){return a.map(function(x,i){return x-b[i];});}function mul(a,s){return a.map(function(x){return x*s;});}function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}function unit(a){return mul(a,1/(Math.hypot.apply(null,a)||1));}
-function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*Math.min(1,(k.ilerleme||0)*2.2)*(1-(k.recovery||0)):0,c=Math.cos(tilt),s=Math.sin(tilt);
+function rig(k,z){var dive=k.poz==='dal',tilt=dive?-(k.yon||1)*Math.PI*.47*(k.egim!==undefined?k.egim:Math.min(1,(k.ilerleme||0)*2.2))*(1-(k.recovery||0)):0,c=Math.cos(tilt),s=Math.sin(tilt);
  function p(x,y,d){return [k.x+x*c-y*s,k.y+x*s+y*c,z+(d||0)];}
  var low=k.low&& !dive,leg=low?.55:.85;
  var nodes={hip:p(0,-.22,0),chest:p(0,.33,0),neck:p(0,.55,0),head:p(0,.73,0),

@@ -195,8 +195,20 @@ function motion(n,o){
   m.grip=.4*f;m.headPitch=-.03*f;m.headYaw=.035*Math.sin(t*.9)*f;m.headRoll=-.012*Math.sin(a)*f;
  }return m;
 }
+function tepkiLort(t,kind){
+ /* Gol OLMAYAN sonuç: eskiden LORT kaçırmada 2B karikatür resme dönüyordu (golde 3B gövde). Artık aynı 3B gövdeyle kısa doğal tepki, sonra toparlanıp canlı bekleme. */
+ function e(a,b){return smooth(a,b,t);}function lerp(A,B,u){return A.map(function(v,k){return v+((B[k]===undefined?0:B[k])-v)*u;});}
+ var rest=[10,5,20,0],L=rest,R=rest,lift=0;
+ if(kind==='near'){var bas=e(.08,.42)*(1-e(1.35,1.75)),alk=e(1.7,1.95)*(1-e(2.75,3.1)),cl=Math.max(0,Math.sin((t-1.7)*Math.PI*3.2)),yum=e(2.9,3.25)*(1-e(3.9,4.4));
+  L=lerp(lerp(rest,[100,12,128,1],bas),[6+14*cl,36,100,0],alk);R=lerp(lerp(lerp(rest,[100,12,128,1],bas),[6+14*cl,36,100,0],alk),[30,140,30,1],yum);lift=10*Math.pow(Math.sin(Math.PI*Math.max(0,Math.min(1,(t-3.0)/.45))),2);}
+ else{var silk=e(.08,.38)*(1-e(1.2,1.6)),alk2=e(1.5,1.75)*(1-e(2.6,2.95)),cl2=Math.max(0,Math.sin((t-1.5)*Math.PI*3.2));
+  L=lerp(lerp(rest,[38,22,82,0],silk),[6+14*cl2,36,100,0],alk2);R=L.slice();lift=8*Math.pow(Math.sin(Math.PI*Math.max(0,Math.min(1,(t-2.8)/.4))),2);}
+ var idle=kind==='near'?e(3.6,4.4):e(3.0,3.8),sek=Math.abs(Math.sin(t*Math.PI*1.1));
+ L=lerp(L,[10+5*Math.sin(t*2.2),5+9*Math.sin(t*2.2),28,0],idle*.6);R=lerp(R,[10+5*Math.sin(t*2.2+Math.PI),5+9*Math.sin(t*2.2+Math.PI),28,0],idle*.6);
+ return{fade:1,shift:3*Math.sin(t*.75)*idle,crouch:-1.2*sek*idle,feet:[[-24,8+lift,0],[24,8+lift,0]],left:L,right:R};
+}
 function celebration(t,variant){
- t=Math.max(0,Number(t)||0);var fade=smooth(.15,1.1,t)*(1-smooth(4.1,5.3,t)),wave=Math.sin(t*1.8)*fade;
+ t=Math.max(0,Number(t)||0);if(variant==='near'||variant==='miss')return tepkiLort(t,variant);var fade=smooth(.15,1.1,t)*(1-smooth(4.1,5.3,t)),wave=Math.sin(t*1.8)*fade;
  function step(a,b,length,height){var u=Math.max(0,Math.min(1,(t-a)/(b-a)));return[length*u*u*(3-2*u),height*Math.pow(Math.sin(Math.PI*u),2)];}
  var a=step(.8,1.65,12,12),b=step(2.1,2.9,9,10),c=step(3.6,4.45,12,10),d=step(4.5,5.3,9,9);
  return {fade:fade,shift:4*wave,crouch:-2*fade+.6*Math.sin(t*2.2)*fade,

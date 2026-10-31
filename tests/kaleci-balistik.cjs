@@ -1,0 +1,9 @@
+// Kaleci dalışı (kural 14 / kupa dışı modlar: balistikDalis): gövde neredeyse yatayken hızla YÜKSELMEZ (itişsiz yükselme fiziksel olarak imkânsız).
+// Kural 13 (bayrak yok) eski kayıtlar için aynen kalır.
+const fs=require('fs'),vm=require('vm'),assert=require('assert');const root={DT:{}};vm.createContext(root);for(const n of ['ayar','model3d','baraj','kaleci','ucus','fizik'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+n+'.js','utf8'),root);const D=root.DT,P=D.AYAR.pozisyonlar;
+function say(ek){let kotu=0,n=0,maxVy=0;for(const [pi,aim] of [[0,[3.0,1.9]],[0,[-2.8,1.2]],[0,[2.6,.4]],[5,[2.4,1.5]],[9,[2.8,1.6]]])for(let seed=1;seed<=12;seed++){const r=D.fizik.hesapla(Object.assign({pos:P[pi],aim:{x:aim[0],y:aim[1]},contact:{x:0,y:0},zaman:.5,seed,guc:.85,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman:false,falsoDenge:true,akilliFrikik:true,kaleciV13:true,direkFizigi:true},ek));
+ for(let t=-.2;t<=1.4;t+=.01){const k=r.kaleci.cizimKonum(t,r.olayT),k2=r.kaleci.cizimKonum(t+.01,r.olayT);if(k.poz!=='dal')continue;n++;const eg=k.egim!==undefined?k.egim:Math.min(1,(k.ilerleme||0)*2.2),vy=(k2.y-k.y)/.01;maxVy=Math.max(maxVy,vy);if(eg>.9&&vy>1.5)kotu++;}}return{kotu,n,maxVy};}
+const yeni=say({kaleciV14:true,balistikDalis:true}),yeniK10=say({kaleciV14:true,balistikDalis:true,kural10:true}),eski=say({});
+assert(yeni.n>500&&yeni.kotu===0,'kupa kural 14: yatayken yükselme yok ('+yeni.kotu+'/'+yeni.n+')');assert(yeniK10.n>500&&yeniK10.kotu===0,'kupa dışı: yatayken yükselme yok ('+yeniK10.kotu+'/'+yeniK10.n+')');
+assert(yeni.maxVy<=4.3&&yeniK10.maxVy<=4.3,'çıkış hızı insan sınırında');assert(eski.kotu>0,'kural 13 (eski kayıtlar) aynen: bayraksız yol değişmedi');
+console.log('PASS kaleci balistik dalış: kupa ve kupa dışı 0 yatay yükselme, çıkış ≤ '+Math.max(yeni.maxVy,yeniK10.maxVy).toFixed(2)+' m/sn; kural 13 aynen');

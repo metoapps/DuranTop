@@ -15,7 +15,7 @@ async function oyna(sonuc,yavasAcik){hedefSonuc=sonuc;D.AYAR.yavasCekim.acik=yav
  fire('nisanKilit','click');fire('temasOnay','click');fire('vurBtn','pointerdown',{isPrimary:true});time+=500;root.frame();fire('vurBtn','pointerup');time+=700;root.frame();time+=400;fire('fifaTik','pointerdown',{isPrimary:true});await flush();assert.equal(d.faz,'vurus',sonuc);
  const t0=time,simler=[];let kare=0,olayKare=-1;while(d.faz==='vurus'&&kare<4000){time+=16;root.frame();kare++;if(d.an){simler.push(d.an.simT);if(olayKare<0&&d.an.olay)olayKare=kare;}}
  const bitis=(time-t0)/1000,simBitis=d.an?d.an.simT:null,plan=d.an?d.an.yavas:null,on=d.an?d.an.on:0;fire('devamBtn','click');return{bitis,simler,olayKare,simBitis,on,golSes:golSes.length,alayN,yavas:plan};}
-forceSpeed=120;const ordinary=await oyna('gol',true);assert.equal(ordinary.yavas,null,'120 km/h stays at normal speed');forceSpeed=130;fire('btnAntrenman','click');await flush();
+forceSpeed=119;const ordinary=await oyna('gol',true);assert.equal(ordinary.yavas,null,'119 km/h stays at normal speed (20261026a: 120 ve üzeri ağır çekim)');forceSpeed=130;fire('btnAntrenman','click');await flush();
 const hizli={},yavas={};
 for(const s of ['gol','kurtaris','direk_disari','aut','baraj']){hizli[s]=await oyna(s,false);yavas[s]=await oyna(s,true);}
 const Y=D.AYAR.yavasCekim;

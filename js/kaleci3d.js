@@ -84,7 +84,7 @@ function iskelet(k,z,opt){
  var dal=k.poz==='dal',kimildadi=dal||(k.recovery>0)||(k.ilerleme>0)||k.saved||k.block>0||k.low||k.high;
  if(dal&&!(k.recovery>0)){
   // Havada: üstteki bacak dizden bükülür, alttaki uzanır. Eldiven, baş ve gövde fizik yerinde kalır.
-  var ust=n.fl[1]>n.fr[1]?'l':'r',kalca=n.hip,ayak=n['f'+ust],eksen=sub(ayak,kalca),buk=ease(clamp((k.ilerleme||0)*2.5,0,1));
+  var ust=n.fl[1]>n.fr[1]?'l':'r',kalca=n.hip,ayak=n['f'+ust],eksen=sub(ayak,kalca),buk=ease(clamp(k.egim!==undefined?k.egim*1.1:(k.ilerleme||0)*2.5,0,1));
   var hedef=add(kalca,add(mul(eksen,1-.22*buk),[0,0,-.10*buk])),r=ik(kalca,hedef,BACAK,n['k'+ust]);
   n['k'+ust]=r.orta;n['f'+ust]=r.uc;
   var alt=ust==='l'?'r':'l',ea=sub(n['f'+alt],kalca),r2=ik(kalca,add(kalca,add(mul(ea,1-.05*buk),[0,0,.04*buk])),BACAK,n['k'+alt]);
