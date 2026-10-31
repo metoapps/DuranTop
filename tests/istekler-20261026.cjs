@@ -2,7 +2,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');const oyun=fs.readFileSync(__dirname+'/../js/oyun.js','utf8'),canli=fs.readFileSync(__dirname+'/../js/canli.js','utf8'),be=fs.readFileSync(__dirname+'/../backend/index.ts','utf8');
 assert(/!\(r\.speed>=120\/3\.6\)\)return null;/.test(oyun),'ağır çekim 120 ve üzeri');assert(/!\(r\.speed>120\/3\.6\)\|\|!r\.bandaGirdi/.test(oyun),'alev: 120 üstü VE yeşil');
 assert(/\$\('btnHedef'\)\.disabled=false/.test(oyun)&&/\$\('btnGunluk'\)\.disabled=false/.test(oyun)&&/\$\('btnHayat'\)\.disabled=false/.test(oyun),'kupa dışı modlar girişsiz açık');assert(/if\(!me && mod==='resmi'\)/.test(oyun),'yalnız kupa giriş ister');
-assert(/rules:\(state&&state\.kurallar>=14\)\?14:13/.test(canli),'istemci kural 14ü yalnız sunucu destekliyorsa gönderir (sunucu yüklenmeden kupa bozulmaz)');assert(/b\.rules!==14/.test(be)&&/kaleciV14:b\.rules>=14,balistikDalis:b\.rules>=14/.test(be)&&/kurallar:14/.test(be),'sunucu kural 14ü kabul eder ve duyurur');
+assert(/rules:\(state&&state\.kurallar>=15\)\?15:\(state&&state\.kurallar>=14\)\?14:13/.test(canli),'istemci kural 14ü yalnız sunucu destekliyorsa gönderir (sunucu yüklenmeden kupa bozulmaz)');assert(/b\.rules!==14/.test(be)&&/kaleciV14:b\.rules>=14,balistikDalis:b\.rules>=14/.test(be)&&/kurallar:kural\(\)/.test(be)&&/\?15:14/.test(be),'sunucu kural 14ü kabul eder ve duyurur');
 // alev davranışı: yeşil yoksa alev yok
 {const root={DT:{},document:{readyState:'loading',addEventListener(){}},addEventListener(){},localStorage:{getItem(){return null},setItem(){}},location:{search:''},setTimeout,clearTimeout,performance:{now:()=>0}};vm.createContext(root);}
 // baraj: zıplayan oyuncunun kolları aşağıda ve blok yüksekliği yalnız sıçrama kadar

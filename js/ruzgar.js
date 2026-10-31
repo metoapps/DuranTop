@@ -10,5 +10,7 @@ function seviye(w){return w.hiz<1?'durgun':w.hiz<4.2?'orta':'sert';}
 function okAcisi(w){return Math.round(Math.atan2(w.vx,w.vz)*180/Math.PI);}
 /* olcekle: rüzgârı k kat güçlendirir/zayıflatır (hayatta kal zorluğu); açı korunur. */
 function olcekle(w,k){var h=Math.round(Math.min(6.5*k,w.hiz*k)*10)/10;return{vx:Math.round(w.vx*k*10)/10,vz:Math.round(w.vz*k*10)/10,hiz:Math.round(w.hiz*k*10)/10,aci:w.aci};}
-DT.ruzgar={uret:uret,olcekle:olcekle,seviye:seviye,okAcisi:okAcisi};
+/* KUPA (kural 15): rüzgâr oda kimliği ve vuruş numarasından türetilir. İstemci vuruştan ÖNCE göstergede görür, sunucu aynı değeri hesaplar; hile payı yok (gizli tohum değil, herkese aynı). */
+function kupa(odaId,idx){var h=2166136261,s=String(odaId)+'|ruzgar|'+idx;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return uret(h|0);}
+DT.ruzgar={uret:uret,olcekle:olcekle,seviye:seviye,okAcisi:okAcisi,kupa:kupa};
 })(typeof globalThis!=='undefined'?globalThis:window);

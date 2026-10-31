@@ -10,6 +10,9 @@
   var VURUS_SAYISI = A.pozisyonlar.length;
   /* Kupa: haftada 3 oyun × 10 vuruş (sunucu 'oyun' alanını gönderirse); eski sunucuda 1 oyun. Sunucuya giden vuruş numarası = oyun × 10 + vuruş. */
   function kupaHak(){var st=DT.live&&DT.live.getState&&DT.live.getState();return st&&st.oyun?st.oyun.hak:1;}
+  /* Kural 15 (sunucu kurallar>=15 bildirirse): kupada rüzgâr vardır; oda+vuruş numarasından türetilir, vuruştan önce göstergede görünür ve topu gerçekten sapar. */
+  function kupaKural15(){var st=DT.live&&DT.live.getState&&DT.live.getState();return !!(st&&st.kurallar>=15&&DT.ruzgar);}
+  function kupaRuzgar(){return kupaKural15()?DT.ruzgar.kupa(DT.live.getState().room.id,(d.oyunNo||0)*VURUS_SAYISI+d.idx):null;}
   function kupaToplam(){return kupaHak()*VURUS_SAYISI;}
   function oyunMetni(idx){var hak=kupaHak();if(!idx)return 'henüz oynamadı';if(idx>=hak*VURUS_SAYISI)return hak>1?hak+'/'+hak+' oyun bitti':'tamamladı';return (hak>1?'Oyun '+(Math.floor(idx/VURUS_SAYISI)+1)+'/'+hak+' · ':'')+(idx%VURUS_SAYISI)+'/'+VURUS_SAYISI+' vuruş';}
   // Hedef ağı modu kendi pozisyonlarını kullanır (js/hedef.js); kupa ve antrenman eski 10 pozisyon.
@@ -167,7 +170,7 @@
     if (DT.cizim.barajIsit) DT.cizim.barajIsit(d.barajGeo);   // baraj oyuncularının sprite'ları pozisyon açılırken hazırlanır
     d.faz = 'nisan'; d.aim = null; d.kilit = false; d.duzeltHak = 1; d.falso = 0; d.onizleme = null; d.an = null; d.son = null;
     d.seed = d.mod === 'gunluk' ? DT.modlar.gunSeed(d.gun, d.idx) : (Math.random() * 2147483647) | 0;   // günlük: herkes için aynı tohum (kaleci kararı, rüzgâr, altın bölge)   // resmi turda gerçek tohumu sunucu üretir ve vuruştan sonra gönderir; bu değer yalnızca antrenman/önizleme içindir
-    d.ruzgar = (d.mod !== 'resmi' && A.ruzgar && A.ruzgar.acik !== false && DT.ruzgar) ? DT.ruzgar.uret(d.seed ^ 0x9e37) : null;
+    d.ruzgar = d.mod === 'resmi' ? kupaRuzgar() : (A.ruzgar && A.ruzgar.acik !== false && DT.ruzgar) ? DT.ruzgar.uret(d.seed ^ 0x9e37) : null;
     if (d.ruzgar && d.mod === 'hayat') d.ruzgar = DT.ruzgar.olcekle(d.ruzgar, DT.modlar.hayatZorluk(d.hayatGol).ruzgarOlcek);   // hayatta kal: rüzgâr zorlaşır
     d.altin = (d.mod !== 'resmi' && d.pos.tip !== 'hedef' && DT.bonus) ? DT.bonus.altinUret(d.seed ^ 0x51ed) : null;   // altın bölge: yalnız antrenman penaltı/frikik
     d.contact = {x:0,y:0}; d.temasHazir = false;d.guc=1;d.gucHazir=false;d.durus=0;d.kamDurus=0;d.donus=0;d.donusSon=null;d.yurume=null;d.durusHazir=true;d.alayT0=null;d.konfetiT0=null;d.tekrar=null;panelKonumu();
@@ -186,7 +189,7 @@
       : 'Kaleye dokun, parmağını sürükle, bırak. Nişan kilitlenir.';
     if(!acik)DT.ses.cal('islik');   // hakem düdüğü: pozisyon hazır; sayfa yenilenip devam eden vuruşta çalmaz
     if (acik) {   // sayfa yenilendi: aynı vuruş kaldığı yerden devam eder
-      d.seed = acik.seed; d.altin = (d.mod !== 'resmi' && d.pos.tip !== 'hedef' && DT.bonus) ? DT.bonus.altinUret(d.seed ^ 0x51ed) : null; d.ruzgar = (d.mod !== 'resmi' && A.ruzgar && A.ruzgar.acik !== false && DT.ruzgar) ? DT.ruzgar.uret(d.seed ^ 0x9e37) : null; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
+      d.seed = acik.seed; d.altin = (d.mod !== 'resmi' && d.pos.tip !== 'hedef' && DT.bonus) ? DT.bonus.altinUret(d.seed ^ 0x51ed) : null; d.ruzgar = d.mod === 'resmi' ? kupaRuzgar() : (A.ruzgar && A.ruzgar.acik !== false && DT.ruzgar) ? DT.ruzgar.uret(d.seed ^ 0x9e37) : null; d.aim = acik.aim; d.duzeltHak = acik.duzeltHak;
       d.contact = acik.contact || {x:0,y:0}; d.temasHazir = !!acik.temasHazir;d.guc=acik.guc===undefined?1:acik.guc;d.gucHazir=!!acik.gucHazir;d.durus=acik.durus||0;DT.cizim.kameraDurus(d.durus);panelKonumu();$('gucSec').value=Math.round(d.guc*100);
       falsoSec(acik.falso || 0);
       kilitle(true);
@@ -323,14 +326,14 @@
     var zaman = typeof zamanVerilen === 'number' ? zamanVerilen : (zamanVerilen === null ? null : (cubukAktif() ? cubukDegeri(now) : null));
     if (fifaMod() && !(d.fifa && d.fifa.atis)) return;   // FIFA frikikte yalnız sayaç vurdurur
     d.fifa = { faz: null }; fifaYaz();
-    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,kaleciV13:true,kaleciV14:true,balistikDalis:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
+    var girdi = { pos: d.pos, aim: d.aim, contact: d.contact, falso: d.falso, zaman: zaman, seed: d.seed,guc:d.guc,durus:d.durus,temasFizigi:true,enerjiFizigi:true,takipFizigi:true,yerTakibi:true,golGeometrisi:true,penaltiTahmin:true,sabitKol:true,antrenman: d.mod === 'antrenman',falsoDenge:true,akilliFrikik:true,kaleciV13:true,kaleciV14:true,balistikDalis:true,direkFizigi:true,kural10:d.mod!=='resmi',ruzgar:ruzgarDizi(),ruzgarKupa:d.mod==='resmi'&&d.ruzgar?ruzgarDizi():undefined,seviye:d.mod==='hayat'?DT.modlar.hayatZorluk(d.hayatGol).seviye:undefined };
     if(d.mod==='resmi' && DT.live){
       var requestIdx=d.idx,requestPlayer=d.karakter,requestRoom=DT.live.getState().room.id;
       d.faz='gonderiliyor';$('vurBtn').disabled=true;$('vurBtn').textContent='Kaydediliyor…';
       DT.live.shot(d.karakter,(d.oyunNo||0)*VURUS_SAYISI+d.idx,girdi).then(function(entry){
         if(d.ekran!=='oyun'||d.idx!==requestIdx||d.karakter!==requestPlayer||DT.live.getState().room.id!==requestRoom)return;
         $('vurBtn').disabled=false;$('vurBtn').textContent='VUR';
-        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;girdi.direkFizigi=actual.rules>=12;girdi.kaleciV13=actual.rules>=13;girdi.kaleciV14=actual.rules>=14;girdi.balistikDalis=actual.rules>=14;
+        var actual=entry.input;girdi.aim=actual.aim;girdi.contact=actual.contact;girdi.zaman=actual.zaman;girdi.seed=actual.seed;girdi.guc=actual.guc===undefined?1:actual.guc;girdi.durus=actual.durus||0;girdi.gucZorlugu=actual.rules>=2;girdi.temasFizigi=actual.rules>=3;girdi.sabitKol=actual.rules>=4;girdi.enerjiFizigi=actual.rules>=5;girdi.takipFizigi=actual.rules>=6;girdi.yerTakibi=actual.rules>=7;girdi.golGeometrisi=actual.rules>=8;girdi.penaltiTahmin=actual.rules>=9;girdi.falsoDenge=actual.rules>=11;girdi.akilliFrikik=actual.rules>=11;girdi.direkFizigi=actual.rules>=12;girdi.kaleciV13=actual.rules>=13;girdi.kaleciV14=actual.rules>=14;girdi.balistikDalis=actual.rules>=14;girdi.ruzgarKupa=actual.rules>=15&&d.ruzgar?ruzgarDizi():undefined;
         vurusUygula(girdi,entry);
       }).catch(function(e){if(e&&e.code==='CLOSED'){root.alert(e.message);menuGoster();return;}d.faz='nisan';$('vurBtn').disabled=false;if(e&&e.code==='CLIENT_VERSION'){d.guncelle=true;$('vurBtn').textContent='Oyunu güncelle';$('ucusDurum').textContent=e.message;return;}$('vurBtn').textContent='Yeniden bağlan';$('ucusDurum').textContent=e.message+' Aynı vuruşla tekrar dene.';});return;
     }
@@ -727,7 +730,7 @@
     var c = d.contact || { x: 0, y: 0 }, key = [d.pos.ad, d.aim.x.toFixed(2), d.aim.y.toFixed(2), (+c.x).toFixed(2), (+c.y).toFixed(2), k10() ? 1 : 0, d.ruzgar ? d.ruzgar.vx + ',' + d.ruzgar.vz : ''].join('|');
     if (onizBel.key === key) return onizBel.yol;
     if (onizBel.yol && now - onizBel.t < 70) return onizBel.yol;   // en çok ≈14 kez/sn yenilenir (ok tuşu ya da falso sürüklemesi sırasında takılma olmasın)
-    var f = DT.ucus.energyLaunch(d.pos, d.aim, c, 0, 1, function () { return 0; }, 1, true, k10() ? { hata: 0, bant: DT.zamanBandi(d.aim, 1, true), ruzgar: ruzgarDizi() } : null,true);   // ok, rüzgârla sapan gerçek yolu gösterir
+    var f = DT.ucus.energyLaunch(d.pos, d.aim, c, 0, 1, function () { return 0; }, 1, true, k10() ? { hata: 0, bant: DT.zamanBandi(d.aim, 1, true), ruzgar: ruzgarDizi() } : null,true,d.mod === 'resmi' && d.ruzgar ? ruzgarDizi() : undefined);   // ok, rüzgârla sapan gerçek yolu gösterir
     onizBel = { key: key, yol: f.yol, t: now }; return onizBel.yol;
   }
   // FIFA sistemi (yer oku + falso + basılı tut güç + geri dönen ibre) artık penaltı, frikik ve hedef ağında aynı.

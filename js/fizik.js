@@ -81,7 +81,7 @@
     var kontrolSapmasi=hata*DT.koseBandi(aim)/bant;
     var bandaGirdi = zamanVar && Math.abs(hata) <= bant;
     var quality = Math.exp(-Math.pow(hata / (0.18*bant/A.zaman.bant), 2));
-    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.takipFizigi===true,girdi.kural10===true?{hata:hata,bant:bant,ruzgar:girdi.ruzgar}:null,girdi.falsoDenge===true) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
+    var flight = girdi.enerjiFizigi===true ? DT.ucus.energyLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.takipFizigi===true,girdi.kural10===true?{hata:hata,bant:bant,ruzgar:girdi.ruzgar}:null,girdi.falsoDenge===true,girdi.ruzgarKupa) : DT.ucus.hedefliLaunch(pos,aim,girdi.contact||{x:0,y:0},kontrolSapmasi,quality,gauss,girdi.guc,girdi.gucZorlugu!==false,girdi.temasFizigi===true);
     var cx=flight.contact.x,cy=flight.contact.y,bx=pos.bx,D=pos.D,T=flight.T,dt=1/120,ornekler=flight.yol;
     var ax=flight.son.x,ay=flight.son.y;
 
@@ -159,7 +159,7 @@
         for(var bounce=0;bounce<(girdi.direkFizigi===true?6:1)&&hit;bounce++){
           var p0=hit.at,n=hit.normal,spin=hit.spin||flight.spin,prefix=ornekler.slice(0,hit.index);contacts.push(p0);
           reb=DT.ucus.integrate({bx:bx,D:D+R},hit.velocity,spin,
-            {initialPosition:[p0.x+n[0]*.00001,p0.y+n[1]*.00001,p0.z+n[2]*.00001],startTime:p0.t,groundSpin:true,...(girdi.direkFizigi===true&&girdi.kural10===true?{rulo:A.aerodinamik.ruloK10,ruloV:A.aerodinamik.ruloVK10,minVaris:A.aerodinamik.minVarisK10,ruzgar:girdi.ruzgar}: {})});
+            {initialPosition:[p0.x+n[0]*.00001,p0.y+n[1]*.00001,p0.z+n[2]*.00001],startTime:p0.t,groundSpin:true,...(girdi.direkFizigi===true&&girdi.kural10===true?{rulo:A.aerodinamik.ruloK10,ruloV:A.aerodinamik.ruloVK10,minVaris:A.aerodinamik.minVarisK10,ruzgar:girdi.ruzgar}: {}),...(girdi.ruzgarKupa?{ruzgar:girdi.ruzgarKupa,ruzgarFiz:true}:{})});
           ornekler=prefix.concat(reb.yol);
           hit=girdi.direkFizigi===true?ilkDirek(reb.yol,spin):null;if(hit)hit.index+=prefix.length;
         }
