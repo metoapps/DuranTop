@@ -556,6 +556,16 @@
     if (d.idx >= turSayisi() || (d.mod === 'hayat' && d.hayatBitti)) turSonu(); else vurusHazirla(null);
   }
 
+  /* Kupa: haftada birden çok oyun. Bir oyun (10 vuruş) bitince sıradaki oyun aynı oturumda başlar; sunucu vuruş numarası = oyun × 10 + vuruş. */
+  function sonrakiOyun() {
+    if (d.mod !== 'resmi' || (d.oyunNo || 0) + 1 >= kupaHak()) return;
+    if (kupaKapali()) { root.alert('Kupa şu an kapalı.'); return; }
+    d.oyunNo = (d.oyunNo || 0) + 1; d.idx = 0; d.sonuclar = [];
+    yaz(ANAHTAR.resmi, { tur: d.tur, karakter: d.karakter, idx: 0, oyunNo: d.oyunNo, sonuclar: [], acik: null });
+    ekranGoster('oyun');
+    vurusHazirla(null);
+  }
+
   /* ---------- tur sonu ---------- */
   function turSonu() {
     d.faz = 'bos';
@@ -563,7 +573,9 @@
     if (d.mod !== 'resmi' && DT.rozet) rozetBildir(DT.rozet.turSonu({ puan: t, vurus: turSayisi(), gol: d.sonuclar.filter(function (s) { return s.gol; }).length }));
     ekranGoster('tursonu');
     $('turKarakter').src = 'assets/menu/' + d.karakter + '_' + (gol >= 3 ? 'sevinc' : (gol === 0 ? 'kacirma' : 'bekle')) + '.png';
-    $('turBaslik').textContent = gol + (d.mod==='hedef'?' delik, ':' gol, ') + turSayisi() + ' vuruş';$('turTekrar').hidden=d.mod==='resmi';
+    $('turBaslik').textContent = (d.mod==='resmi'&&kupaHak()>1?'Oyun '+((d.oyunNo||0)+1)+'/'+kupaHak()+': ':'') + gol + (d.mod==='hedef'?' delik, ':' gol, ') + turSayisi() + ' vuruş';
+    var sonraki = d.mod==='resmi' && (d.oyunNo||0)+1 < kupaHak();   // kupa: bu oyun bitti, haftalık hakkın kalan oyunu var
+    $('turTekrar').hidden = d.mod==='resmi' && !sonraki; $('turTekrar').textContent = sonraki ? 'Sonraki oyun (' + ((d.oyunNo||0)+2) + '/' + kupaHak() + ')' : 'Tekrar oyna';
     $('turToplam').textContent = t;
     var ADLAR = {delik:'Delikten', halka:'Halkaya çarptı', ag:'Ağdan döndü', kisa:'Kısa kaldı', gol: 'Gol', direk_gol: 'Direkten gol', direk_disari: 'Direkten döndü', kurtaris: 'Kurtardı', baraj: 'Baraja çarptı', aut: 'Aut' };
     var liste = $('turListe'); liste.innerHTML = '';
@@ -582,6 +594,7 @@
       if (t > en) yaz(ANAHTAR.enIyi, t);
       sil(ANAHTAR.resmi);
       $('turNot').textContent = (t > en ? 'Bu telefonda yeni en iyi tur. ' : 'Bu telefonda en iyi tur: ' + en + ' puan. ') + 'Gollerin otomatik kaydedildi.';
+      if (kupaHak() > 1) { var ben = DT.live && DT.live.current && DT.live.current(); $('turNot').textContent = 'Oyun ' + ((d.oyunNo||0)+1) + '/' + kupaHak() + ' bitti' + (ben && typeof ben.puan === 'number' ? ' · 3 oyunun toplamı şimdilik: ' + ben.puan + ' puan' : '') + '. ' + (sonraki ? 'Sıradaki oyuna geçebilirsin.' : 'Tüm oyunlar bitti; sıralama Pazar 19:00\'da açıklanır.'); }
     } else if (d.mod === 'gunluk' && DT.modlar) {
       var gg = d.sonuclar.filter(function (x) { return x.gol; }).length, kay = DT.modlar.gunlukKaydet(d.gun, t, gg), du = DT.modlar.gunlukDurum(d.gun);
       $('turBaslik').textContent = 'Günlük #' + DT.modlar.gunSira(d.gun) + ': ' + gg + '/3 gol';
@@ -863,7 +876,7 @@
     $('secimGeri').addEventListener('click', menuGoster);
     $('hudGeri').addEventListener('click', menuGoster);
     $('turMenu').addEventListener('click', menuGoster);
-    $('turTekrar').addEventListener('click', function () { secimGoster(d.mod); });
+    $('turTekrar').addEventListener('click', function () { if (d.mod === 'resmi') sonrakiOyun(); else secimGoster(d.mod); });
     $('vurBtn').addEventListener('pointerdown', function (e) { if (e.isPrimary === false) return; if (fifaMod()) { if (e.preventDefault) e.preventDefault(); if(fifaPointer!==null)return;fifaBas('vur');if(d.fifa&&d.fifa.faz==='guc'){fifaPointer=e.pointerId;try { this.setPointerCapture(e.pointerId); } catch (x) {}} return; } vur(); });
     $('vurBtn').addEventListener('pointerup',function(e){if(fifaPointer!==null&&e.pointerId!==fifaPointer)return;fifaPointer=null;if(fifaMod())fifaBirak();});
     // Tarayıcı iptal ederse (pointercancel) güç sıfırlanır. Fare/parmak HÂLÂ basılıyken yakalama kaybolursa (lostpointercapture) seçim YAPILMAZ: yakalama yenilenir, basış sürer.
